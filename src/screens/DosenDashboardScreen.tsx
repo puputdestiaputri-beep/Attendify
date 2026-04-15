@@ -10,8 +10,9 @@ import {
   Users, TrendingUp, Activity, LogOut, RefreshCw,
   BookOpen, Radio, Bell, Search, Filter, ChevronRight
 } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ type FilterType = 'Semua' | 'Hadir' | 'Telat' | 'Tidak Hadir';
 
 export default function DosenDashboardScreen() {
   const navigation = useNavigation<any>();
+  const { logout } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
   const [isLive, setIsLive] = useState(true);
   const [lastUpdated, setLastUpdated] = useState('14:45');
@@ -82,7 +84,7 @@ export default function DosenDashboardScreen() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => navigation.replace('Login'),
+          onPress: () => logout(), // ← cukup ini, navigator otomatis render Login
         },
       ]
     );
@@ -134,7 +136,8 @@ export default function DosenDashboardScreen() {
               <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
             </View>
             <TouchableOpacity onPress={handleLogout} style={styles.logoutCircle}>
-              <LogOut size={22} color="#F87171" />
+              <LogOut size={18} color="#F87171" />
+              <Text style={styles.logoutCircleText}>Keluar</Text>
             </TouchableOpacity>
           </View>
 
@@ -240,6 +243,19 @@ export default function DosenDashboardScreen() {
             })}
           </View>
 
+          {/* ── Logout Button ── */}
+          <TouchableOpacity style={styles.logoutFullBtn} onPress={handleLogout} activeOpacity={0.85}>
+            <LinearGradient
+              colors={['#dc2626', '#b91c1c']}
+              style={styles.logoutGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <LogOut size={20} color="#fff" />
+              <Text style={styles.logoutFullText}>Logout dari Akun</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
         </ScrollView>
       </LinearGradient>
     </View>
@@ -249,7 +265,7 @@ export default function DosenDashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   background: { flex: 1 },
-  scroll: { paddingBottom: 60 },
+  scroll: { paddingBottom: 40 },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -269,14 +285,41 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   logoutCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: 'rgba(248,113,113,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.2)',
+    borderColor: 'rgba(248,113,113,0.25)',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  logoutCircleText: {
+    fontSize: 13,
+    color: '#F87171',
+    fontWeight: '700',
+  },
+  logoutFullBtn: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 16,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  logoutGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 17,
+    gap: 10,
+  },
+  logoutFullText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   courseBanner: {
     marginHorizontal: 20,

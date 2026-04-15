@@ -11,6 +11,7 @@ import DosenDashboardScreen from '../screens/DosenDashboardScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '../context/AuthContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -35,39 +36,59 @@ function TabNavigator() {
         tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
       }}
     >
-      <Tab.Screen 
-        name="Dashboard" 
-        component={HomeScreen} 
-        options={{
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />
-        }}
+      <Tab.Screen
+        name="Dashboard"
+        component={HomeScreen}
+        options={{ tabBarIcon: ({ color }) => <Home color={color} size={24} /> }}
       />
-      <Tab.Screen 
-        name="Jadwal" 
-        component={JadwalScreen} 
-        options={{
-          tabBarIcon: ({ color }) => <CalendarIcon color={color} size={24} />
-        }}
+      <Tab.Screen
+        name="Jadwal"
+        component={JadwalScreen}
+        options={{ tabBarIcon: ({ color }) => <CalendarIcon color={color} size={24} /> }}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen} 
-        options={{
-          tabBarIcon: ({ color }) => <UserIcon color={color} size={24} />
-        }}
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarIcon: ({ color }) => <UserIcon color={color} size={24} /> }}
       />
     </Tab.Navigator>
   );
 }
 
-export default function AppNavigator() {
+// Navigator untuk user yang sudah login (Mahasiswa)
+function MahasiswaNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
-      <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="Scan" component={ScanScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Navigator untuk Dosen yang sudah login
+function DosenNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DosenDashboard" component={DosenDashboardScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
+}
+
+export default function AppNavigator() {
+  const { isLoggedIn, role } = useAuth();
+
+  // Jika belum login → tampilkan Login screen
+  if (!isLoggedIn) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  // Jika sudah login → tampilkan navigator sesuai role
+  if (role === 'dosen') return <DosenNavigator />;
+  return <MahasiswaNavigator />;
 }
