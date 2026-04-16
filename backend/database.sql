@@ -1,87 +1,141 @@
-CREATE DATABASE IF NOT EXISTS attendify_db;
-USE attendify_db;
+CREATE DATABASE db_absensi;
+USE db_absensi;
 
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('mahasiswa', 'dosen', 'admin') NOT NULL,
-    face_encoding LONGTEXT NULL,
-    photo_url VARCHAR(255) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- =========================
+-- TABEL WAJAH
+-- =========================
+CREATE TABLE wajah (
+    id_wajah INT AUTO_INCREMENT PRIMARY KEY,
+    foto1 VARCHAR(200),
+    foto2 VARCHAR(200),
+    foto3 VARCHAR(200),
+    foto4 VARCHAR(200),
+    tanggal_input DATETIME
 );
 
-CREATE TABLE IF NOT EXISTS mahasiswa (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    npm VARCHAR(50) UNIQUE NOT NULL,
-    jurusan VARCHAR(100),
-    angkatan INT,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+-- =========================
+-- TABEL PENGGUNA
+-- =========================
+CREATE TABLE pengguna (
+    id_user INT AUTO_INCREMENT PRIMARY KEY,
+    nama VARCHAR(100),
+    nohp VARCHAR(15),
+    username VARCHAR(20),
+    password VARCHAR(200),
+    role ENUM('admin','dosen','mahasiswa'),
+    id_wajah INT,
+    status ENUM('Y','N'),
+    
+    FOREIGN KEY (id_wajah) REFERENCES wajah(id_wajah)
 );
 
-CREATE TABLE IF NOT EXISTS dosen (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    nidn VARCHAR(50) UNIQUE NOT NULL,
-    fakultas VARCHAR(100),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+-- =========================
+-- TABEL KELAS
+-- =========================
+CREATE TABLE kelas (
+    id_kelas INT AUTO_INCREMENT PRIMARY KEY,
+    nama_kelas VARCHAR(50),
+    prodi ENUM('informatika','sistem informasi','teknologi informasi'),
+    keterangan VARCHAR(100)
 );
 
-CREATE TABLE IF NOT EXISTS jadwal (
+-- =========================
+-- TABEL MAHASISWA_KELAS
+-- =========================
+CREATE TABLE mahasiswa_kelas (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    mata_kuliah VARCHAR(255) NOT NULL,
-    dosen_id INT NOT NULL,
-    ruangan VARCHAR(100),
-    hari VARCHAR(20),
+    mahasiswa_id INT,
+    kelas_id INT,
+
+    FOREIGN KEY (mahasiswa_id) REFERENCES pengguna(id_user),
+    FOREIGN KEY (kelas_id) REFERENCES kelas(id_kelas)
+);
+
+-- =========================
+-- TABEL KAMERA
+-- =========================
+CREATE TABLE kamera (
+    id_kamera INT AUTO_INCREMENT PRIMARY KEY,
+    nama_kamera VARCHAR(50),
+    lokasi_kelas VARCHAR(100),
+    ip_address VARCHAR(50),
+    status ENUM('aktif','nonaktif')
+);
+
+-- =========================
+-- TABEL MATA KULIAH
+-- =========================
+CREATE TABLE mata_kuliah (
+    id_mk INT AUTO_INCREMENT PRIMARY KEY,
+    kode_mk VARCHAR(10),
+    nama_mk VARCHAR(100),
+    sks INT,
+    status ENUM('Y','N')
+);
+
+-- =========================
+-- TABEL JADWAL KULIAH
+-- =========================
+CREATE TABLE jadwal_kuliah (
+    id_jadwal INT AUTO_INCREMENT PRIMARY KEY,
+    dosen_id INT,
+    mata_kuliah_id INT,
+    kelas_id INT,
+    hari ENUM('senin','selasa','rabu','kamis','jumat','sabtu'),
     jam_mulai TIME,
     jam_selesai TIME,
-    FOREIGN KEY (dosen_id) REFERENCES dosen(id) ON DELETE CASCADE
+    ruang VARCHAR(50),
+
+    FOREIGN KEY (dosen_id) REFERENCES pengguna(id_user),
+    FOREIGN KEY (mata_kuliah_id) REFERENCES mata_kuliah(id_mk),
+    FOREIGN KEY (kelas_id) REFERENCES kelas(id_kelas)
 );
 
-CREATE TABLE IF NOT EXISTS kelas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nama_kelas VARCHAR(50) NOT NULL,
-    jadwal_id INT NOT NULL,
-    FOREIGN KEY (jadwal_id) REFERENCES jadwal(id) ON DELETE CASCADE
+-- =========================
+-- TABEL ABSENSI
+-- =========================
+CREATE TABLE absensi (
+    id_absensi INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    kamera_id INT,
+    jadwal_id INT,
+    tanggal DATETIME,
+    waktu_datang TIME,
+    status ENUM('hadir','terlambat','pulang','alfa'),
+    status_telat ENUM('ya','tidak'),
+    keterangan VARCHAR(100),
+
+    FOREIGN KEY (user_id) REFERENCES pengguna(id_user),
+    FOREIGN KEY (kamera_id) REFERENCES kamera(id_kamera),
+    FOREIGN KEY (jadwal_id) REFERENCES jadwal_kuliah(id_jadwal)
 );
 
-CREATE TABLE IF NOT EXISTS kelas_mahasiswa (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    kelas_id INT NOT NULL,
-    mahasiswa_id INT NOT NULL,
-    FOREIGN KEY (kelas_id) REFERENCES kelas(id) ON DELETE CASCADE,
-    FOREIGN KEY (mahasiswa_id) REFERENCES mahasiswa(id) ON DELETE CASCADE
+-- =========================
+-- TABEL LOG DETEKSI WAJAH
+-- =========================
+CREATE TABLE log_deteksi (
+    id_log INT AUTO_INCREMENT PRIMARY KEY,
+    kamera_id INT,
+    user_id INT,
+    waktu_deteksi DATETIME,
+    confidence FLOAT,
+    foto_capture VARCHAR(200),
+
+    FOREIGN KEY (kamera_id) REFERENCES kamera(id_kamera),
+    FOREIGN KEY (user_id) REFERENCES pengguna(id_user)
 );
 
-CREATE TABLE IF NOT EXISTS absensi (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    mahasiswa_id INT NOT NULL,
-    jadwal_id INT NOT NULL,
-    waktu_absen DATETIME,
-    status ENUM('hadir', 'telat', 'alfa') NOT NULL,
-    confidence_score DECIMAL(5, 2) NULL,
-    device_id VARCHAR(100) NULL,
-    FOREIGN KEY (mahasiswa_id) REFERENCES mahasiswa(id) ON DELETE CASCADE,
-    FOREIGN KEY (jadwal_id) REFERENCES jadwal(id) ON DELETE CASCADE
-);
+-- =========================
+-- TABEL NOTIFIKASI
+-- =========================
+CREATE TABLE notifikasi (
+    id_notif INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    judul VARCHAR(100),
+    jenis_notif ENUM('absensi','terlambat','informasi'),
+    pesan TEXT,
+    tanggal DATETIME,
+    status_baca ENUM('belum','sudah'),
 
-CREATE TABLE IF NOT EXISTS notifikasi (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    type ENUM('success', 'warning', 'info', 'error') DEFAULT 'info',
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NULL,
-    activity VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES pengguna(id_user)
 );

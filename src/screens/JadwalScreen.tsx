@@ -1,21 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { MapPin, Clock, Calendar, ChevronRight, BookOpen } from 'lucide-react-native';
+import { MapPin, Clock, Calendar, ChevronRight, BookOpen, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '../context/ThemeContext';
+import { AttendanceChart } from '../components/AttendanceChart';
 
 const { width } = Dimensions.get('window');
 
 const SCHEDULES = [
-  { id: 1, subject: 'Pemrograman Web', time: '08:00 - 10:30', room: 'Lab Komputer 1', status: 'Finished', lecturer: 'Dr. John Doe' },
-  { id: 2, subject: 'Kecerdasan Buatan', time: '13:00 - 15:30', room: 'Ruang 402', status: 'Ongoing', lecturer: 'Prof. Jane Smith' },
-  { id: 3, subject: 'Mobile Programming', time: '16:00 - 18:30', room: 'Lab Komputer 2', status: 'Upcoming', lecturer: 'Alex Morgan, M.Kom' },
+  { 
+    id: 1, 
+    subject: 'Pemrograman Web', 
+    time: '08:00 - 10:30', 
+    room: 'Lab Komputer 1', 
+    status: 'Finished', 
+    lecturer: 'Dr. John Doe',
+    attendance: 85,
+    total: 12,
+    attended: 10,
+  },
+  { 
+    id: 2, 
+    subject: 'Kecerdasan Buatan', 
+    time: '13:00 - 15:30', 
+    room: 'Ruang 402', 
+    status: 'Ongoing', 
+    lecturer: 'Prof. Jane Smith',
+    attendance: 92,
+    total: 12,
+    attended: 11,
+  },
+  { 
+    id: 3, 
+    subject: 'Mobile Programming', 
+    time: '16:00 - 18:30', 
+    room: 'Lab Komputer 2', 
+    status: 'Upcoming', 
+    lecturer: 'Alex Morgan, M.Kom',
+    attendance: 78,
+    total: 12,
+    attended: 9,
+  },
 ];
+
+interface ScheduleItem {
+  id: number;
+  subject: string;
+  time: string;
+  room: string;
+  status: string;
+  lecturer: string;
+  attendance: number;
+  total: number;
+  attended: number;
+}
 
 export default function JadwalScreen() {
   const navigation = useNavigation();
+  const { isDarkMode } = useTheme();
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -26,9 +72,16 @@ export default function JadwalScreen() {
     }
   };
 
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   return (
     <LinearGradient
-      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
+      colors={isDarkMode ? 
+        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
+        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
+      }
       style={styles.container}
     >
       <View style={styles.header}>
@@ -37,8 +90,10 @@ export default function JadwalScreen() {
             <Calendar color="#fff" size={24} />
           </TouchableOpacity>
           <View>
-            <Text style={styles.title}>Jadwal Kuliah</Text>
-            <Text style={styles.subtitle}>Senin, 13 April 2026</Text>
+            <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#1f2937' }]}>Jadwal Kuliah</Text>
+            <Text style={[styles.subtitle, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(31,41,55,0.8)' }]}>
+              Senin, 13 April 2026
+            </Text>
           </View>
         </View>
       </View>
@@ -49,46 +104,74 @@ export default function JadwalScreen() {
       >
         {SCHEDULES.map((item) => {
           const statusStyle = getStatusColor(item.status);
-          return (
-            <BlurView key={item.id} intensity={20} tint="dark" style={styles.card}>
-              <View style={styles.cardIndicator} />
-              
-              <View style={styles.cardMain}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.subjectRow}>
-                    <View style={styles.iconContainer}>
-                      <BookOpen color={Colors.ai.primary} size={20} />
-                    </View>
-                    <Text style={styles.subject} numberOfLines={1}>{item.subject}</Text>
-                  </View>
-                  <View style={[styles.badge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
-                    <View style={[styles.dot, { backgroundColor: statusStyle.text }]} />
-                    <Text style={[styles.badgeText, { color: statusStyle.text }]}>{item.status}</Text>
-                  </View>
-                </View>
+          const isExpanded = expandedId === item.id;
 
-                <Text style={styles.lecturer}>{item.lecturer}</Text>
+          return (
+            <View key={item.id}>
+              <BlurView intensity={20} tint="dark" style={styles.card}>
+                <View style={styles.cardIndicator} />
                 
-                <View style={styles.divider} />
-                
-                <View style={styles.cardFooter}>
-                  <View style={styles.infoCol}>
-                    <View style={styles.infoRow}>
-                      <Clock size={14} color="rgba(255,255,255,0.5)" />
-                      <Text style={styles.infoText}>{item.time}</Text>
+                <View style={styles.cardMain}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.subjectRow}>
+                      <View style={styles.iconContainer}>
+                        <BookOpen color={Colors.ai.primary} size={20} />
+                      </View>
+                      <Text style={styles.subject} numberOfLines={1}>{item.subject}</Text>
                     </View>
-                    <View style={styles.infoRow}>
-                      <MapPin size={14} color="rgba(255,255,255,0.5)" />
-                      <Text style={styles.infoText}>{item.room}</Text>
+                    <View style={[styles.badge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
+                      <View style={[styles.dot, { backgroundColor: statusStyle.text }]} />
+                      <Text style={[styles.badgeText, { color: statusStyle.text }]}>{item.status}</Text>
                     </View>
                   </View>
+
+                  <Text style={styles.lecturer}>{item.lecturer}</Text>
                   
-                  <TouchableOpacity style={styles.detailBtn}>
-                     <ChevronRight color="rgba(255,255,255,0.4)" size={20} />
-                  </TouchableOpacity>
+                  <View style={styles.divider} />
+                  
+                  <View style={styles.cardFooter}>
+                    <View style={styles.infoCol}>
+                      <View style={styles.infoRow}>
+                        <Clock size={14} color="rgba(255,255,255,0.5)" />
+                        <Text style={styles.infoText}>{item.time}</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <MapPin size={14} color="rgba(255,255,255,0.5)" />
+                        <Text style={styles.infoText}>{item.room}</Text>
+                      </View>
+                    </View>
+                    
+                    <TouchableOpacity 
+                      style={styles.detailBtn}
+                      onPress={() => toggleExpand(item.id)}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp color="rgba(255,255,255,0.4)" size={20} />
+                      ) : (
+                        <ChevronDown color="rgba(255,255,255,0.4)" size={20} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </BlurView>
+              </BlurView>
+
+              {isExpanded && (
+                <BlurView intensity={20} tint="dark" style={styles.expandedCard}>
+                  <AttendanceChart
+                    data={[
+                      {
+                        subject: item.subject,
+                        attendance: item.attendance,
+                        total: item.total,
+                        attended: item.attended,
+                      }
+                    ]}
+                    title={`Grafik Absensi ${item.subject}`}
+                    showLegend={false}
+                  />
+                </BlurView>
+              )}
+            </View>
           );
         })}
       </ScrollView>
@@ -233,5 +316,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  expandedCard: {
+    borderRadius: 24,
+    marginLeft: 20,
+    marginRight: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderTopWidth: 0,
+    padding: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    paddingTop: 16,
   }
 });

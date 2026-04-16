@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { Camera, Calendar, Clock, MapPin, Bell, User, CheckCircle2 } from 'lucide-react-native';
+import { Camera, Calendar, Clock, MapPin, Bell, CheckCircle2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { AttendanceChart } from '../components/AttendanceChart';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const [userName] = useState('Aldi');
+  const { user } = useAuth();
+  const { isDarkMode } = useTheme();
+
+  const userName = user?.fullName || 'Mahasiswa';
+  const userProdi = user?.prodi || '-';
+
+  // Mock data - replace with real data from backend
+  const attendanceData = [
+    { subject: 'Pemrograman Web', attendance: 85, total: 12, attended: 10 },
+    { subject: 'Kecerdasan Buatan', attendance: 92, total: 12, attended: 11 },
+    { subject: 'Mobile Programming', attendance: 78, total: 12, attended: 9 },
+  ];
 
   const handleScan = () => {
     navigation.navigate('Scan');
@@ -21,32 +35,37 @@ export default function HomeScreen() {
   };
 
   const handleNotification = () => {
-    Alert.alert('Notifikasi', 'Anda tidak memiliki notifikasi baru.');
+    navigation.navigate('Notification');
   };
 
   return (
     <LinearGradient
-      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
+      colors={isDarkMode ? 
+        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
+        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
+      }
       style={styles.container}
     >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Top Header */}
+        {/* Header */}
         <View style={styles.topHeader}>
           <View>
-            <Text style={styles.greeting}>Halo, {userName} 👋</Text>
-            <Text style={styles.subtitle}>Mahasiswa Fasilkom</Text>
+            <Text style={[styles.greeting, { color: isDarkMode ? '#fff' : '#1f2937' }]}>
+              Halo, {userName} 👋
+            </Text>
+            <Text style={[styles.subGreeting, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(31,41,55,0.8)' }]}>
+              Mahasiswa {userProdi}
+            </Text>
           </View>
+
           <TouchableOpacity style={styles.notifBtn} onPress={handleNotification}>
             <Bell color="#fff" size={24} />
             <View style={styles.notifDot} />
           </TouchableOpacity>
         </View>
 
-        {/* Quick Attendance Status */}
+        {/* Status */}
         <BlurView intensity={20} tint="dark" style={styles.statusCard}>
           <View style={styles.statusInfo}>
             <Text style={styles.statusLabel}>Status Hari Ini</Text>
@@ -55,7 +74,9 @@ export default function HomeScreen() {
               <Text style={styles.statusBadgeText}>Belum Absen</Text>
             </View>
           </View>
+
           <View style={styles.divider} />
+
           <View style={styles.statusDetails}>
             <View style={styles.detailItem}>
               <CheckCircle2 color="#4ADE80" size={16} />
@@ -65,13 +86,11 @@ export default function HomeScreen() {
           </View>
         </BlurView>
 
-        {/* Current Schedule Banner */}
+        {/* Banner */}
         <View style={styles.scheduleBanner}>
           <LinearGradient
-            colors={['rgba(59, 130, 246, 0.5)', 'rgba(147, 51, 234, 0.5)']}
+            colors={['rgba(59,130,246,0.5)', 'rgba(147,51,234,0.5)']}
             style={styles.bannerGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
           >
             <View style={styles.bannerHeader}>
               <Text style={styles.bannerTitle}>Mata Kuliah Sekarang</Text>
@@ -79,12 +98,15 @@ export default function HomeScreen() {
                 <Text style={styles.liveText}>ONGOING</Text>
               </View>
             </View>
+
             <Text style={styles.courseName}>Kecerdasan Buatan</Text>
+
             <View style={styles.courseDetails}>
               <View style={styles.courseDetailItem}>
                 <Clock color="rgba(255,255,255,0.7)" size={14} />
                 <Text style={styles.courseDetailText}>13:00 - 15:30</Text>
               </View>
+
               <View style={styles.courseDetailItem}>
                 <MapPin color="rgba(255,255,255,0.7)" size={14} />
                 <Text style={styles.courseDetailText}>Ruang 402</Text>
@@ -93,18 +115,21 @@ export default function HomeScreen() {
           </LinearGradient>
         </View>
 
-        {/* Action Buttons */}
+        {/* Attendance Chart */}
+        <BlurView intensity={20} tint="dark" style={styles.chartCard}>
+          <AttendanceChart
+            data={attendanceData}
+            title="Grafik Absensi Semua Mata Kuliah"
+            showLegend={true}
+          />
+        </BlurView>
+
+        {/* Menu */}
         <Text style={styles.sectionTitle}>Menu Utama</Text>
+
         <View style={styles.actionRow}>
-          <TouchableOpacity 
-            style={styles.actionBtn}
-            onPress={handleScan}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#6366F1', '#4F46E5']}
-              style={styles.actionGradient}
-            >
+          <TouchableOpacity style={styles.actionBtn} onPress={handleScan}>
+            <LinearGradient colors={['#6366F1', '#4F46E5']} style={styles.actionGradient}>
               <View style={styles.iconCircle}>
                 <Camera color="#fff" size={28} />
               </View>
@@ -113,16 +138,9 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.actionBtn}
-            onPress={handleJadwal}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#8B5CF6', '#7C3AED']}
-              style={styles.actionGradient}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleJadwal}>
+            <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.actionGradient}>
+              <View style={styles.iconCircle}>
                 <Calendar color="#fff" size={28} />
               </View>
               <Text style={styles.actionBtnText}>Lihat Jadwal</Text>
@@ -131,10 +149,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tip of the day */}
+        {/* Tips */}
         <View style={styles.tipCard}>
           <Text style={styles.tipTitle}>💡 Tips Hari Ini</Text>
-          <Text style={styles.tipContent}>Jangan lupa untuk melakukan scan wajah minimal 15 menit sebelum perkuliahan dimulai agar tidak dianggap terlambat.</Text>
+          <Text style={styles.tipContent}>
+            Jangan lupa scan wajah minimal 15 menit sebelum kuliah dimulai.
+          </Text>
         </View>
 
       </ScrollView>
@@ -143,31 +163,33 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+
   scrollContent: {
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 120,
   },
+
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 32,
   },
+
   greeting: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
-    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+
+  subGreeting: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 4,
   },
+
   notifBtn: {
     width: 48,
     height: 48,
@@ -175,9 +197,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
+
   notifDot: {
     position: 'absolute',
     top: 12,
@@ -186,152 +207,128 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: '#EF4444',
-    borderWidth: 2,
-    borderColor: '#0F172A',
   },
+
   statusCard: {
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    marginBottom: 24,
-    overflow: 'hidden',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
   },
+
   statusInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
-  statusLabel: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
-  },
+
+  statusLabel: { color: '#fff' },
+
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(254, 240, 138, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(254, 240, 138, 0.4)',
   },
-  statusBadgeText: {
-    color: '#FDE047',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
+
+  statusBadgeText: { color: '#FDE047' },
+
   pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
     backgroundColor: '#FDE047',
-    marginRight: 8,
+    marginRight: 6,
   },
+
   divider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 16,
+    marginVertical: 10,
   },
+
   statusDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
+
   detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  detailText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-  },
-  detailValue: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  scheduleBanner: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginBottom: 32,
-    elevation: 10,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-  },
-  bannerGradient: {
-    padding: 24,
-  },
-  bannerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  bannerTitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  liveBadge: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  liveText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  courseName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  courseDetails: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  courseDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  courseDetailText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+
+  detailText: { color: '#ccc' },
+  detailValue: { color: '#fff' },
+
+  scheduleBanner: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 20,
   },
-  sectionTitle: {
+
+  chartCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+
+  bannerGradient: { padding: 20 },
+
+  bannerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  bannerTitle: { color: '#fff' },
+
+  liveBadge: {
+    backgroundColor: '#EF4444',
+    padding: 4,
+    borderRadius: 6,
+  },
+
+  liveText: { color: '#fff', fontSize: 10 },
+
+  courseName: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
-    marginLeft: 4,
   },
+
+  courseDetails: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+
+  courseDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  courseDetailText: { color: '#ddd' },
+
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 10,
+  },
+
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
   },
+
   actionBtn: {
     width: (width - 56) / 2,
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
   },
+
   actionGradient: {
     padding: 20,
-    height: 160,
-    justifyContent: 'space-between',
   },
+
   iconCircle: {
     width: 48,
     height: 48,
@@ -340,32 +337,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionBtnText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  actionBtnSub: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    marginTop: -8,
-  },
+
+  actionBtnText: { color: '#fff', marginTop: 10 },
+  actionBtnSub: { color: '#ccc', fontSize: 12 },
+
   tipCard: {
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
-    borderRadius: 20,
+    marginTop: 20,
     padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
   },
-  tipTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  tipContent: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    lineHeight: 20,
-  }
+
+  tipTitle: { color: '#fff', fontWeight: 'bold' },
+  tipContent: { color: '#ccc', marginTop: 5 },
 });

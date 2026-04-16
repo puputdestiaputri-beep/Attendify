@@ -2,31 +2,58 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { Bell, Moon, UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle } from 'lucide-react-native';
+import { Bell, Moon, UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle, LogOut } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigation = useNavigation<any>();
+  const { logout } = useAuth();
+  const { isDarkMode } = useTheme();
 
   const handleDevFeature = (name: string) => {
     Alert.alert('Info', `Fitur ${name} akan tersedia pada versi pembaruan mendatang.`);
   };
 
+  const handleLogout = () => {
+    console.log('🚀 handleLogout clicked (Settings)');
+    Alert.alert(
+      'Konfirmasi Logout',
+      'Apakah Anda yakin ingin keluar?',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            console.log('💥 Logout button pressed in Alert (Settings)');
+            setIsLoggingOut(true);
+            logout();
+            console.log('✅ logout() called, state should update');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <LinearGradient
-      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
+      colors={isDarkMode ? 
+        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
+        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
+      }
       style={styles.container}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ChevronLeft size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Pengaturan</Text>
+        <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#1f2937' }]}>Pengaturan</Text>
         <TouchableOpacity onPress={() => handleDevFeature('Pusat Bantuan')}>
            <HelpCircle size={24} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
@@ -38,46 +65,11 @@ export default function SettingsScreen() {
       >
         
         <View style={styles.settingsGroup}>
-          <Text style={styles.groupTitle}>Aplikasi & Tampilan</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
-            <View style={styles.settingItem}>
-              <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                   <Bell size={20} color="#F59E0B" />
-                 </View>
-                 <Text style={styles.settingItemText}>Notifikasi Real-time</Text>
-              </View>
-              <Switch
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#3B82F6' }}
-                thumbColor="#fff"
-                onValueChange={setNotificationsEnabled}
-                value={notificationsEnabled}
-              />
-            </View>
-
-            <View style={[styles.settingItem, styles.noBorder]}>
-              <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
-                   <Moon size={20} color="#A855F7" />
-                 </View>
-                 <Text style={styles.settingItemText}>Mode Gelap (Otomatis)</Text>
-              </View>
-              <Switch
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#3B82F6' }}
-                thumbColor="#fff"
-                onValueChange={setDarkModeEnabled}
-                value={darkModeEnabled}
-              />
-            </View>
-          </BlurView>
-        </View>
-
-        <View style={styles.settingsGroup}>
           <Text style={styles.groupTitle}>Keamanan & Akun</Text>
           <BlurView intensity={20} tint="dark" style={styles.card}>
             <TouchableOpacity 
                style={styles.settingItem}
-               onPress={() => handleDevFeature('Edit Profil')}
+               onPress={() => navigation.navigate('ProfileDetails')}
             >
               <View style={styles.settingItemLeft}>
                  <View style={[styles.iconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
@@ -90,7 +82,7 @@ export default function SettingsScreen() {
 
             <TouchableOpacity 
                style={[styles.settingItem, styles.noBorder]}
-               onPress={() => handleDevFeature('Privasi')}
+               onPress={() => navigation.navigate('PrivacySecurity')}
             >
               <View style={styles.settingItemLeft}>
                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
@@ -108,7 +100,7 @@ export default function SettingsScreen() {
           <BlurView intensity={20} tint="dark" style={styles.card}>
             <TouchableOpacity 
                style={[styles.settingItem, styles.noBorder]}
-               onPress={() => handleDevFeature('Tentang Aplikasi')}
+               onPress={() => navigation.navigate('AboutAttendify')}
             >
               <View style={styles.settingItemLeft}>
                  <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
@@ -120,6 +112,19 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </BlurView>
         </View>
+
+        {/* ── Logout Button – Prominent ── */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+          <LinearGradient
+            colors={['#dc2626', '#b91c1c']}
+            style={styles.logoutGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <LogOut size={20} color="#fff" />
+            <Text style={styles.logoutText}>Logout dari Akun</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
         <Text style={styles.copyright}>© 2026 SmartFace System. All rights reserved.</Text>
 
@@ -190,5 +195,24 @@ const styles = StyleSheet.create({
     fontSize: 12, 
     marginTop: 10,
     marginBottom: 40
+  },
+  logoutBtn: { 
+    marginTop: 32, 
+    marginBottom: 24, 
+    height: 56, 
+    borderRadius: 16, 
+    overflow: 'hidden' 
+  },
+  logoutGradient: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    gap: 8 
+  },
+  logoutText: { 
+    color: '#fff', 
+    fontSize: 16, 
+    fontWeight: 'bold' 
   }
 });
