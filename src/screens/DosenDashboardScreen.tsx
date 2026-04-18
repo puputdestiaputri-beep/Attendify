@@ -94,7 +94,7 @@ export default function DosenDashboardScreen() {
 
   const updateStudentStatus = (status: 'Hadir' | 'Telat') => {
     if (selectedStudentId === null) return;
-    
+
     const now = new Date();
     const h = now.getHours().toString().padStart(2, '0');
     const m = now.getMinutes().toString().padStart(2, '0');
@@ -106,7 +106,7 @@ export default function DosenDashboardScreen() {
 
     setShowAttendanceModal(false);
     setSelectedStudentId(null);
-    
+
     setSuccessTitle('Berhasil');
     setSuccessMessage(`Mahasiswa berhasil ditandai ${status.toLowerCase()} secara manual.`);
     setShowSuccessModal(true);
@@ -306,27 +306,27 @@ export default function DosenDashboardScreen() {
               </View>
               <Text style={styles.modalTitle}>Status Kehadiran</Text>
               <Text style={styles.modalMessage}>Pilih status kehadiran manual untuk mahasiswa ini.</Text>
-              
+
               <View style={styles.choiceGroup}>
-                <TouchableOpacity 
-                   style={[styles.choiceBtn, { borderLeftColor: '#4ADE80' }]} 
-                   onPress={() => updateStudentStatus('Hadir')}
+                <TouchableOpacity
+                  style={[styles.choiceBtn, { borderLeftColor: '#4ADE80' }]}
+                  onPress={() => updateStudentStatus('Hadir')}
                 >
                   <CheckCircle2 color="#4ADE80" size={20} />
                   <Text style={styles.choiceText}>Hadir Tepat Waktu</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                   style={[styles.choiceBtn, { borderLeftColor: '#FBBF24' }]} 
-                   onPress={() => updateStudentStatus('Telat')}
+                <TouchableOpacity
+                  style={[styles.choiceBtn, { borderLeftColor: '#FBBF24' }]}
+                  onPress={() => updateStudentStatus('Telat')}
                 >
                   <Clock color="#FBBF24" size={20} />
                   <Text style={styles.choiceText}>Terlambat (Telat)</Text>
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity 
-                style={styles.cancelBtnFull} 
+              <TouchableOpacity
+                style={styles.cancelBtnFull}
                 onPress={() => setShowAttendanceModal(false)}
               >
                 <Text style={styles.cancelBtnText}>Batal</Text>
@@ -774,13 +774,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     marginTop: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cancelBtnSmall: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   cancelBtnTextSmall: {
