@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Image,
-  StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView, Alert
+  StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView, Modal, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
@@ -23,15 +23,30 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Custom Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const hideAlert = () => {
+    setAlertVisible(false);
+  };
 
   const handleLogin = async () => {
     if (!identifier.trim()) {
-      Alert.alert('Perhatian', 'Silakan masukkan NIM, NIP, atau Email Anda.');
+      showAlert('Perhatian', 'Silakan masukkan NIM, NIP, atau Email Anda.');
       return;
     }
 
     if (!password.trim()) {
-      Alert.alert('Perhatian', 'Silakan masukkan password.');
+      showAlert('Perhatian', 'Silakan masukkan password.');
       return;
     }
 
@@ -40,16 +55,16 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       // Validasi pengecekan akun terdaftar
       const userString = await AsyncStorage.getItem(`@user_${identifier.trim().toLowerCase()}`);
       if (!userString) {
-        Alert.alert('Belum Terdaftar', 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.');
         setIsLoading(false);
+        showAlert('Belum Terdaftar', 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.');
         return;
       }
 
       const registeredUser = JSON.parse(userString);
       
       if (registeredUser.password !== password) {
-        Alert.alert('Gagal', 'Password salah.');
         setIsLoading(false);
+        showAlert('Gagal', 'Password salah.');
         return;
       }
 
@@ -247,6 +262,34 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         {/* Wave Separator */}
         
       </ScrollView>
+
+      {/* Custom Alert Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={alertVisible}
+        onRequestClose={hideAlert}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconContainer}>
+                {alertTitle === 'Gagal' || alertTitle === 'Belum Terdaftar' || alertTitle === 'Perhatian' ? (
+                  <Text style={styles.modalIcon}>⚠️</Text>
+                ) : (
+                  <Text style={styles.modalIcon}>✅</Text>
+                )}
+              </View>
+              <Text style={styles.modalTitle}>{alertTitle}</Text>
+            </View>
+            <Text style={styles.modalMessage}>{alertMessage}</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={hideAlert}>
+              <Text style={styles.modalButtonText}>Mengerti</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </LinearGradient>
   );
 }
@@ -458,5 +501,67 @@ const styles = StyleSheet.create({
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 24,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(30, 79, 168, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalIcon: {
+    fontSize: 28,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.attendify.onSurface,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: Colors.attendify.neutral,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalButton: {
+    backgroundColor: Colors.attendify.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
