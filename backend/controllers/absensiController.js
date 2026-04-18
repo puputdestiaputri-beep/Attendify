@@ -116,19 +116,32 @@ exports.finishClass = async (req, res) => {
 
 exports.getAllAbsensi = async (req, res) => {
     try {
-        const [absensi] = await db.query(`
-            SELECT a.*, p.nama as name, mk.nama_mk
+        const { class_id } = req.query;
+        let query = `
+            SELECT a.*, p.nama as name, mk.nama_mk, k.nama_kelas
             FROM absensi a 
             JOIN pengguna p ON a.user_id = p.id_user 
             JOIN jadwal_kuliah jk ON a.jadwal_id = jk.id_jadwal
             JOIN mata_kuliah mk ON jk.mata_kuliah_id = mk.id_mk
-            ORDER BY a.tanggal DESC
-        `);
+            JOIN kelas k ON jk.kelas_id = k.id_kelas
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        if (class_id) {
+            query += " AND k.id_kelas = ?";
+            params.push(class_id);
+        }
+        
+        query += " ORDER BY a.tanggal DESC";
+        
+        const [absensi] = await db.query(query, params);
         res.json({ status: 'success', data: absensi });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+
 
 exports.getAbsensiByMahasiswa = async (req, res) => {
     try {
@@ -146,3 +159,35 @@ exports.getAbsensiByMahasiswa = async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+
+exports.updateAttendanceStatus = async (req, res) => {
+    try {
+        const { user_id, jadwal_id, status } = req.body;
+        if (!user_id || !jadwal_id || !status) {
+            return res.status(400).json({ status: 'error', message: 'user_id, jadwal_id, and status are required' });
+        }
+
+        // Check if record exists
+        const [existing] = await db.query(
+            'SELECT id_absensi FROM absensi WHERE user_id = ? AND jadwal_id = ? AND DATE(tanggal) = CURDATE()',
+            [user_id, jadwal_id]
+        );
+
+        if (existing.length > 0) {
+            await db.query(
+                'UPDATE absensi SET status = ?, waktu_datang = CURTIME() WHERE id_absensi = ?',
+                [status, existing[0].id_absensi]
+            );
+        } else {
+            await db.query(
+                'INSERT INTO absensi (user_id, jadwal_id, tanggal, waktu_datang, status) VALUES (?, ?, NOW(), CURTIME(), ?)',
+                [user_id, jadwal_id, status]
+            );
+        }
+
+        res.json({ status: 'success', message: 'Status kehadiran diperbarui' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+

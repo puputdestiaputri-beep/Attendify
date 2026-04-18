@@ -20,7 +20,11 @@ import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import ManageStudentsScreen from '../screens/ManageStudentsScreen';
 import ManageLecturersScreen from '../screens/ManageLecturersScreen';
 import IoTSensorValidationScreen from '../screens/IoTSensorValidationScreen';
+import DatabaseLogsScreen from '../screens/DatabaseLogsScreen';
+import ManageAttendanceScreen from '../screens/ManageAttendanceScreen';
 import { Colors } from '@/constants/Colors';
+
+
 import { useAuth } from '../context/AuthContext';
 
 const Tab = createBottomTabNavigator();
@@ -170,7 +174,9 @@ function DosenNavigator() {
       <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
       <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
+      <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
+
   );
 }
 
@@ -182,9 +188,15 @@ function AdminNavigator() {
       <Stack.Screen name="ManageStudents" component={ManageStudentsScreen} />
       <Stack.Screen name="ManageLecturers" component={ManageLecturersScreen} />
       <Stack.Screen name="IoTSensor" component={IoTSensorValidationScreen} />
+      <Stack.Screen name="DatabaseLogs" component={DatabaseLogsScreen} />
+      <Stack.Screen name="ManageAttendance" component={ManageAttendanceScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+
+
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
+      <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
+
   );
 }
 

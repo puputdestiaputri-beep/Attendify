@@ -10,29 +10,55 @@ import {
   Cpu, LayoutDashboard, Settings, LogOut,
   ChevronRight, Bell, Search, RefreshCw,
   UserPlus, BookOpen, Database, BarChart3,
-  MonitorSmartphone, Camera
+  MonitorSmartphone, Camera, FileText
 } from 'lucide-react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+
 
 export default function AdminDashboardScreen() {
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const API_URL = 'http://localhost:5000/api';
+
 
   // Pulse animation for IoT Status
   useEffect(() => {
+    fetchUnreadCount();
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
       ])
     ).start();
+
+    const interval = setInterval(fetchUnreadCount, 30000); // Check every 30s
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/notifikasi`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        const count = result.data.filter((n: any) => !n.read).length;
+        setUnreadCount(count);
+      }
+    } catch (err) {
+      console.error('Fetch unread count error:', err);
+    }
+  };
+
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -90,10 +116,21 @@ export default function AdminDashboardScreen() {
               <Text style={styles.nameText}>{user?.fullName || 'System Master'}</Text>
             </View>
             <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.iconButton}>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => navigation.navigate('Notification')}
+              >
                 <Bell size={22} color="#fff" />
+                {unreadCount > 0 && (
+                  <View style={styles.badge} pointerEvents="none">
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+
               </TouchableOpacity>
             </View>
+
+
           </View>
 
           {/* IoT Status Banner */}
@@ -171,7 +208,15 @@ export default function AdminDashboardScreen() {
               subtitle="System activity & audit trails"
               icon={Database} 
               color="#F472B6"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('DatabaseLogs')}
+            />
+
+            <AdminCard 
+              title="Attendance Reports" 
+              subtitle="Export data to Excel & PDF"
+              icon={FileText} 
+              color="#34D399"
+              onPress={() => navigation.navigate('ManageAttendance')}
             />
             <AdminCard 
               title="System Settings" 
@@ -180,6 +225,7 @@ export default function AdminDashboardScreen() {
               color="#94A3B8"
               onPress={() => navigation.navigate('Settings')}
             />
+
           </View>
 
         </ScrollView>
@@ -254,7 +300,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
+    position: 'relative',
+    zIndex: 10,
   },
+
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#0f172a',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+
   logoutButton: {
     width: 44,
     height: 44,

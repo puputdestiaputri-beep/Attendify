@@ -14,6 +14,10 @@ const notifCtrl = require('../controllers/notifikasiController');
 const dashCtrl = require('../controllers/dashboardController');
 const reportCtrl = require('../controllers/reportController');
 const wajahCtrl = require('../controllers/wajahController');
+const logCtrl = require('../controllers/logController');
+const kelasCtrl = require('../controllers/kelasController');
+
+
 
 // 1. AUTH ROUTES
 router.post('/register', authCtrl.register);
@@ -37,9 +41,14 @@ router.post('/absensi/scan', absensiCtrl.scanWajah);
 router.post('/absensi/finish', auth, roleCheck('dosen', 'admin'), absensiCtrl.finishClass);
 router.get('/absensi', auth, absensiCtrl.getAllAbsensi);
 router.get('/absensi/:mahasiswa_id', auth, absensiCtrl.getAbsensiByMahasiswa);
+router.post('/absensi/update', auth, roleCheck('dosen', 'admin'), absensiCtrl.updateAttendanceStatus);
+
 
 // 5. REPORTS
 router.get('/reports/absensi', auth, roleCheck('admin'), reportCtrl.exportAttendance);
+router.get('/reports/excel', auth, roleCheck('admin'), reportCtrl.exportExcel);
+router.get('/reports/pdf', auth, roleCheck('admin'), reportCtrl.exportPDF);
+
 
 // 6. NOTIFIKASI
 router.get('/notifikasi', auth, notifCtrl.getNotifikasi);
@@ -55,5 +64,15 @@ router.get('/wajah/available-users', auth, roleCheck('admin'), wajahCtrl.getAvai
 router.post('/wajah/start-session', auth, roleCheck('admin'), wajahCtrl.startValidationSession);
 router.get('/wajah/status/:user_id', auth, wajahCtrl.getValidationStatus);
 router.post('/wajah/iot-capture', wajahCtrl.uploadIotFaceData); // Called by ESP32
+
+// 8. SYSTEM LOGS
+router.get('/logs', auth, roleCheck('admin'), logCtrl.getAllLogs);
+router.get('/logs/stats', auth, roleCheck('admin'), logCtrl.getLogStats);
+
+// 9. KELAS ROUTES
+router.get('/kelas', auth, kelasCtrl.getAllKelas);
+router.get('/kelas/:id', auth, kelasCtrl.getKelasById);
+
+
 
 module.exports = router;

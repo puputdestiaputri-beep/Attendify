@@ -2,12 +2,15 @@ const db = require('../config/db');
 
 exports.getAdminDashboard = async (req, res) => {
     try {
-        const [usersCount] = await db.query('SELECT COUNT(*) as total FROM users');
-        const [absensiCount] = await db.query('SELECT COUNT(*) as total FROM absensi WHERE DATE(waktu_absen) = CURDATE()');
+        const [usersCount] = await db.query('SELECT COUNT(*) as total FROM pengguna');
+        const [dosenCount] = await db.query('SELECT COUNT(*) as total FROM pengguna WHERE role = "dosen"');
+        const [absensiCount] = await db.query('SELECT COUNT(*) as total FROM absensi WHERE DATE(tanggal) = CURDATE()');
+        
         res.json({
             status: 'success',
             data: {
                 total_users: usersCount[0].total,
+                total_dosen: dosenCount[0].total,
                 total_absensi_hari_ini: absensiCount[0].total
             }
         });
@@ -18,19 +21,21 @@ exports.getAdminDashboard = async (req, res) => {
 
 exports.getDosenDashboard = async (req, res) => {
     try {
-        // Need to join user -> dosen -> jadwal -> kelas -> absensi
-        // Assuming req.userId is mapped to dosen
-        const [dosen] = await db.query('SELECT id FROM dosen WHERE user_id = ?', [req.userId]);
-        if (dosen.length === 0) return res.status(403).json({ status: 'error', message: 'User is not a dosen' });
+        const userId = req.userId;
 
-        const dosen_id = dosen[0].id;
-        const [jadwal] = await db.query('SELECT * FROM jadwal WHERE dosen_id = ?', [dosen_id]);
+        // Get schedules for this lecturer
+        const [jadwal] = await db.query(`
+            SELECT jk.*, mk.nama_mk, k.nama_kelas
+            FROM jadwal_kuliah jk
+            JOIN mata_kuliah mk ON jk.mata_kuliah_id = mk.id_mk
+            JOIN kelas k ON jk.kelas_id = k.id_kelas
+            WHERE jk.dosen_id = ?
+        `, [userId]);
 
         res.json({
             status: 'success',
             data: {
-                jadwal_mengajar: jadwal,
-                absensi_stats: "Dummy stats, query according to each jadwal id"
+                jadwal_mengajar: jadwal
             }
         });
     } catch (err) {
@@ -40,11 +45,16 @@ exports.getDosenDashboard = async (req, res) => {
 
 exports.getMahasiswaDashboard = async (req, res) => {
     try {
-        const [mhs] = await db.query('SELECT id FROM mahasiswa WHERE user_id = ?', [req.userId]);
-        if (mhs.length === 0) return res.status(403).json({ status: 'error', message: 'User is not a mahasiswa' });
+        const userId = req.userId;
 
-        const mhs_id = mhs[0].id;
-        const [riwayat] = await db.query('SELECT * FROM absensi WHERE mahasiswa_id = ? ORDER BY waktu_absen DESC LIMIT 5', [mhs_id]);
+        const [riwayat] = await db.query(`
+            SELECT a.*, mk.nama_mk
+            FROM absensi a 
+            JOIN jadwal_kuliah jk ON a.jadwal_id = jk.id_jadwal
+            JOIN mata_kuliah mk ON jk.mata_kuliah_id = mk.id_mk
+            WHERE a.user_id = ? 
+            ORDER BY a.tanggal DESC LIMIT 5
+        `, [userId]);
 
         res.json({
             status: 'success',

@@ -5,16 +5,22 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import {
   CheckCircle2, XCircle, Clock,
   Users, TrendingUp, Activity, LogOut, RefreshCw,
-  BookOpen, Radio, Bell, Search, Filter, ChevronRight
+  BookOpen, Radio, Bell, Search, Filter, ChevronRight,
+  AlertTriangle
 } from 'lucide-react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
+import ReportIssueModal from '../components/ReportIssueModal';
 
 const { width } = Dimensions.get('window');
+const API_URL = 'http://localhost:5000/api';
+
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
 const STUDENTS = [
@@ -42,7 +48,11 @@ export default function DosenDashboardScreen() {
   const { logout } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
   const [studentsList, setStudentsList] = useState(STUDENTS);
+  const [isLoading, setIsLoading] = useState(false);
   const [isLive, setIsLive] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('14:45');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -92,25 +102,50 @@ export default function DosenDashboardScreen() {
     setShowAttendanceModal(true);
   };
 
-  const updateStudentStatus = (status: 'Hadir' | 'Telat') => {
+  const updateStudentStatus = async (status: 'Hadir' | 'Telat') => {
     if (selectedStudentId === null) return;
 
-    const now = new Date();
-    const h = now.getHours().toString().padStart(2, '0');
-    const m = now.getMinutes().toString().padStart(2, '0');
-    const time = `${h}:${m}`;
+    setIsLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/absensi/update`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          user_id: selectedStudentId, 
+          jadwal_id: 1, // Demo value
+          status: status.toLowerCase()
+        })
+      });
+      
+      const result = await response.json();
+      if (result.status === 'success') {
+        const now = new Date();
+        const h = now.getHours().toString().padStart(2, '0');
+        const m = now.getMinutes().toString().padStart(2, '0');
+        const time = `${h}:${m}`;
 
-    setStudentsList(prev => prev.map(s =>
-      s.id === selectedStudentId ? { ...s, status, waktu: time } : s
-    ));
+        setStudentsList(prev => prev.map(s =>
+          s.id === selectedStudentId ? { ...s, status, waktu: time } : s
+        ));
 
-    setShowAttendanceModal(false);
-    setSelectedStudentId(null);
+        setShowAttendanceModal(false);
+        setSelectedStudentId(null);
 
-    setSuccessTitle('Berhasil');
-    setSuccessMessage(`Mahasiswa berhasil ditandai ${status.toLowerCase()} secara manual.`);
-    setShowSuccessModal(true);
+        setSuccessTitle('Berhasil');
+        setSuccessMessage(`Mahasiswa berhasil ditandai ${status.toLowerCase()} secara manual.`);
+        setShowSuccessModal(true);
+      }
+    } catch (err) {
+      Alert.alert('Gagal', 'Terjadi kesalahan saat memperbarui status.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   const handleFinishClass = () => {
     if (isSubmitted) {
@@ -122,17 +157,36 @@ export default function DosenDashboardScreen() {
     setShowConfirmModal(true);
   };
 
-  const confirmFinishClass = () => {
+  const confirmFinishClass = async () => {
     setShowConfirmModal(false);
-    // Simulate API Call to database
-    setTimeout(() => {
-      setIsSubmitted(true);
-      setIsLive(false);
-      setSuccessTitle('Absen Telah Tersubmit!');
-      setSuccessMessage('Data kehadiran berhasil dikirim ke admin dan telah disimpan di database sistem.');
-      setShowSuccessModal(true);
-    }, 800);
+    setIsLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      // For demo, we use jadwal_id: 1. In a multi-class system, this would be dynamic.
+      const response = await fetch(`${API_URL}/absensi/finish`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ jadwal_id: 1 })
+      });
+      
+      const result = await response.json();
+      if (result.status === 'success') {
+        setIsSubmitted(true);
+        setIsLive(false);
+        setSuccessTitle('Absen Telah Tersubmit!');
+        setSuccessMessage('Data kehadiran mahasiswa yang tidak hadir telah ditandai ALFA dan disimpan ke database.');
+        setShowSuccessModal(true);
+      }
+    } catch (err) {
+      Alert.alert('Gagal', 'Gagal mengirim data absensi ke server.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   const getStatusColor = (status: string) => {
     if (status === 'Hadir') return { bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.3)', text: '#4ADE80' };
@@ -160,10 +214,20 @@ export default function DosenDashboardScreen() {
 
           {/* ── Top Header ── */}
           <View style={styles.topHeader}>
-            <View>
-              <Text style={styles.headerTitle}>Dashboard Dosen</Text>
-              <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
+            <View style={styles.headerRow}>
+              <View>
+                <Text style={styles.headerTitle}>Dashboard Dosen</Text>
+                <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.reportBtn}
+                onPress={() => setShowReportModal(true)}
+              >
+                <AlertTriangle size={20} color="#FBBF24" />
+                <Text style={styles.reportBtnText}>Lapor</Text>
+              </TouchableOpacity>
             </View>
+
           </View>
 
           {/* ── Active Class Banner ── */}
@@ -290,7 +354,7 @@ export default function DosenDashboardScreen() {
 
         </ScrollView>
 
-
+        <ReportIssueModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
 
         {/* Attendance Choice Modal */}
         <Modal
@@ -394,8 +458,10 @@ export default function DosenDashboardScreen() {
           </View>
         </Modal>
 
+        <ReportIssueModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
       </LinearGradient>
     </View>
+
   );
 }
 
@@ -404,12 +470,30 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   scroll: { paddingBottom: 40 },
   topHeader: {
+    paddingTop: 40,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  },
+  reportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+  },
+  reportBtnText: {
+    color: '#FBBF24',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 24,
@@ -769,13 +853,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    width: '100%',
-    marginTop: 20,
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   cancelBtnSmall: {
     flex: 1,

@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
+
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { Camera, Calendar, Clock, MapPin, Bell, CheckCircle2 } from 'lucide-react-native';
+import { Camera, Calendar, Clock, MapPin, Bell, CheckCircle2, AlertTriangle } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { AttendanceChart } from '../components/AttendanceChart';
+import ReportIssueModal from '../components/ReportIssueModal';
+
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +18,8 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
+  const [showReportModal, setShowReportModal] = useState(false);
+
 
   const userName = user?.fullName || 'Mahasiswa';
   const userProdi = user?.prodi || '-';
@@ -59,10 +64,19 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.notifBtn} onPress={handleNotification}>
-            <Bell color="#fff" size={24} />
-            <View style={styles.notifDot} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={[styles.notifBtn, { marginRight: 10 }]} 
+              onPress={() => setShowReportModal(true)}
+            >
+              <AlertTriangle color="#FBBF24" size={24} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notifBtn} onPress={handleNotification}>
+              <Bell color="#fff" size={24} />
+              <View style={styles.notifDot} />
+            </TouchableOpacity>
+          </View>
+
         </View>
 
         {/* Status */}
@@ -158,7 +172,14 @@ export default function HomeScreen() {
         </View>
 
       </ScrollView>
+
+
+      <ReportIssueModal 
+        visible={showReportModal} 
+        onClose={() => setShowReportModal(false)} 
+      />
     </LinearGradient>
+
   );
 }
 
@@ -177,6 +198,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
 
   greeting: {
     fontSize: 26,

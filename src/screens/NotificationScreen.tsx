@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  StatusBar
 } from 'react-native';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
 import {
@@ -20,8 +25,10 @@ import {
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+const API_URL = 'http://localhost:5000/api';
 
 interface Notification {
   id: number;
@@ -30,53 +37,42 @@ interface Notification {
   time: string;
   type: 'info' | 'warning' | 'success' | 'error';
   read: boolean;
-  icon?: any;
 }
 
 export default function NotificationScreen() {
   const navigation = useNavigation<any>();
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      title: 'Absensi Tercatat',
-      message: 'Anda telah berhasil absen di kelas Kecerdasan Buatan pada pukul 13:05',
-      time: '2 jam lalu',
-      type: 'success',
-      read: false,
-    },
-    {
-      id: 2,
-      title: 'Pengingat Kelas',
-      message: 'Kelas Pemrograman Web dimulai dalam 15 menit. Lokasi: Lab Komputer 1',
-      time: '30 menit lalu',
-      type: 'info',
-      read: false,
-    },
-    {
-      id: 3,
-      title: 'Perhatian: Absensi Rendah',
-      message: 'Absensi Anda di mata kuliah Mobile Programming di bawah 75%. Segera hadir di kelas berikutnya.',
-      time: '1 jam lalu',
-      type: 'warning',
-      read: true,
-    },
-    {
-      id: 4,
-      title: 'Tugas Baru',
-      message: 'Tugas baru telah dibagikan untuk mata kuliah Kecerdasan Buatan. Deadline: 5 hari lagi.',
-      time: '3 jam lalu',
-      type: 'info',
-      read: true,
-    },
-    {
-      id: 5,
-      title: 'Penjadwalan Ulang',
-      message: 'Kelas Basis Data telah dijadwalkan ulang ke hari Rabu pukul 10:00.',
-      time: 'Kemarin',
-      type: 'info',
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/notifikasi`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        setNotifications(result.data);
+      }
+    } catch (err) {
+      console.error('Fetch notifications error:', err);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchNotifications();
+  }, []);
 
   const getTypeColors = (type: string) => {
     switch (type) {
@@ -116,26 +112,38 @@ export default function NotificationScreen() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 size={20} />;
+        return <CheckCircle2 size={20} color={getTypeColors(type).icon} />;
       case 'warning':
-        return <AlertCircle size={20} />;
+        return <AlertCircle size={20} color={getTypeColors(type).icon} />;
       case 'error':
-        return <AlertCircle size={20} />;
+        return <AlertCircle size={20} color={getTypeColors(type).icon} />;
       default:
-        return <MessageSquare size={20} />;
+        return <MessageSquare size={20} color={getTypeColors(type).icon} />;
     }
   };
 
-  const handleDeleteNotification = (id: number) => {
-    setNotifications(notifications.filter(notif => notif.id !== id));
+  const handleMarkAsRead = async (id?: number) => {
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      await fetch(`${API_URL}/notifikasi/read`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id_notif: id })
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error('Mark as read error:', err);
+    }
   };
 
-  const handleMarkAsRead = (id: number) => {
-    setNotifications(
-      notifications.map(notif =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    const date = new Date(timeStr);
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
+           date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -145,6 +153,7 @@ export default function NotificationScreen() {
       colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
       style={styles.container}
     >
+      <StatusBar barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -156,12 +165,15 @@ export default function NotificationScreen() {
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.title}>Notifikasi</Text>
-            {unreadCount > 0 && (
-              <Text style={styles.subtitle}>
-                {unreadCount} notifikasi baru
-              </Text>
-            )}
+            <Text style={styles.subtitle}>
+              {unreadCount > 0 ? `${unreadCount} pesan belum dibaca` : 'Semua pesan sudah dibaca'}
+            </Text>
           </View>
+          {unreadCount > 0 && (
+            <TouchableOpacity onPress={() => handleMarkAsRead()}>
+              <Text style={styles.readAllText}>Baca Semua</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -169,15 +181,22 @@ export default function NotificationScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
       >
-        {notifications.length > 0 ? (
-          <>
-            {notifications.map(item => (
+        {isLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={Colors.ai.primary} />
+          </View>
+        ) : (
+          notifications.length > 0 ? (
+            notifications.map(item => (
               <BlurView
                 key={item.id}
                 intensity={20}
                 tint="dark"
-                style={styles.notificationCard}
+                style={[styles.notificationCard, !item.read && styles.unreadCard]}
               >
                 <TouchableOpacity
                   activeOpacity={0.7}
@@ -193,9 +212,7 @@ export default function NotificationScreen() {
                       },
                     ]}
                   >
-                    <View style={{ color: getTypeColors(item.type).icon }}>
-                      {getTypeIcon(item.type)}
-                    </View>
+                    {getTypeIcon(item.type)}
                   </View>
 
                   <View style={styles.textContent}>
@@ -211,52 +228,27 @@ export default function NotificationScreen() {
                       {!item.read && <View style={styles.unreadDot} />}
                     </View>
 
-                    <Text style={styles.message} numberOfLines={2}>
+                    <Text style={styles.message} numberOfLines={3}>
                       {item.message}
                     </Text>
 
                     <View style={styles.timeRow}>
                       <Clock size={12} color="rgba(255, 255, 255, 0.5)" />
-                      <Text style={styles.time}>{item.time}</Text>
+                      <Text style={styles.time}>{formatTime(item.time)}</Text>
                     </View>
                   </View>
-
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => handleDeleteNotification(item.id)}
-                  >
-                    <Trash2 size={16} color="rgba(255, 255, 255, 0.5)" />
-                  </TouchableOpacity>
                 </TouchableOpacity>
               </BlurView>
-            ))}
-
-            {notifications.length > 5 && (
-              <TouchableOpacity
-                style={styles.clearAllBtn}
-                onPress={() => setNotifications([])}
-              >
-                <LinearGradient
-                  colors={[
-                    'rgba(239, 68, 68, 0.2)',
-                    'rgba(239, 68, 68, 0.1)',
-                  ]}
-                  style={styles.clearAllGradient}
-                >
-                  <Trash2 color="#EF4444" size={16} />
-                  <Text style={styles.clearAllText}>Hapus Semua Notifikasi</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Bell color="rgba(255,255,255,0.3)" size={64} />
-            <Text style={styles.emptyText}>Tidak ada notifikasi</Text>
-            <Text style={styles.emptySubtext}>
-              Semua notifikasi Anda telah dibaca
-            </Text>
-          </View>
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Bell color="rgba(255,255,255,0.2)" size={64} />
+              <Text style={styles.emptyText}>Tidak ada notifikasi</Text>
+              <Text style={styles.emptySubtext}>
+                Laporan dari mahasiswa atau dosen akan muncul di sini.
+              </Text>
+            </View>
+          )
         )}
       </ScrollView>
     </LinearGradient>
@@ -264,13 +256,11 @@ export default function NotificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     paddingTop: 60,
     paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   headerTop: {
     flexDirection: 'row',
@@ -285,38 +275,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  headerInfo: {
-    flex: 1,
-  },
+  headerInfo: { flex: 1 },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 2,
+  },
+  readAllText: {
+    color: Colors.ai.primary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 120,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 20,
+    paddingBottom: 100,
   },
   notificationCard: {
     borderRadius: 20,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     overflow: 'hidden',
+  },
+  unreadCard: {
+    borderColor: 'rgba(96, 165, 250, 0.3)',
+    backgroundColor: 'rgba(96, 165, 250, 0.05)',
   },
   notificationContent: {
     flexDirection: 'row',
@@ -331,20 +321,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    flexShrink: 0,
   },
-  textContent: {
-    flex: 1,
-  },
+  textContent: { flex: 1 },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  titleBold: {
-    fontWeight: '700',
-  },
+  titleBold: { fontWeight: '700' },
   notifTitle: {
     fontSize: 14,
     color: '#fff',
@@ -354,13 +339,12 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.ai.primary,
-    marginLeft: 8,
   },
   message: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 18,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   timeRow: {
     flexDirection: 'row',
@@ -371,19 +355,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
   },
-  deleteBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  centerContainer: {
+    marginTop: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
   emptyContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
+    paddingVertical: 100,
   },
   emptyText: {
     fontSize: 18,
@@ -393,27 +373,9 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.4)',
     marginTop: 8,
-  },
-  clearAllBtn: {
-    marginBottom: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  clearAllGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  clearAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#EF4444',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
