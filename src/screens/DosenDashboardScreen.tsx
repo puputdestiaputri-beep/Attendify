@@ -18,13 +18,13 @@ const { width } = Dimensions.get('window');
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
 const STUDENTS = [
-  { id: 1, name: 'Budi Santoso',   npm: '20240001', status: 'Hadir',       waktu: '08:01' },
-  { id: 2, name: 'Aisyah Mutiara', npm: '20240002', status: 'Hadir',       waktu: '08:03' },
-  { id: 3, name: 'Rizwan Hakim',   npm: '20240003', status: 'Tidak Hadir', waktu: '-'     },
-  { id: 4, name: 'Siti Aminah',    npm: '20240004', status: 'Hadir',       waktu: '08:07' },
-  { id: 5, name: 'Deni Kusuma',    npm: '20240005', status: 'Telat',       waktu: '08:22' },
-  { id: 6, name: 'Rara Pratiwi',   npm: '20240006', status: 'Hadir',       waktu: '07:59' },
-  { id: 7, name: 'Ahmad Fauzi',    npm: '20240007', status: 'Tidak Hadir', waktu: '-'     },
+  { id: 1, name: 'Budi Santoso', npm: '20240001', status: 'Hadir', waktu: '08:01' },
+  { id: 2, name: 'Aisyah Mutiara', npm: '20240002', status: 'Hadir', waktu: '08:03' },
+  { id: 3, name: 'Rizwan Hakim', npm: '20240003', status: 'Tidak Hadir', waktu: '-' },
+  { id: 4, name: 'Siti Aminah', npm: '20240004', status: 'Hadir', waktu: '08:07' },
+  { id: 5, name: 'Deni Kusuma', npm: '20240005', status: 'Telat', waktu: '08:22' },
+  { id: 6, name: 'Rara Pratiwi', npm: '20240006', status: 'Hadir', waktu: '07:59' },
+  { id: 7, name: 'Ahmad Fauzi', npm: '20240007', status: 'Tidak Hadir', waktu: '-' },
 ];
 
 const WEEKLY_STATS = [
@@ -41,10 +41,17 @@ export default function DosenDashboardScreen() {
   const navigation = useNavigation<any>();
   const { logout } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
+  const [studentsList, setStudentsList] = useState(STUDENTS);
   const [isLive, setIsLive] = useState(true);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('14:45');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [successTitle, setSuccessTitle] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Pulse animation for live indicator
@@ -52,70 +59,91 @@ export default function DosenDashboardScreen() {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1,   duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       ])
     );
     if (isLive) loop.start();
     return () => loop.stop();
   }, [isLive]);
 
-  const total   = STUDENTS.length;
-  const hadir   = STUDENTS.filter(s => s.status === 'Hadir').length;
-  const telat   = STUDENTS.filter(s => s.status === 'Telat').length;
-  const alpha   = STUDENTS.filter(s => s.status === 'Tidak Hadir').length;
-  const pct     = Math.round((hadir / total) * 100);
+  const total = studentsList.length;
+  const hadir = studentsList.filter(s => s.status === 'Hadir').length;
+  const telat = studentsList.filter(s => s.status === 'Telat').length;
+  const alpha = studentsList.filter(s => s.status === 'Tidak Hadir').length;
+  const pct = Math.round((hadir / total) * 100);
 
   const filtered = activeFilter === 'Semua'
-    ? STUDENTS
-    : STUDENTS.filter(s => s.status === activeFilter);
+    ? studentsList
+    : studentsList.filter(s => s.status === activeFilter);
 
   const handleRefresh = () => {
     const now = new Date();
     const h = now.getHours().toString().padStart(2, '0');
     const m = now.getMinutes().toString().padStart(2, '0');
     setLastUpdated(`${h}:${m}`);
-    Alert.alert('Berhasil', 'Data kehadiran telah diperbarui.');
+
+    setSuccessTitle('Data Diperbarui');
+    setSuccessMessage('Data kehadiran terbaru berhasil dimuat dari sistem.');
+    setShowSuccessModal(true);
   };
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
+  const handleManualCheckIn = (id: number) => {
+    setSelectedStudentId(id);
+    setShowAttendanceModal(true);
   };
 
-  const confirmLogout = () => {
-    try {
-      setIsLoggingOut(true);
-      setShowLogoutModal(false);
-      logout();
-    } catch (error) {
-      console.log('Logout error', error);
-    }
+  const updateStudentStatus = (status: 'Hadir' | 'Telat') => {
+    if (selectedStudentId === null) return;
+    
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, '0');
+    const m = now.getMinutes().toString().padStart(2, '0');
+    const time = `${h}:${m}`;
+
+    setStudentsList(prev => prev.map(s =>
+      s.id === selectedStudentId ? { ...s, status, waktu: time } : s
+    ));
+
+    setShowAttendanceModal(false);
+    setSelectedStudentId(null);
+    
+    setSuccessTitle('Berhasil');
+    setSuccessMessage(`Mahasiswa berhasil ditandai ${status.toLowerCase()} secara manual.`);
+    setShowSuccessModal(true);
   };
 
   const handleFinishClass = () => {
-    Alert.alert(
-      'Selesaikan Kelas',
-      'Apakah Anda yakin ingin menyelesaikan kelas ini? Mahasiswa yang belum scan akan otomatis dianggap Alfa.',
-      [
-        { text: 'Batal', style: 'cancel' },
-        { 
-          text: 'Selesaikan', 
-          style: 'destructive', 
-          onPress: () => Alert.alert('Sukses', 'Kelas telah diselesaikan. Data telah disimpan ke database.') 
-        }
-      ]
-    );
+    if (isSubmitted) {
+      setSuccessTitle('Informasi');
+      setSuccessMessage('Absensi untuk sesi ini sudah dikirim sebelumnya.');
+      setShowSuccessModal(true);
+      return;
+    }
+    setShowConfirmModal(true);
+  };
+
+  const confirmFinishClass = () => {
+    setShowConfirmModal(false);
+    // Simulate API Call to database
+    setTimeout(() => {
+      setIsSubmitted(true);
+      setIsLive(false);
+      setSuccessTitle('Absen Telah Tersubmit!');
+      setSuccessMessage('Data kehadiran berhasil dikirim ke admin dan telah disimpan di database sistem.');
+      setShowSuccessModal(true);
+    }, 800);
   };
 
   const getStatusColor = (status: string) => {
-    if (status === 'Hadir')        return { bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.3)', text: '#4ADE80' };
-    if (status === 'Telat')        return { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', text: '#FBBF24' };
-    return                                { bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.3)', text: '#F87171' };
+    if (status === 'Hadir') return { bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.3)', text: '#4ADE80' };
+    if (status === 'Telat') return { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', text: '#FBBF24' };
+    return { bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.3)', text: '#F87171' };
   };
 
   const getStatusIcon = (status: string) => {
     if (status === 'Hadir') return <CheckCircle2 size={14} color="#4ADE80" />;
-    if (status === 'Telat') return <Clock        size={14} color="#FBBF24" />;
-    return                         <XCircle      size={14} color="#F87171" />;
+    if (status === 'Telat') return <Clock size={14} color="#FBBF24" />;
+    return <XCircle size={14} color="#F87171" />;
   };
 
   return (
@@ -125,29 +153,30 @@ export default function DosenDashboardScreen() {
         colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
         style={styles.background}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scroll} 
+        <ScrollView
+          contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          
+
           {/* ── Top Header ── */}
           <View style={styles.topHeader}>
             <View>
               <Text style={styles.headerTitle}>Dashboard Dosen</Text>
               <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
             </View>
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutCircle}>
-              <LogOut size={18} color="#F87171" />
-              <Text style={styles.logoutCircleText}>Keluar</Text>
-            </TouchableOpacity>
           </View>
 
           {/* ── Active Class Banner ── */}
           <BlurView intensity={30} tint="dark" style={styles.courseBanner}>
             <View style={styles.courseHeader}>
               <View style={styles.statusRow}>
-                <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
-                <Text style={styles.liveLabel}>SESI AKTIF</Text>
+                <Animated.View style={[styles.liveDot, {
+                  opacity: isSubmitted ? 0.4 : pulseAnim,
+                  backgroundColor: isSubmitted ? 'rgba(255,255,255,0.4)' : '#10B981'
+                }]} />
+                <Text style={[styles.liveLabel, isSubmitted && { color: 'rgba(255,255,255,0.4)' }]}>
+                  {isSubmitted ? 'SESI BERAKHIR' : 'SESI AKTIF'}
+                </Text>
               </View>
               <Text style={styles.updatedText}>Update: {lastUpdated}</Text>
             </View>
@@ -162,16 +191,22 @@ export default function DosenDashboardScreen() {
                 <Text style={styles.metaText}>42 Mahasiswa</Text>
               </View>
             </View>
-            
-            <TouchableOpacity style={styles.finishBtn} onPress={handleFinishClass}>
+
+            <TouchableOpacity
+              style={[styles.finishBtn, isSubmitted && { opacity: 0.6 }]}
+              onPress={handleFinishClass}
+              disabled={isSubmitted}
+            >
               <LinearGradient
-                colors={['#10B981', '#059669']}
+                colors={isSubmitted ? ['#64748b', '#475569'] : ['#10B981', '#059669']}
                 style={styles.finishGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
                 <CheckCircle2 color="#fff" size={18} />
-                <Text style={styles.finishBtnText}>Selesaikan & Submit Absensi</Text>
+                <Text style={styles.finishBtnText}>
+                  {isSubmitted ? 'Absensi Berhasil Terkirim' : 'Selesaikan & Submit Absensi'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </BlurView>
@@ -179,9 +214,9 @@ export default function DosenDashboardScreen() {
           {/* ── Statistics Grid ── */}
           <View style={styles.statRow}>
             {[
-              { label: 'Hadir',   value: hadir, color: '#4ADE80', icon: CheckCircle2 },
-              { label: 'Telat',   value: telat, color: '#FBBF24', icon: Clock },
-              { label: 'Alpha',   value: alpha, color: '#F87171', icon: XCircle },
+              { label: 'Hadir', value: hadir, color: '#4ADE80', icon: CheckCircle2 },
+              { label: 'Telat', value: telat, color: '#FBBF24', icon: Clock },
+              { label: 'Alpha', value: alpha, color: '#F87171', icon: XCircle },
             ].map((item, idx) => (
               <BlurView key={idx} intensity={20} tint="dark" style={styles.statCard}>
                 <item.icon size={20} color={item.color} />
@@ -239,58 +274,123 @@ export default function DosenDashboardScreen() {
                     </View>
                     <Text style={styles.timeText}>{item.waktu !== '-' ? item.waktu : ''}</Text>
                   </View>
+
+                  {item.status === 'Tidak Hadir' && (
+                    <TouchableOpacity
+                      style={styles.manualActionBtn}
+                      onPress={() => handleManualCheckIn(item.id)}
+                    >
+                      <CheckCircle2 size={20} color={Colors.ai.primary} />
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             })}
           </View>
 
-          {/* ── Logout Button ── */}
-          <TouchableOpacity style={styles.logoutFullBtn} onPress={handleLogout} activeOpacity={0.85}>
-            <LinearGradient
-              colors={['#dc2626', '#b91c1c']}
-              style={styles.logoutGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <LogOut size={20} color="#fff" />
-              <Text style={styles.logoutFullText}>Logout dari Akun</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
         </ScrollView>
 
-        {/* Logout Modal */}
+
+
+        {/* Attendance Choice Modal */}
         <Modal
-          visible={showLogoutModal}
+          visible={showAttendanceModal}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setShowLogoutModal(false)}
+          onRequestClose={() => setShowAttendanceModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalIconContainer}>
-                <LogOut size={32} color="#EF4444" />
+            <BlurView intensity={50} tint="dark" style={styles.modalContent}>
+              <View style={[styles.successIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}>
+                <Clock size={40} color="#38BDF8" />
               </View>
-              <Text style={styles.modalTitle}>Konfirmasi Logout</Text>
-              <Text style={styles.modalMessage}>Apakah Anda yakin ingin keluar dari akun ini?</Text>
+              <Text style={styles.modalTitle}>Status Kehadiran</Text>
+              <Text style={styles.modalMessage}>Pilih status kehadiran manual untuk mahasiswa ini.</Text>
               
-              <View style={styles.modalActions}>
+              <View style={styles.choiceGroup}>
                 <TouchableOpacity 
-                  style={styles.modalBtnCancel} 
-                  onPress={() => setShowLogoutModal(false)}
-                  activeOpacity={0.8}
+                   style={[styles.choiceBtn, { borderLeftColor: '#4ADE80' }]} 
+                   onPress={() => updateStudentStatus('Hadir')}
                 >
-                  <Text style={styles.modalBtnCancelText}>Batal</Text>
+                  <CheckCircle2 color="#4ADE80" size={20} />
+                  <Text style={styles.choiceText}>Hadir Tepat Waktu</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity 
-                  style={styles.modalBtnLogout} 
-                  onPress={confirmLogout}
-                  activeOpacity={0.8}
+                   style={[styles.choiceBtn, { borderLeftColor: '#FBBF24' }]} 
+                   onPress={() => updateStudentStatus('Telat')}
                 >
-                  <Text style={styles.modalBtnLogoutText}>{isLoggingOut ? '...' : 'Logout'}</Text>
+                  <Clock color="#FBBF24" size={20} />
+                  <Text style={styles.choiceText}>Terlambat (Telat)</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+
+              <TouchableOpacity 
+                style={styles.cancelBtnFull} 
+                onPress={() => setShowAttendanceModal(false)}
+              >
+                <Text style={styles.cancelBtnText}>Batal</Text>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </Modal>
+
+        {/* Confirmation Submit Modal */}
+        <Modal
+          visible={showConfirmModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowConfirmModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <BlurView intensity={50} tint="dark" style={styles.modalContent}>
+              <View style={[styles.successIconBox, { backgroundColor: 'rgba(251,191,36,0.1)' }]}>
+                <Radio size={40} color="#FBBF24" />
+              </View>
+              <Text style={styles.modalTitle}>Selesaikan Kelas?</Text>
+              <Text style={styles.modalMessage}>Apakah Anda yakin ingin menyudahi sesi absensi dan mengirim semua data ke database pusat?</Text>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelBtnSmall}
+                  onPress={() => setShowConfirmModal(false)}
+                >
+                  <Text style={styles.cancelBtnTextSmall}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.finishClassBtnSmall}
+                  onPress={confirmFinishClass}
+                >
+                  <Text style={styles.finishClassBtnText}>Kirim Data</Text>
+                </TouchableOpacity>
+              </View>
+            </BlurView>
+          </View>
+        </Modal>
+
+
+        {/* Success Submit Modal */}
+        <Modal
+          visible={showSuccessModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSuccessModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <BlurView intensity={50} tint="dark" style={styles.modalContent}>
+              <View style={styles.successIconBox}>
+                <CheckCircle2 size={40} color="#10B981" />
+              </View>
+              <Text style={styles.modalTitle}>{successTitle || 'Berhasil!'}</Text>
+              <Text style={styles.modalMessage}>{successMessage}</Text>
+
+              <TouchableOpacity
+                style={styles.finishClassBtn}
+                onPress={() => setShowSuccessModal(false)}
+              >
+                <Text style={styles.finishClassBtnText}>Lanjutkan</Text>
+              </TouchableOpacity>
+            </BlurView>
           </View>
         </Modal>
 
@@ -557,7 +657,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255,255,255,0.4)',
   },
-  
+
   // Modal Styles
   modalOverlay: {
     flex: 1,
@@ -628,5 +728,102 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  manualActionBtn: {
+    padding: 8,
+    marginLeft: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalContent: {
+    width: '85%',
+    borderRadius: 32,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+  },
+  successIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.3)',
+  },
+  finishClassBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  finishClassBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 20,
+  },
+  cancelBtnSmall: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  cancelBtnTextSmall: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  finishClassBtnSmall: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+  },
+  choiceGroup: {
+    width: '100%',
+    gap: 12,
+    marginVertical: 10,
+  },
+  choiceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 16,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    gap: 12,
+    marginBottom: 12,
+  },
+  choiceText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelBtnFull: {
+    width: '100%',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  cancelBtnText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

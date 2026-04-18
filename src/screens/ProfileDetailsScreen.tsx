@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, User, Mail, Briefcase, Camera } from 'lucide-react-native';
+import { ArrowLeft, User, Mail, Briefcase, Camera, IdCard, Phone, BookOpen, GraduationCap } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -20,16 +20,20 @@ import { Colors } from '../../constants/Colors';
 
 export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
-  const { user, login } = useAuth();
+  const { user, login, role } = useAuth();
 
   const [name, setName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [avatar, setAvatar] = useState(user?.avatar || '');
+  const [prodi, setProdi] = useState(user?.prodi || '');
+  const [kelas, setKelas] = useState(user?.kelas || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [idNumber, setIdNumber] = useState(user?.nim || '');
 
   const [saving, setSaving] = useState(false);
   const [changed, setChanged] = useState(false);
 
-  const userRole = 'Mahasiswa';
+  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : '-';
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -48,10 +52,15 @@ export default function ProfileDetailsScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updatedUser = user ? { ...user, fullName: name, email, avatar } : { fullName: name, email, avatar };
-      login('mahasiswa', updatedUser);
-      Alert.alert('Berhasil', 'Perubahan profil berhasil disimpan.');
-      setChanged(false);
+      const updatedUser = user ? 
+        { ...user, fullName: name, email, avatar, prodi, kelas, phone, nim: idNumber } : 
+        { fullName: name, email, avatar, prodi, kelas, phone, nim: idNumber };
+      
+      if (role) {
+        login(role, updatedUser);
+        Alert.alert('Berhasil', 'Perubahan profil berhasil disimpan.');
+        setChanged(false);
+      }
     } catch (e) {
       Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan.');
     } finally {
@@ -154,6 +163,26 @@ export default function ProfileDetailsScreen() {
                 </View>
               </View>
 
+              {/* NIM / NIP */}
+              <View style={styles.field}>
+                <View style={styles.fieldHeader}>
+                  <IdCard size={18} color={Colors.attendify.primary} />
+                  <Text style={styles.fieldLabel}>{role === 'dosen' ? 'NIP' : 'NIM'}</Text>
+                </View>
+                <View style={styles.fieldContent}>
+                  <TextInput
+                    style={styles.input}
+                    value={idNumber}
+                    onChangeText={(t) => {
+                      setIdNumber(t);
+                      setChanged(true);
+                    }}
+                    placeholder={role === 'dosen' ? 'NIP' : 'NIM'}
+                    editable={!saving}
+                  />
+                </View>
+              </View>
+
               {/* Role */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
@@ -162,10 +191,75 @@ export default function ProfileDetailsScreen() {
                 </View>
                 <View style={styles.fieldContent}>
                   <View style={styles.roleBadge}>
-                    <Text style={styles.roleText}>{userRole}</Text>
+                    <Text style={styles.roleText}>{displayRole}</Text>
                   </View>
                 </View>
               </View>
+
+              {/* Mahasiswa Only Fields */}
+              {role === 'mahasiswa' && (
+                <>
+                  <View style={styles.field}>
+                    <View style={styles.fieldHeader}>
+                      <BookOpen size={18} color={Colors.attendify.primary} />
+                      <Text style={styles.fieldLabel}>Program Studi</Text>
+                    </View>
+                    <View style={styles.fieldContent}>
+                      <TextInput
+                        style={styles.input}
+                        value={prodi}
+                        onChangeText={(t) => {
+                          setProdi(t);
+                          setChanged(true);
+                        }}
+                        placeholder="Program Studi"
+                        editable={!saving}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.field}>
+                    <View style={styles.fieldHeader}>
+                      <GraduationCap size={18} color={Colors.attendify.primary} />
+                      <Text style={styles.fieldLabel}>Kelas</Text>
+                    </View>
+                    <View style={styles.fieldContent}>
+                      <TextInput
+                        style={styles.input}
+                        value={kelas}
+                        onChangeText={(t) => {
+                          setKelas(t);
+                          setChanged(true);
+                        }}
+                        placeholder="Kelas"
+                        editable={!saving}
+                      />
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Dosen Only Fields */}
+              {role === 'dosen' && (
+                <View style={styles.field}>
+                  <View style={styles.fieldHeader}>
+                    <Phone size={18} color={Colors.attendify.primary} />
+                    <Text style={styles.fieldLabel}>Nomor Telepon</Text>
+                  </View>
+                  <View style={styles.fieldContent}>
+                    <TextInput
+                      style={styles.input}
+                      value={phone}
+                      onChangeText={(t) => {
+                        setPhone(t);
+                        setChanged(true);
+                      }}
+                      placeholder="Nomor Telepon"
+                      editable={!saving}
+                    />
+                  </View>
+                </View>
+              )}
             </View>
 
             <View style={styles.infoBox}>

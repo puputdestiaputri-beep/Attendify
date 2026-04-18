@@ -13,9 +13,25 @@ const { width } = Dimensions.get('window');
 export default function SettingsScreen() {
   const navigation = useNavigation<any>();
   const { isDarkMode } = useTheme();
+  const { role } = useAuth();
 
   const handleDevFeature = (name: string) => {
     Alert.alert('Info', `Fitur ${name} akan tersedia pada versi pembaruan mendatang.`);
+  };
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Fallback based on role
+      if (role === 'admin') {
+        navigation.navigate('AdminMain');
+      } else if (role === 'dosen') {
+        navigation.navigate('DosenDashboard');
+      } else {
+        navigation.navigate('MainTabs');
+      }
+    }
   };
 
   return (
@@ -27,7 +43,10 @@ export default function SettingsScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={handleBack} 
+          style={styles.backButton}
+        >
           <ChevronLeft size={28} color="#fff" />
         </TouchableOpacity>
         <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#1f2937' }]}>Pengaturan</Text>

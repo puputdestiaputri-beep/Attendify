@@ -12,8 +12,8 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         const [result] = await db.query(
-            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-            [name, email, hashedPassword, role]
+            'INSERT INTO pengguna (nama, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
+            [name, email, hashedPassword, role, 'Y']
         );
 
         res.status(201).json({
@@ -33,7 +33,7 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        const [users] = await db.query('SELECT * FROM pengguna WHERE email = ?', [email]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
@@ -45,7 +45,7 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, role: user.role },
+            { id: user.id_user, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
@@ -54,7 +54,7 @@ exports.login = async (req, res) => {
             status: 'success',
             message: 'Logged in successfully',
             data: {
-                user: { id: user.id, name: user.name, email: user.email, role: user.role },
+                user: { id: user.id_user, name: user.nama, email: user.email, role: user.role },
                 token
             }
         });
@@ -65,7 +65,7 @@ exports.login = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id, name, email, role, photo_url, created_at FROM users WHERE id = ?', [req.userId]);
+        const [users] = await db.query('SELECT id_user as id, nama as name, email, role, created_at FROM pengguna WHERE id_user = ?', [req.userId]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }

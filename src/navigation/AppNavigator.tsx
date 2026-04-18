@@ -16,6 +16,10 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import PrivacySecurityScreen from '../screens/PrivacySecurityScreen';
 import ProfileDetailsScreen from '../screens/ProfileDetailsScreen';
 import AboutAttendifyScreen from '../screens/AboutAttendifyScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import ManageStudentsScreen from '../screens/ManageStudentsScreen';
+import ManageLecturersScreen from '../screens/ManageLecturersScreen';
+import IoTSensorValidationScreen from '../screens/IoTSensorValidationScreen';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,12 +34,11 @@ function TabNavigator() {
         tabBarStyle: {
           backgroundColor: '#0F172A',
           borderTopColor: 'rgba(255,255,255,0.1)',
-          height: 60,
-          paddingBottom: 8,
+          height: 70,
+          paddingBottom: 12,
           paddingTop: 8,
-          position: 'absolute',
-          borderTopRightRadius: 24,
-          borderTopLeftRadius: 24,
+          borderTopRightRadius: 28,
+          borderTopLeftRadius: 28,
           elevation: 0,
         },
         tabBarActiveTintColor: Colors.ai.primary,
@@ -61,6 +64,88 @@ function TabNavigator() {
   );
 }
 
+// Tab Navigator untuk Admin
+function AdminTabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#0F172A',
+          borderTopColor: 'rgba(255,255,255,0.1)',
+          height: 70,
+          paddingBottom: 12,
+          paddingTop: 8,
+          borderTopRightRadius: 28,
+          borderTopLeftRadius: 28,
+          elevation: 0,
+        },
+        tabBarActiveTintColor: Colors.ai.primary,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: -4 }
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={AdminDashboardScreen}
+        options={{ 
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ color }) => <Home color={color} size={24} /> 
+        }}
+      />
+      <Tab.Screen
+        name="AdminProfile"
+        component={ProfileScreen}
+        options={{ 
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color }) => <UserIcon color={color} size={24} /> 
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Tab Navigator untuk Dosen
+function DosenTabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#0F172A',
+          borderTopColor: 'rgba(255,255,255,0.1)',
+          height: 70,
+          paddingBottom: 12,
+          paddingTop: 8,
+          borderTopRightRadius: 28,
+          borderTopLeftRadius: 28,
+          elevation: 0,
+        },
+        tabBarActiveTintColor: Colors.ai.primary,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: -4 }
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={DosenDashboardScreen}
+        options={{ 
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ color }) => <Home color={color} size={24} /> 
+        }}
+      />
+      <Tab.Screen
+        name="DosenProfile"
+        component={ProfileScreen}
+        options={{ 
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color }) => <UserIcon color={color} size={24} /> 
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 // Navigator untuk user yang sudah login (Mahasiswa)
 function MahasiswaNavigator() {
   return (
@@ -80,8 +165,25 @@ function MahasiswaNavigator() {
 function DosenNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="DosenDashboard" component={DosenDashboardScreen} />
+      <Stack.Screen name="DosenMain" component={DosenTabNavigator} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+      <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
+      <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Navigator untuk Admin yang sudah login
+function AdminNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AdminMain" component={AdminTabNavigator} />
+      <Stack.Screen name="ManageStudents" component={ManageStudentsScreen} />
+      <Stack.Screen name="ManageLecturers" component={ManageLecturersScreen} />
+      <Stack.Screen name="IoTSensor" component={IoTSensorValidationScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
     </Stack.Navigator>
   );
 }
@@ -121,6 +223,10 @@ export default function AppNavigator() {
 
   if (role === 'dosen') {
     return <DosenNavigator />;
+  }
+
+  if (role === 'admin') {
+    return <AdminNavigator />;
   }
 
   return <MahasiswaNavigator />;

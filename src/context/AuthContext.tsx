@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { performLogout, saveAuthState, loadAuthState } from '../services/authService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Role = 'mahasiswa' | 'dosen' | null;
+type Role = 'mahasiswa' | 'dosen' | 'admin' | null;
 
 interface UserData {
   fullName: string;
@@ -11,6 +11,7 @@ interface UserData {
   nim?: string;
   prodi?: string;
   kelas?: string;
+  phone?: string;
 }
 
 interface AuthContextType {

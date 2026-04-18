@@ -4,7 +4,7 @@ import {
   StyleSheet, Dimensions, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader, GraduationCap, Users, Eye, EyeOff, IdCard } from 'lucide-react-native';
+import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader, GraduationCap, Users, Eye, EyeOff, IdCard, ShieldCheck } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,7 +16,7 @@ interface CreateAccountScreenProps {
 
 export default function CreateAccountScreen({ navigation }: CreateAccountScreenProps) {
   const { login } = useAuth();
-  const [role, setRole] = useState<'mahasiswa' | 'dosen'>('mahasiswa');
+  const [role, setRole] = useState<'mahasiswa' | 'dosen' | 'admin'>('mahasiswa');
   const [formData, setFormData] = useState({
     fullName: '',
     identifier: '',
@@ -47,7 +47,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
     }
 
     if (!formData.identifier.trim()) {
-      newErrors.identifier = role === 'mahasiswa' ? 'NIM harus diisi' : 'NIP harus diisi';
+      newErrors.identifier = role === 'mahasiswa' ? 'NIM harus diisi' : role === 'dosen' ? 'NIP harus diisi' : 'Username harus diisi';
     }
 
     if (!formData.email.trim()) {
@@ -168,6 +168,19 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
                 Dosen
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.roleTab, role === 'admin' && styles.roleTabActive]}
+              onPress={() => setRole('admin')}
+            >
+              <ShieldCheck
+                size={18}
+                color={role === 'admin' ? Colors.attendify.primary : Colors.attendify.onSurface}
+              />
+              <Text style={[styles.roleTabText, role === 'admin' && styles.roleTabTextActive]}>
+                Admin
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Error Message */}
@@ -198,7 +211,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               <IdCard size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder={role === 'mahasiswa' ? 'NIM' : 'NIP'}
+                placeholder={role === 'mahasiswa' ? 'NIM' : role === 'dosen' ? 'NIP' : 'Username'}
                 placeholderTextColor={Colors.attendify.neutral}
                 value={formData.identifier}
                 onChangeText={(text) => updateFormData('identifier', text)}

@@ -13,6 +13,7 @@ const absensiCtrl = require('../controllers/absensiController');
 const notifCtrl = require('../controllers/notifikasiController');
 const dashCtrl = require('../controllers/dashboardController');
 const reportCtrl = require('../controllers/reportController');
+const wajahCtrl = require('../controllers/wajahController');
 
 // 1. AUTH ROUTES
 router.post('/register', authCtrl.register);
@@ -49,5 +50,10 @@ router.put('/notifikasi/read', auth, notifCtrl.markAsRead);
 router.get('/dashboard/admin', auth, roleCheck('admin'), dashCtrl.getAdminDashboard);
 router.get('/dashboard/dosen', auth, roleCheck('dosen'), dashCtrl.getDosenDashboard);
 router.get('/dashboard/mahasiswa', auth, roleCheck('mahasiswa'), dashCtrl.getMahasiswaDashboard);
+// 7. WAJAH & IoT VALIDATION
+router.get('/wajah/available-users', auth, roleCheck('admin'), wajahCtrl.getAvailableUsers);
+router.post('/wajah/start-session', auth, roleCheck('admin'), wajahCtrl.startValidationSession);
+router.get('/wajah/status/:user_id', auth, wajahCtrl.getValidationStatus);
+router.post('/wajah/iot-capture', wajahCtrl.uploadIotFaceData); // Called by ESP32
 
 module.exports = router;

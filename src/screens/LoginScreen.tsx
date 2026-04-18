@@ -4,7 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff } from 'lucide-react-native';
+import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,7 +17,7 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
   const { login } = useAuth();
-  const [role, setRole] = useState<'mahasiswa' | 'dosen'>('mahasiswa');
+  const [role, setRole] = useState<'mahasiswa' | 'dosen' | 'admin'>('mahasiswa');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +99,19 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 Dosen
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.roleTab, role === 'admin' && styles.roleTabActive]}
+              onPress={() => setRole('admin')}
+            >
+              <ShieldCheck
+                size={18}
+                color={role === 'admin' ? Colors.attendify.primary : Colors.attendify.onSurface}
+              />
+              <Text style={[styles.roleTabText, role === 'admin' && styles.roleTabTextActive]}>
+                Admin
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Form Inputs */}
@@ -107,7 +120,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               <Mail size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder={role === 'mahasiswa' ? 'NIM / Email' : 'NIP / Email'}
+                placeholder={role === 'mahasiswa' ? 'NIM / Email' : role === 'dosen' ? 'NIP / Email' : 'Username / Email'}
                 placeholderTextColor={Colors.attendify.neutral}
                 value={identifier}
                 onChangeText={setIdentifier}

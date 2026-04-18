@@ -21,7 +21,7 @@ exports.getDosenDashboard = async (req, res) => {
         // Need to join user -> dosen -> jadwal -> kelas -> absensi
         // Assuming req.userId is mapped to dosen
         const [dosen] = await db.query('SELECT id FROM dosen WHERE user_id = ?', [req.userId]);
-        if(dosen.length === 0) return res.status(403).json({ status: 'error', message: 'User is not a dosen' });
+        if (dosen.length === 0) return res.status(403).json({ status: 'error', message: 'User is not a dosen' });
 
         const dosen_id = dosen[0].id;
         const [jadwal] = await db.query('SELECT * FROM jadwal WHERE dosen_id = ?', [dosen_id]);
@@ -41,7 +41,7 @@ exports.getDosenDashboard = async (req, res) => {
 exports.getMahasiswaDashboard = async (req, res) => {
     try {
         const [mhs] = await db.query('SELECT id FROM mahasiswa WHERE user_id = ?', [req.userId]);
-        if(mhs.length === 0) return res.status(403).json({ status: 'error', message: 'User is not a mahasiswa' });
+        if (mhs.length === 0) return res.status(403).json({ status: 'error', message: 'User is not a mahasiswa' });
 
         const mhs_id = mhs[0].id;
         const [riwayat] = await db.query('SELECT * FROM absensi WHERE mahasiswa_id = ? ORDER BY waktu_absen DESC LIMIT 5', [mhs_id]);

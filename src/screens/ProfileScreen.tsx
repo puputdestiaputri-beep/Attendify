@@ -2,18 +2,19 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationCap } from 'lucide-react-native';
+import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationCap, Phone, Mail, ShieldCheck, Shield, UserCheck, Key } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
-  const { logout, user } = useAuth();
+  const { logout, user, role } = useAuth();
   const { isDarkMode, setIsDarkMode } = useTheme();
 
-  const userName = user?.fullName || 'Mahasiswa';
-  const userProdi = user?.prodi || '-';
+  const userName = user?.fullName || 'User';
+  const roleLabel = user?.role === 'dosen' ? 'Dosen' : user?.role === 'admin' ? 'Administrator' : 'Mahasiswa';
+  const userProdi = user?.prodi || (user?.role === 'mahasiswa' ? 'S1 Informatika' : '');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -58,48 +59,135 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{userName}</Text>
 
           <View style={styles.roleBadge}>
-            <Text style={styles.role}>Mahasiswa {userProdi}</Text>
+            <Text style={styles.role}>{roleLabel} {userProdi && roleLabel !== 'Administrator' ? `- ${userProdi}` : ''}</Text>
           </View>
         </View>
 
         {/* Menu */}
         <View style={styles.menuContainer}>
           
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
-                <CreditCard size={20} color="#3B82F6" />
+          {/* ── Mahasiswa Specific Info ── */}
+          {role === 'mahasiswa' && (
+            <>
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
+                    <CreditCard size={20} color="#3B82F6" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>NIM</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '20240001'}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={{ justifyContent: 'center' }}>
-                <Text style={styles.menuItemText}>NIM</Text>
-                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '20240001'}</Text>
-              </View>
-            </View>
-          </View>
 
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
-                <BookOpen size={20} color="#10B981" />
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
+                    <BookOpen size={20} color="#10B981" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Program Studi</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{userProdi || 'S1 Informatika'}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={{ justifyContent: 'center' }}>
-                <Text style={styles.menuItemText}>Program Studi</Text>
-                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{userProdi !== '-' ? userProdi : 'S1 Informatika'}</Text>
-              </View>
-            </View>
-          </View>
 
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
-                <GraduationCap size={20} color="#F59E0B" />
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
+                    <GraduationCap size={20} color="#F59E0B" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Kelas</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.kelas || 'A Pagi'}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={{ justifyContent: 'center' }}>
-                <Text style={styles.menuItemText}>Kelas</Text>
-                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>A Pagi</Text>
+            </>
+          )}
+
+          {/* ── Dosen Specific Info ── */}
+          {role === 'dosen' && (
+            <>
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
+                    <CreditCard size={20} color="#3B82F6" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>NIP</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '197508212005011002'}</Text>
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
+
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
+                    <Mail size={20} color="#10B981" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Email</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.email || 'dosen@university.ac.id'}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
+                    <Phone size={20} color="#F59E0B" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Nomor Telepon</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.phone || '081234567890'}</Text>
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* ── Admin Specific Info ── */}
+          {role === 'admin' && (
+            <>
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
+                    <Shield size={20} color="#3B82F6" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Admin ID</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>ADM-2024-001</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
+                    <UserCheck size={20} color="#10B981" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Role</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>Super Administrator</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
+                    <Key size={20} color="#F59E0B" />
+                  </View>
+                  <View style={{ justifyContent: 'center' }}>
+                    <Text style={styles.menuItemText}>Izin Akses</Text>
+                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>Full System Access</Text>
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
 
           <TouchableOpacity
             style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}
