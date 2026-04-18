@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Image,
-  StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView
+  StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,24 +25,58 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
+    if (!identifier.trim()) {
+      Alert.alert('Perhatian', 'Silakan masukkan NIM, NIP, atau Email Anda.');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Perhatian', 'Silakan masukkan password.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      let userEmail = '';
-      let userName = identifier || 'User';
-      let userNim = '';
-
-      if (identifier.includes('@')) {
-        userEmail = identifier;
-        userName = identifier.split('@')[0];
-      } else if (/^\d+$/.test(identifier) || identifier.toLowerCase().includes('nim')) {
-        userNim = identifier;
-        userName = 'Pengguna (NIM)';
-      } else {
-        userNim = identifier;
+      // Validasi pengecekan akun terdaftar
+      const userString = await AsyncStorage.getItem(`@user_${identifier.trim().toLowerCase()}`);
+      if (!userString) {
+        Alert.alert('Belum Terdaftar', 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.');
+        setIsLoading(false);
+        return;
       }
 
+      const registeredUser = JSON.parse(userString);
+      
+      if (registeredUser.password !== password) {
+        Alert.alert('Gagal', 'Password salah.');
+        setIsLoading(false);
+        return;
+      }
+
+      let userEmail = registeredUser.email || '';
+      
       await new Promise(resolve => setTimeout(resolve, 500));
-      login(role, { fullName: userName, email: userEmail, nim: userNim, prodi: 'S1 Informatika', kelas: 'A Pagi' });
+      
+      let cachedAvatar = '';
+      if (userEmail) {
+        try {
+          const storedAvatar = await AsyncStorage.getItem(`@avatar_${userEmail}`);
+          if (storedAvatar) {
+            cachedAvatar = storedAvatar;
+          }
+        } catch (e) {
+          console.error('Failed to load cached avatar', e);
+        }
+      }
+      
+      login(role, { 
+        fullName: registeredUser.fullName, 
+        email: registeredUser.email, 
+        nim: registeredUser.nim, 
+        prodi: registeredUser.prodi, 
+        kelas: registeredUser.kelas, 
+        avatar: cachedAvatar || undefined 
+      });
     } catch (error) {
       console.error('Login error:', error);
     } finally {

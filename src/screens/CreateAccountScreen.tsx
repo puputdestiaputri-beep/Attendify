@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader, GraduationCap, Users, Eye, EyeOff, IdCard } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -94,10 +95,26 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      const newUser = {
+        fullName: formData.fullName,
+        email: formData.email,
+        nim: formData.identifier,
+        prodi: formData.prodi,
+        kelas: formData.kelas,
+        password: formData.password,
+      };
+
+      await AsyncStorage.setItem(`@user_${formData.identifier.trim().toLowerCase()}`, JSON.stringify(newUser));
+      if (formData.email) {
+        await AsyncStorage.setItem(`@user_${formData.email.trim().toLowerCase()}`, JSON.stringify(newUser));
+      }
+      
       console.log('Account created:', { ...formData, role });
       
       login(role, {
         fullName: formData.fullName,
+        email: formData.email,
+        nim: formData.identifier,
         prodi: formData.prodi,
         kelas: formData.kelas,
       });

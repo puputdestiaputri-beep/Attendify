@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
@@ -49,6 +50,9 @@ export default function ProfileDetailsScreen() {
     setSaving(true);
     try {
       const updatedUser = user ? { ...user, fullName: name, email, avatar } : { fullName: name, email, avatar };
+      if (email && avatar) {
+        await AsyncStorage.setItem(`@avatar_${email}`, avatar);
+      }
       login('mahasiswa', updatedUser);
       Alert.alert('Berhasil', 'Perubahan profil berhasil disimpan.');
       setChanged(false);

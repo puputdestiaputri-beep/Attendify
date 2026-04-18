@@ -72,7 +72,7 @@ export default function ProfileScreen() {
               </View>
               <View style={{ justifyContent: 'center' }}>
                 <Text style={styles.menuItemText}>NIM</Text>
-                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '20240001'}</Text>
+                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '-'}</Text>
               </View>
             </View>
           </View>
@@ -84,7 +84,7 @@ export default function ProfileScreen() {
               </View>
               <View style={{ justifyContent: 'center' }}>
                 <Text style={styles.menuItemText}>Program Studi</Text>
-                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{userProdi !== '-' ? userProdi : 'S1 Informatika'}</Text>
+                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{userProdi}</Text>
               </View>
             </View>
           </View>
@@ -96,7 +96,7 @@ export default function ProfileScreen() {
               </View>
               <View style={{ justifyContent: 'center' }}>
                 <Text style={styles.menuItemText}>Kelas</Text>
-                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>A Pagi</Text>
+                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.kelas || '-'}</Text>
               </View>
             </View>
           </View>
