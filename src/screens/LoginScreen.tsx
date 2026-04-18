@@ -4,7 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Mail, Users, User, Send, MessageCircle, Loader } from 'lucide-react-native';
+import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -129,7 +129,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 editable={!isLoading}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Text style={styles.eyeText}>{showPassword ? '👁' : '👁‍🗨'}</Text>
+                {showPassword ? (
+                  <Eye size={20} color={Colors.attendify.neutral} />
+                ) : (
+                  <EyeOff size={20} color={Colors.attendify.neutral} />
+                )}
               </TouchableOpacity>
             </View>
           </View>

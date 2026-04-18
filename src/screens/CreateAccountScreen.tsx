@@ -4,7 +4,7 @@ import {
   StyleSheet, Dimensions, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader } from 'lucide-react-native';
+import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader, GraduationCap, Users, Eye, EyeOff, IdCard } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -195,7 +195,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
             {/* NIM/NIP */}
             <View style={[styles.inputContainer, errors.identifier && styles.inputContainerError]}>
-              <Book size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <IdCard size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder={role === 'mahasiswa' ? 'NIM' : 'NIP'}
@@ -242,7 +242,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {role === 'mahasiswa' && (
               <>
                 <View style={[styles.inputContainer, errors.prodi && styles.inputContainerError]}>
-                  <Book size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+                  <GraduationCap size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Program Studi"
@@ -260,7 +260,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {role === 'mahasiswa' && (
               <>
                 <View style={[styles.inputContainer, errors.kelas && styles.inputContainerError]}>
-                  <Book size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+                  <Users size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Kelas"
@@ -287,7 +287,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
                 editable={!isLoading}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Text style={styles.eyeText}>{showPassword ? '👁' : '👁‍🗨'}</Text>
+                {showPassword ? (
+                  <Eye size={20} color={Colors.attendify.neutral} />
+                ) : (
+                  <EyeOff size={20} color={Colors.attendify.neutral} />
+                )}
               </TouchableOpacity>
             </View>
             {errors.password && <Text style={styles.errorMsg}>{errors.password}</Text>}
@@ -305,7 +309,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
                 editable={!isLoading}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                <Text style={styles.eyeText}>{showConfirmPassword ? '👁' : '👁‍🗨'}</Text>
+                {showConfirmPassword ? (
+                  <Eye size={20} color={Colors.attendify.neutral} />
+                ) : (
+                  <EyeOff size={20} color={Colors.attendify.neutral} />
+                )}
               </TouchableOpacity>
             </View>
             {errors.confirmPassword && <Text style={styles.errorMsg}>{errors.confirmPassword}</Text>}
