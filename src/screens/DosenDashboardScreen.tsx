@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Animated, Alert, Dimensions, StatusBar
+  TouchableOpacity, Animated, Alert, Dimensions, StatusBar, Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
@@ -43,6 +43,8 @@ export default function DosenDashboardScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
   const [isLive, setIsLive] = useState(true);
   const [lastUpdated, setLastUpdated] = useState('14:45');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Pulse animation for live indicator
@@ -76,18 +78,17 @@ export default function DosenDashboardScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Konfirmasi Logout',
-      'Apakah Anda yakin ingin keluar?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => logout(), // ← cukup ini, navigator otomatis render Login
-        },
-      ]
-    );
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    try {
+      setIsLoggingOut(true);
+      setShowLogoutModal(false);
+      logout();
+    } catch (error) {
+      console.log('Logout error', error);
+    }
   };
 
   const handleFinishClass = () => {
@@ -257,6 +258,42 @@ export default function DosenDashboardScreen() {
           </TouchableOpacity>
 
         </ScrollView>
+
+        {/* Logout Modal */}
+        <Modal
+          visible={showLogoutModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowLogoutModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalIconContainer}>
+                <LogOut size={32} color="#EF4444" />
+              </View>
+              <Text style={styles.modalTitle}>Konfirmasi Logout</Text>
+              <Text style={styles.modalMessage}>Apakah Anda yakin ingin keluar dari akun ini?</Text>
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.modalBtnCancel} 
+                  onPress={() => setShowLogoutModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalBtnCancelText}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.modalBtnLogout} 
+                  onPress={confirmLogout}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalBtnLogoutText}>{isLoggingOut ? '...' : 'Logout'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </LinearGradient>
     </View>
   );
@@ -519,5 +556,77 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.4)',
-  }
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  modalBtnCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  modalBtnLogout: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  modalBtnLogoutText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
 });

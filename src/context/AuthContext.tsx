@@ -6,6 +6,9 @@ type Role = 'mahasiswa' | 'dosen' | null;
 
 interface UserData {
   fullName: string;
+  email?: string;
+  avatar?: string;
+  nim?: string;
   prodi?: string;
   kelas?: string;
 }

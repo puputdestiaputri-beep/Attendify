@@ -9,9 +9,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, User, Mail, Briefcase } from 'lucide-react-native';
+import { ArrowLeft, User, Mail, Briefcase, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../../constants/Colors';
@@ -20,19 +22,34 @@ export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
   const { user, login } = useAuth();
 
-  // FIX: pakai any biar nggak error type dulu
-  const [name, setName] = useState((user as any)?.fullName || '');
-  const [email, setEmail] = useState((user as any)?.email || '');
+  const [name, setName] = useState(user?.fullName || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [avatar, setAvatar] = useState(user?.avatar || '');
 
   const [saving, setSaving] = useState(false);
   const [changed, setChanged] = useState(false);
 
   const userRole = 'Mahasiswa';
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setAvatar(result.assets[0].uri);
+      setChanged(true);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      login('mahasiswa', { ...(user as any), fullName: name, email });
+      const updatedUser = user ? { ...user, fullName: name, email, avatar } : { fullName: name, email, avatar };
+      login('mahasiswa', updatedUser);
       Alert.alert('Berhasil', 'Perubahan profil berhasil disimpan.');
       setChanged(false);
     } catch (e) {
@@ -71,14 +88,25 @@ export default function ProfileDetailsScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            <LinearGradient
-              colors={['#3B82F6', '#8B5CF6']}
-              style={styles.avatarGradient}
-            >
-              <User size={80} color="#fff" />
-            </LinearGradient>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>Belum Tersedia</Text>
+            <TouchableOpacity onPress={pickImage} activeOpacity={0.8} style={{ alignItems: 'center' }}>
+              {avatar ? (
+                <Image source={{ uri: avatar }} style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)' }} />
+              ) : (
+                <LinearGradient
+                  colors={['#3B82F6', '#8B5CF6']}
+                  style={styles.avatarGradient}
+                >
+                  <User size={80} color="#fff" />
+                </LinearGradient>
+              )}
+              
+              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: '#3B82F6', padding: 8, borderRadius: 20 }}>
+                <Camera size={16} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={[styles.statusBadge, { marginTop: 16 }]}>
+              <Text style={styles.statusText}>{avatar ? 'Edit Foto' : 'Pilih Foto'}</Text>
             </View>
           </View>
 

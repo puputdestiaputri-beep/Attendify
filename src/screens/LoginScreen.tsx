@@ -26,9 +26,22 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      const userName = identifier || 'User';
+      let userEmail = '';
+      let userName = identifier || 'User';
+      let userNim = '';
+
+      if (identifier.includes('@')) {
+        userEmail = identifier;
+        userName = identifier.split('@')[0];
+      } else if (/^\d+$/.test(identifier) || identifier.toLowerCase().includes('nim')) {
+        userNim = identifier;
+        userName = 'Pengguna (NIM)';
+      } else {
+        userNim = identifier;
+      }
+
       await new Promise(resolve => setTimeout(resolve, 500));
-      login(role, { fullName: userName });
+      login(role, { fullName: userName, email: userEmail, nim: userNim, prodi: 'S1 Informatika', kelas: 'A Pagi' });
     } catch (error) {
       console.error('Login error:', error);
     } finally {
@@ -162,9 +175,6 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
           {/* Social Login */}
           <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
-              <Send size={24} color={Colors.attendify.primary} />
-            </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
               <MessageCircle size={24} color={Colors.attendify.primary} />
             </TouchableOpacity>

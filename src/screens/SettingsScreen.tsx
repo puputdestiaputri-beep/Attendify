@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { Bell, Moon, UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle, LogOut } from 'lucide-react-native';
+import { Bell, Moon, UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
@@ -11,34 +11,11 @@ import { useTheme } from '../context/ThemeContext';
 const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigation = useNavigation<any>();
-  const { logout } = useAuth();
   const { isDarkMode } = useTheme();
 
   const handleDevFeature = (name: string) => {
     Alert.alert('Info', `Fitur ${name} akan tersedia pada versi pembaruan mendatang.`);
-  };
-
-  const handleLogout = () => {
-    console.log('🚀 handleLogout clicked (Settings)');
-    Alert.alert(
-      'Konfirmasi Logout',
-      'Apakah Anda yakin ingin keluar?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            console.log('💥 Logout button pressed in Alert (Settings)');
-            setIsLoggingOut(true);
-            logout();
-            console.log('✅ logout() called, state should update');
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -113,20 +90,9 @@ export default function SettingsScreen() {
           </BlurView>
         </View>
 
-        {/* ── Logout Button – Prominent ── */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['#dc2626', '#b91c1c']}
-            style={styles.logoutGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <LogOut size={20} color="#fff" />
-            <Text style={styles.logoutText}>Logout dari Akun</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <Text style={styles.copyright}>© 2026 SmartFace System. All rights reserved.</Text>
+        <View style={{ marginTop: 24 }}>
+          <Text style={styles.copyright}>© 2026 SmartFace System. All rights reserved.</Text>
+        </View>
 
       </ScrollView>
     </LinearGradient>
