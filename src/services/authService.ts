@@ -15,18 +15,9 @@ export const saveAuthState = async (
   userData: any
 ) => {
   try {
-    const authData = {
-      isLoggedIn,
-      role,
-      userData,
-      timestamp: new Date().getTime(),
-    };
-
-    await AsyncStorage.multiSet([
-      [AUTH_STORAGE_KEYS.IS_LOGGED_IN, JSON.stringify(isLoggedIn)],
-      [AUTH_STORAGE_KEYS.USER_ROLE, role || ''],
-      [AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(userData)],
-    ]);
+    await AsyncStorage.setItem(AUTH_STORAGE_KEYS.IS_LOGGED_IN, JSON.stringify(isLoggedIn));
+    await AsyncStorage.setItem(AUTH_STORAGE_KEYS.USER_ROLE, role || '');
+    await AsyncStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
     console.log('💾 Auth state saved to AsyncStorage');
     return true;
@@ -39,15 +30,15 @@ export const saveAuthState = async (
 // ── Load Auth State ───────────────────────────────────────────────────────────
 export const loadAuthState = async () => {
   try {
-    const values = await AsyncStorage.multiGet([
-      AUTH_STORAGE_KEYS.IS_LOGGED_IN,
-      AUTH_STORAGE_KEYS.USER_ROLE,
-      AUTH_STORAGE_KEYS.USER_DATA,
-    ]);
+    const isLoggedIn = JSON.parse(
+      (await AsyncStorage.getItem(AUTH_STORAGE_KEYS.IS_LOGGED_IN)) || 'false'
+    );
 
-    const isLoggedIn = values[0][1] ? JSON.parse(values[0][1]) : false;
-    const role = values[1][1] || null;
-    const userData = values[2][1] ? JSON.parse(values[2][1]) : null;
+    const role = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.USER_ROLE);
+
+    const userData = JSON.parse(
+      (await AsyncStorage.getItem(AUTH_STORAGE_KEYS.USER_DATA)) || 'null'
+    );
 
     console.log('📂 Auth state loaded from AsyncStorage:', {
       isLoggedIn,
@@ -68,12 +59,10 @@ export const clearAuthState = async () => {
     console.log('🔐 Clearing auth state...');
 
     // Remove all auth-related data from AsyncStorage
-    await AsyncStorage.multiRemove([
-      AUTH_STORAGE_KEYS.IS_LOGGED_IN,
-      AUTH_STORAGE_KEYS.USER_ROLE,
-      AUTH_STORAGE_KEYS.USER_DATA,
-      AUTH_STORAGE_KEYS.AUTH_TOKEN,
-    ]);
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.IS_LOGGED_IN);
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.USER_ROLE);
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.USER_DATA);
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.AUTH_TOKEN);
 
     console.log('✅ Auth state cleared successfully');
 
