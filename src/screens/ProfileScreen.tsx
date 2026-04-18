@@ -1,28 +1,34 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { User, Settings, LogOut, ChevronRight, Edit3, Monitor } from 'lucide-react-native';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationCap } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const { isDarkMode, setIsDarkMode } = useTheme();
+
+  const userName = user?.fullName || 'Mahasiswa';
+  const userProdi = user?.prodi || '-';
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Konfirmasi Logout',
-      'Apakah Anda yakin ingin keluar?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => logout(), // ← cukup ini, navigator otomatis render Login
-        },
-      ]
-    );
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    try {
+      setIsLoggingOut(true);
+      setShowLogoutModal(false);
+      logout();
+    } catch (error) {
+      console.log('Logout error:', error);
+    }
   };
 
   const handleDevFeature = (featureName: string) => {
@@ -31,71 +37,91 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
+      colors={isDarkMode ? 
+        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
+        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
+      }
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* ── Profile Header ── */}
+        {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <LinearGradient colors={['#3B82F6', '#8B5CF6']} style={styles.avatarContainer}>
-            <User size={50} color="#fff" />
-          </LinearGradient>
-          <Text style={styles.name}>Aldi</Text>
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.avatarContainer} />
+          ) : (
+            <LinearGradient colors={['#3B82F6', '#8B5CF6']} style={styles.avatarContainer}>
+              <User size={50} color="#fff" />
+            </LinearGradient>
+          )}
+
+          <Text style={styles.name}>{userName}</Text>
+
           <View style={styles.roleBadge}>
-            <Text style={styles.role}>Mahasiswa Fasilkom</Text>
+            <Text style={styles.role}>Mahasiswa {userProdi}</Text>
           </View>
         </View>
 
-        {/* ── Menu Actions ── */}
+        {/* Menu */}
         <View style={styles.menuContainer}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => handleDevFeature('Edit Profile')}
-          >
+          
+          <View style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(56,189,248,0.2)' }]}>
-                <Edit3 size={20} color="#38BDF8" />
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
+                <CreditCard size={20} color="#3B82F6" />
               </View>
-              <Text style={styles.menuItemText}>Edit Profile</Text>
+              <View style={{ justifyContent: 'center' }}>
+                <Text style={styles.menuItemText}>NIM</Text>
+                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '20240001'}</Text>
+              </View>
             </View>
-            <ChevronRight size={20} color="rgba(255,255,255,0.4)" />
-          </TouchableOpacity>
+          </View>
+
+          <View style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
+                <BookOpen size={20} color="#10B981" />
+              </View>
+              <View style={{ justifyContent: 'center' }}>
+                <Text style={styles.menuItemText}>Program Studi</Text>
+                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{userProdi !== '-' ? userProdi : 'S1 Informatika'}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
+                <GraduationCap size={20} color="#F59E0B" />
+              </View>
+              <View style={{ justifyContent: 'center' }}>
+                <Text style={styles.menuItemText}>Kelas</Text>
+                <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>A Pagi</Text>
+              </View>
+            </View>
+          </View>
 
           <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('DosenDashboard')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(168,85,247,0.2)' }]}>
-                <Monitor size={20} color="#A855F7" />
-              </View>
-              <Text style={styles.menuItemText}>Dashboard Dosen (Demo)</Text>
-            </View>
-            <ChevronRight size={20} color="rgba(255,255,255,0.4)" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.menuItem, { borderBottomWidth: 0 }]}
+            style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}
             onPress={() => navigation.navigate('Settings')}
           >
             <View style={styles.menuItemLeft}>
               <View style={[styles.iconBox, { backgroundColor: 'rgba(156,163,175,0.2)' }]}>
                 <Settings size={20} color="#9CA3AF" />
               </View>
-              <Text style={styles.menuItemText}>Pengaturan</Text>
+              <View style={{ justifyContent: 'center' }}>
+                <Text style={styles.menuItemText}>Pengaturan</Text>
+              </View>
             </View>
-            <ChevronRight size={20} color="rgba(255,255,255,0.4)" />
+            <ChevronRight size={20} color="rgba(255,255,255,0.4)" style={{ alignSelf: 'center' }} />
           </TouchableOpacity>
         </View>
 
-        {/* ── Logout Button – Prominent ── */}
+        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
           <LinearGradient
             colors={['#dc2626', '#b91c1c']}
             style={styles.logoutGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
           >
             <LogOut size={20} color="#fff" />
             <Text style={styles.logoutText}>Logout dari Akun</Text>
@@ -103,20 +129,57 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* Logout Modal */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalIconContainer}>
+              <LogOut size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Konfirmasi Logout</Text>
+            <Text style={styles.modalMessage}>Apakah Anda yakin ingin keluar dari akun Anda?</Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.modalBtnCancel} 
+                onPress={() => setShowLogoutModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalBtnCancelText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalBtnLogout} 
+                onPress={confirmLogout}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalBtnLogoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
   scrollContent: {
     paddingTop: 80,
     paddingHorizontal: 20,
     paddingBottom: 100,
   },
 
-  // ── Profile Header ──────────────────────────────
   profileHeader: { alignItems: 'center', marginBottom: 40 },
+
   avatarContainer: {
     width: 110,
     height: 110,
@@ -124,15 +187,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 10,
   },
-  name: { fontSize: 26, fontWeight: 'bold', color: '#fff', letterSpacing: 0.5 },
+
+  name: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+
   roleBadge: {
     backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 16,
@@ -140,26 +198,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 8,
   },
-  role: { fontSize: 14, color: '#E2E8F0', fontWeight: '500' },
 
-  // ── Menu Card ────────────────────────────────────
+  role: { fontSize: 14, color: '#E2E8F0' },
+
   menuContainer: {
     backgroundColor: 'rgba(30,41,59,0.6)',
     borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     marginBottom: 20,
   },
+
   menuItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     padding: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
+
   menuItemLeft: { flexDirection: 'row', alignItems: 'center' },
+
   iconBox: {
     width: 44,
     height: 44,
@@ -168,24 +223,135 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16,
   },
-  menuItemText: { fontSize: 16, color: '#fff', fontWeight: '600' },
 
-  // ── Logout Button ─────────────────────────────────
+  menuItemText: { color: '#fff' },
+
+  settingsGroup: { marginBottom: 32 },
+  groupTitle: { 
+    fontSize: 12, 
+    fontWeight: 'bold', 
+    color: 'rgba(255,255,255,0.4)', 
+    marginBottom: 16, 
+    marginLeft: 4, 
+    textTransform: 'uppercase',
+    letterSpacing: 1.5
+  },
+  card: { 
+    borderRadius: 24, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(30,41,59,0.4)',
+    overflow: 'hidden',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  noBorder: {
+    borderBottomWidth: 0,
+  },
+  settingItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingItemText: { 
+    fontSize: 16, 
+    color: '#fff',
+    fontWeight: '500',
+  },
+
   logoutBtn: {
     borderRadius: 18,
     overflow: 'hidden',
   },
+
   logoutGradient: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 17,
+    padding: 17,
     gap: 10,
   },
+
   logoutText: {
     color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  modalBtnCancelText: {
     fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  modalBtnLogout: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  modalBtnLogoutText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

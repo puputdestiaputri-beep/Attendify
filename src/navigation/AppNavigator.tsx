@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Calendar as CalendarIcon, User as UserIcon } from 'lucide-react-native';
@@ -7,9 +7,15 @@ import HomeScreen from '../screens/HomeScreen';
 import JadwalScreen from '../screens/JadwalScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ScanScreen from '../screens/ScanScreen';
+import NotificationScreen from '../screens/NotificationScreen';
 import DosenDashboardScreen from '../screens/DosenDashboardScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import LoginScreen from '../screens/LoginScreen';
+import CreateAccountScreen from '../screens/CreateAccountScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import PrivacySecurityScreen from '../screens/PrivacySecurityScreen';
+import ProfileDetailsScreen from '../screens/ProfileDetailsScreen';
+import AboutAttendifyScreen from '../screens/AboutAttendifyScreen';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -61,7 +67,11 @@ function MahasiswaNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="Scan" component={ScanScreen} />
+      <Stack.Screen name="Notification" component={NotificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+      <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
+      <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
     </Stack.Navigator>
   );
 }
@@ -79,16 +89,39 @@ function DosenNavigator() {
 export default function AppNavigator() {
   const { isLoggedIn, role } = useAuth();
 
-  // Jika belum login → tampilkan Login screen
+  console.log('🔍 AppNavigator - isLoggedIn:', isLoggedIn, 'role:', role);
+
   if (!isLoggedIn) {
     return (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Navigator 
+        key={`auth-${isLoggedIn}`}
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen}
+        />
+        <Stack.Screen 
+          name="CreateAccount" 
+          component={CreateAccountScreen}
+          options={{
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen 
+          name="ForgotPassword" 
+          component={ForgotPasswordScreen}
+          options={{
+            presentation: 'modal',
+          }}
+        />
       </Stack.Navigator>
     );
   }
 
-  // Jika sudah login → tampilkan navigator sesuai role
-  if (role === 'dosen') return <DosenNavigator />;
+  if (role === 'dosen') {
+    return <DosenNavigator />;
+  }
+
   return <MahasiswaNavigator />;
 }

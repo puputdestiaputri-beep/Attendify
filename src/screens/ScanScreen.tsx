@@ -12,6 +12,7 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<'success' | 'failed' | null>(null);
+  const [scanTime, setScanTime] = useState<string>('');
   const scanLineAnim = React.useRef(new Animated.Value(0)).current;
   const navigation = useNavigation<any>();
 
@@ -38,6 +39,8 @@ export default function ScanScreen() {
         setScanning(false);
         const isSuccess = Math.random() > 0.3; 
         setResult(isSuccess ? 'success' : 'failed');
+        const now = new Date();
+        setScanTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
       }, 4000);
 
       return () => clearTimeout(timer);
@@ -162,7 +165,7 @@ export default function ScanScreen() {
                 
                 <Text style={styles.portalSub}>
                   {result === 'success' 
-                    ? 'Wajah dikenali! Absensi Anda pukul 08:01 telah tercatat di sistem.' 
+                    ? `Wajah dikenali! Absensi Anda pukul ${scanTime} telah tercatat di sistem.` 
                     : 'Wajah tidak cocok dengan database. Pastikan pencahayaan cukup dan wajah terlihat jelas.'}
                 </Text>
 

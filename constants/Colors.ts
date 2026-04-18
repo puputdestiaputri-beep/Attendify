@@ -1,6 +1,6 @@
 /**
  * Below are the colors that are used in the app.
- * The colors are based on the AI Futuristic Theme.
+ * The colors are based on the Attendify Theme.
  */
 
 const tintColorLight = '#2D6CDF';
@@ -17,11 +17,23 @@ export const Colors = {
   },
   dark: {
     text: '#ffffff',
-    background: '#0B1F3F', // Always dark
+    background: '#0B1F3F',
     tint: tintColorDark,
     icon: '#6B46C1',
     tabIconDefault: '#8e8e93',
     tabIconSelected: tintColorDark,
+  },
+  attendify: {
+    primary: '#1E4FA8',
+    secondary: '#2D6CDF',
+    tertiary: '#6846C1',
+    neutral: '#0B1E5F',
+    background: '#0B1E5F',
+    surface: '#ffffff',
+    surfaceVariant: '#f5f5f5',
+    onSurface: '#1e1e1e',
+    error: '#ef4444',
+    success: '#22c55e',
   },
   ai: {
     background: '#0B1F3F',
@@ -31,7 +43,7 @@ export const Colors = {
     primary: '#2D6CDF',
     highlight: '#2D6CDF',
     accentGlow: '#6B46C1',
-    card: 'rgba(255, 255, 255, 0.1)', // Glassmorphism
+    card: 'rgba(255, 255, 255, 0.1)',
     cardBorder: 'rgba(255, 255, 255, 0.2)',
   }
 };
