@@ -12,11 +12,13 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, User, Mail, Briefcase, Camera, IdCard, Phone, BookOpen, GraduationCap } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import { ArrowLeft, User, Mail, Briefcase, Camera, IdCard, Phone, BookOpen, GraduationCap, Save, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
@@ -56,6 +58,10 @@ export default function ProfileDetailsScreen() {
         { ...user, fullName: name, email, avatar, prodi, kelas, phone, nim: idNumber } : 
         { fullName: name, email, avatar, prodi, kelas, phone, nim: idNumber };
       
+      if (email && avatar) {
+        await AsyncStorage.setItem(`@avatar_${email}`, avatar);
+      }
+
       if (role) {
         login(role, updatedUser);
         Alert.alert('Berhasil', 'Perubahan profil berhasil disimpan.');
@@ -70,9 +76,7 @@ export default function ProfileDetailsScreen() {
 
   return (
     <LinearGradient
-      colors={[Colors.attendify.primary, Colors.attendify.tertiary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -89,9 +93,9 @@ export default function ProfileDetailsScreen() {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <ArrowLeft color="#fff" size={24} />
+              <ChevronLeft color="#fff" size={28} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Detail Profil</Text>
+            <Text style={styles.headerTitle}>Ubah Profil</Text>
             <View style={{ width: 44 }} />
           </View>
 
@@ -120,12 +124,12 @@ export default function ProfileDetailsScreen() {
           </View>
 
           {/* Card */}
-          <View style={styles.card}>
+          <BlurView intensity={20} tint="dark" style={styles.card}>
             <View style={styles.fieldsContainer}>
               {/* Nama */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
-                  <User size={18} color={Colors.attendify.primary} />
+                  <User size={18} color={Colors.ai.primary} />
                   <Text style={styles.fieldLabel}>Nama Lengkap</Text>
                 </View>
                 <View style={styles.fieldContent}>
@@ -136,7 +140,8 @@ export default function ProfileDetailsScreen() {
                       setName(t);
                       setChanged(true);
                     }}
-                    placeholder="Nama"
+                    placeholder="Masukkan nama lengkap"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
                     editable={!saving}
                   />
                 </View>
@@ -145,7 +150,7 @@ export default function ProfileDetailsScreen() {
               {/* Email */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
-                  <Mail size={18} color={Colors.attendify.primary} />
+                  <Mail size={18} color={Colors.ai.primary} />
                   <Text style={styles.fieldLabel}>Email</Text>
                 </View>
                 <View style={styles.fieldContent}>
@@ -156,7 +161,8 @@ export default function ProfileDetailsScreen() {
                       setEmail(t);
                       setChanged(true);
                     }}
-                    placeholder="Email"
+                    placeholder="email@example.com"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
                     keyboardType="email-address"
                     editable={!saving}
                   />
@@ -166,8 +172,10 @@ export default function ProfileDetailsScreen() {
               {/* NIM / NIP */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
-                  <IdCard size={18} color={Colors.attendify.primary} />
-                  <Text style={styles.fieldLabel}>{role === 'dosen' ? 'NIP' : 'NIM'}</Text>
+                  <IdCard size={18} color={Colors.ai.primary} />
+                  <Text style={styles.fieldLabel}>
+                    {role === 'dosen' ? 'NIP' : role === 'admin' ? 'Admin ID' : 'NIM'}
+                  </Text>
                 </View>
                 <View style={styles.fieldContent}>
                   <TextInput
@@ -177,22 +185,10 @@ export default function ProfileDetailsScreen() {
                       setIdNumber(t);
                       setChanged(true);
                     }}
-                    placeholder={role === 'dosen' ? 'NIP' : 'NIM'}
+                    placeholder={role === 'dosen' ? 'NIP' : role === 'admin' ? 'Admin ID' : 'NIM'}
+                    placeholderTextColor="rgba(255,255,255,0.3)"
                     editable={!saving}
                   />
-                </View>
-              </View>
-
-              {/* Role */}
-              <View style={styles.field}>
-                <View style={styles.fieldHeader}>
-                  <Briefcase size={18} color={Colors.attendify.primary} />
-                  <Text style={styles.fieldLabel}>Role</Text>
-                </View>
-                <View style={styles.fieldContent}>
-                  <View style={styles.roleBadge}>
-                    <Text style={styles.roleText}>{displayRole}</Text>
-                  </View>
                 </View>
               </View>
 
@@ -201,7 +197,7 @@ export default function ProfileDetailsScreen() {
                 <>
                   <View style={styles.field}>
                     <View style={styles.fieldHeader}>
-                      <BookOpen size={18} color={Colors.attendify.primary} />
+                      <BookOpen size={18} color={Colors.ai.primary} />
                       <Text style={styles.fieldLabel}>Program Studi</Text>
                     </View>
                     <View style={styles.fieldContent}>
@@ -213,6 +209,7 @@ export default function ProfileDetailsScreen() {
                           setChanged(true);
                         }}
                         placeholder="Program Studi"
+                        placeholderTextColor="rgba(255,255,255,0.3)"
                         editable={!saving}
                       />
                     </View>
@@ -220,7 +217,7 @@ export default function ProfileDetailsScreen() {
 
                   <View style={styles.field}>
                     <View style={styles.fieldHeader}>
-                      <GraduationCap size={18} color={Colors.attendify.primary} />
+                      <GraduationCap size={18} color={Colors.ai.primary} />
                       <Text style={styles.fieldLabel}>Kelas</Text>
                     </View>
                     <View style={styles.fieldContent}>
@@ -232,6 +229,7 @@ export default function ProfileDetailsScreen() {
                           setChanged(true);
                         }}
                         placeholder="Kelas"
+                        placeholderTextColor="rgba(255,255,255,0.3)"
                         editable={!saving}
                       />
                     </View>
@@ -243,7 +241,7 @@ export default function ProfileDetailsScreen() {
               {role === 'dosen' && (
                 <View style={styles.field}>
                   <View style={styles.fieldHeader}>
-                    <Phone size={18} color={Colors.attendify.primary} />
+                    <Phone size={18} color={Colors.ai.primary} />
                     <Text style={styles.fieldLabel}>Nomor Telepon</Text>
                   </View>
                   <View style={styles.fieldContent}>
@@ -255,6 +253,7 @@ export default function ProfileDetailsScreen() {
                         setChanged(true);
                       }}
                       placeholder="Nomor Telepon"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
                       editable={!saving}
                     />
                   </View>
@@ -264,10 +263,10 @@ export default function ProfileDetailsScreen() {
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
-                ℹ️ Data profil tersimpan di perangkat.
+                ⚠️ Perubahan data akan tersimpan di profil akun Anda.
               </Text>
             </View>
-          </View>
+          </BlurView>
 
           {/* Button */}
           <View style={styles.buttonContainer}>
@@ -302,43 +301,52 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    paddingTop: Platform.OS === 'ios' ? 20 : 10,
     paddingBottom: 40,
   },
-   fieldsContainer: {
-    marginBottom: 20,
+  fieldsContainer: {
+    marginBottom: 10,
   },
 
   input: {
-    fontSize: 15,
-    color: Colors.attendify.onSurface,
+    fontSize: 16,
+    color: '#fff',
     fontWeight: '500',
-    marginBottom: 8,
-    paddingVertical: 4,
+    paddingVertical: 10,
     paddingHorizontal: 0,
-    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
 
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 20,
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
 
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 10,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
 
   headerTitle: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 20,
   },
 
   avatarSection: {
     alignItems: 'center',
-    marginVertical: 30,
+    marginVertical: 20,
   },
 
   avatarGradient: {
@@ -347,6 +355,9 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
 
   statusBadge: {
@@ -354,78 +365,111 @@ const styles = StyleSheet.create({
   },
 
   statusText: {
-    color: '#FFA500',
+    color: Colors.ai.primary,
+    fontWeight: '600',
   },
 
   card: {
-    backgroundColor: Colors.attendify.surface,
     margin: 20,
-    padding: 20,
-    borderRadius: 20,
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
   },
 
   field: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
 
   fieldHeader: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
   },
 
   fieldLabel: {
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 
   fieldContent: {
-    marginTop: 5,
+    marginTop: 0,
   },
 
   roleBadge: {
-    backgroundColor: '#eee',
-    padding: 5,
-    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
 
   roleText: {
-    fontWeight: '600',
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
 
   infoBox: {
     marginTop: 10,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
   },
 
   infoText: {
     fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+    lineHeight: 18,
   },
 
   buttonContainer: {
     flexDirection: 'row',
-    gap: 10,
-    margin: 20,
+    gap: 12,
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 40,
   },
 
   primaryButton: {
-    flex: 1,
-    backgroundColor: Colors.attendify.primary,
-    padding: 12,
-    borderRadius: 10,
+    flex: 2,
+    backgroundColor: Colors.ai.primary,
+    paddingVertical: 16,
+    borderRadius: 18,
     alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: Colors.ai.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 
   primaryButtonText: {
     color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 
   secondaryButton: {
     flex: 1,
-    backgroundColor: '#ccc',
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 16,
+    borderRadius: 18,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
 
   secondaryButtonText: {
-    color: '#000',
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });

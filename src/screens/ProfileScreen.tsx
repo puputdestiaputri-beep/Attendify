@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
-import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationCap, Phone, Mail, ShieldCheck, Shield, UserCheck, Key } from 'lucide-react-native';
+import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationCap, Phone, Mail, ShieldCheck, Shield, UserCheck, Key, Edit3, IdCard } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -13,8 +14,8 @@ export default function ProfileScreen() {
   const { isDarkMode, setIsDarkMode } = useTheme();
 
   const userName = user?.fullName || 'User';
-  const roleLabel = user?.role === 'dosen' ? 'Dosen' : user?.role === 'admin' ? 'Administrator' : 'Mahasiswa';
-  const userProdi = user?.prodi || (user?.role === 'mahasiswa' ? 'S1 Informatika' : '');
+  const roleLabel = role === 'dosen' ? 'Dosen' : role === 'admin' ? 'Administrator' : 'Mahasiswa';
+  const userProdi = user?.prodi || (role === 'mahasiswa' ? 'S1 Informatika' : '');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -59,150 +60,133 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{userName}</Text>
 
           <View style={styles.roleBadge}>
-            <Text style={styles.role}>{roleLabel} {userProdi && roleLabel !== 'Administrator' ? `- ${userProdi}` : ''}</Text>
+            <Text style={styles.role}>{roleLabel} {userProdi && role !== 'admin' ? `- ${userProdi}` : ''}</Text>
           </View>
         </View>
 
         {/* Menu */}
-        <View style={styles.menuContainer}>
+          {/* Menu - 3 Card Layout */}
+        <View style={styles.menuWrapper}>
           
-          {/* ── Mahasiswa Specific Info ── */}
-          {role === 'mahasiswa' && (
-            <>
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
-                    <CreditCard size={20} color="#3B82F6" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>NIM</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '20240001'}</Text>
-                  </View>
+          {/* ── CARD 1: Identitas ── */}
+          <Text style={styles.cardTitle}>Identitas Akun</Text>
+          <BlurView intensity={20} tint="dark" style={styles.card}>
+            {/* NIM / NIP / Admin ID */}
+            <View style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+                  <IdCard size={20} color="#60A5FA" />
                 </View>
-              </View>
-
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
-                    <BookOpen size={20} color="#10B981" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Program Studi</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{userProdi || 'S1 Informatika'}</Text>
-                  </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>{role === 'mahasiswa' ? 'NIM' : role === 'dosen' ? 'NIP' : 'Admin ID'}</Text>
+                  <Text style={styles.menuItemValue}>{user?.nim || (role === 'admin' ? 'ADM-2024-001' : '-')}</Text>
                 </View>
-              </View>
-
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
-                    <GraduationCap size={20} color="#F59E0B" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Kelas</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.kelas || 'A Pagi'}</Text>
-                  </View>
-                </View>
-              </View>
-            </>
-          )}
-
-          {/* ── Dosen Specific Info ── */}
-          {role === 'dosen' && (
-            <>
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
-                    <CreditCard size={20} color="#3B82F6" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>NIP</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.nim || '197508212005011002'}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
-                    <Mail size={20} color="#10B981" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Email</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.email || 'dosen@university.ac.id'}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
-                    <Phone size={20} color="#F59E0B" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Nomor Telepon</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>{user?.phone || '081234567890'}</Text>
-                  </View>
-                </View>
-              </View>
-            </>
-          )}
-
-          {/* ── Admin Specific Info ── */}
-          {role === 'admin' && (
-            <>
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.2)' }]}>
-                    <Shield size={20} color="#3B82F6" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Admin ID</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>ADM-2024-001</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.2)' }]}>
-                    <UserCheck size={20} color="#10B981" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Role</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>Super Administrator</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
-                    <Key size={20} color="#F59E0B" />
-                  </View>
-                  <View style={{ justifyContent: 'center' }}>
-                    <Text style={styles.menuItemText}>Izin Akses</Text>
-                    <Text style={{color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2}}>Full System Access</Text>
-                  </View>
-                </View>
-              </View>
-            </>
-          )}
-
-          <TouchableOpacity
-            style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(156,163,175,0.2)' }]}>
-                <Settings size={20} color="#9CA3AF" />
-              </View>
-              <View style={{ justifyContent: 'center' }}>
-                <Text style={styles.menuItemText}>Pengaturan</Text>
               </View>
             </View>
-            <ChevronRight size={20} color="rgba(255,255,255,0.4)" style={{ alignSelf: 'center' }} />
-          </TouchableOpacity>
+
+            {/* Role Display */}
+            <View style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+                  <Shield size={20} color="#34D399" />
+                </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>Status Akun</Text>
+                  <Text style={styles.menuItemValue}>{roleLabel}</Text>
+                </View>
+              </View>
+            </View>
+          </BlurView>
+
+          {/* ── CARD 2: Detail Informasi ── */}
+          <Text style={styles.cardTitle}>{role === 'mahasiswa' ? 'Data Akademik' : 'Informasi Kontak'}</Text>
+          <BlurView intensity={20} tint="dark" style={styles.card}>
+            {role === 'mahasiswa' ? (
+              <>
+                <View style={styles.menuItem}>
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+                      <BookOpen size={20} color="#A78BFA" />
+                    </View>
+                    <View>
+                      <Text style={styles.menuItemLabel}>Program Studi</Text>
+                      <Text style={styles.menuItemValue}>{userProdi || '-'}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                      <GraduationCap size={20} color="#FBBF24" />
+                    </View>
+                    <View>
+                      <Text style={styles.menuItemLabel}>Kelas</Text>
+                      <Text style={styles.menuItemValue}>{user?.kelas || '-'}</Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.menuItem}>
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+                      <Mail size={20} color="#A78BFA" />
+                    </View>
+                    <View>
+                      <Text style={styles.menuItemLabel}>Email Terdaftar</Text>
+                      <Text style={styles.menuItemValue}>{user?.email || '-'}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                      <Phone size={20} color="#FBBF24" />
+                    </View>
+                    <View>
+                      <Text style={styles.menuItemLabel}>Nomor Telepon</Text>
+                      <Text style={styles.menuItemValue}>{user?.phone || '-'}</Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
+          </BlurView>
+
+          {/* ── CARD 3: Pengaturan & Aksi ── */}
+          <Text style={styles.cardTitle}>Pengaturan & Akun</Text>
+          <BlurView intensity={20} tint="dark" style={styles.card}>
+            {/* Edit Profile */}
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('ProfileDetails')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+                  <Edit3 size={20} color="#60A5FA" />
+                </View>
+                <Text style={styles.menuItemText}>Ubah Profil</Text>
+              </View>
+              <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
+
+            {/* Settings */}
+            <TouchableOpacity 
+              style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(156,163,175,0.15)' }]}>
+                  <Settings size={20} color="#9CA3AF" />
+                </View>
+                <Text style={styles.menuItemText}>Pengaturan Aplikasi</Text>
+              </View>
+              <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
+          </BlurView>
         </View>
 
         {/* Logout Button */}
@@ -289,20 +273,32 @@ const styles = StyleSheet.create({
 
   role: { fontSize: 14, color: '#E2E8F0' },
 
-  menuContainer: {
-    backgroundColor: 'rgba(30,41,59,0.6)',
-    borderRadius: 24,
+  menuWrapper: {
     marginBottom: 20,
   },
-
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.4)',
+    marginBottom: 12,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  card: {
+    borderRadius: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 18,
   },
-
   menuItemLeft: { flexDirection: 'row', alignItems: 'center' },
-
   iconBox: {
     width: 44,
     height: 44,
@@ -311,52 +307,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16,
   },
-
-  menuItemText: { color: '#fff' },
-
-  settingsGroup: { marginBottom: 32 },
-  groupTitle: { 
-    fontSize: 12, 
-    fontWeight: 'bold', 
-    color: 'rgba(255,255,255,0.4)', 
-    marginBottom: 16, 
-    marginLeft: 4, 
-    textTransform: 'uppercase',
-    letterSpacing: 1.5
-  },
-  card: { 
-    borderRadius: 24, 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(30,41,59,0.4)',
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  noBorder: {
-    borderBottomWidth: 0,
-  },
-  settingItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingItemText: { 
+  menuItemText: { 
+    color: '#fff', 
     fontSize: 16, 
+    fontWeight: '500' 
+  },
+  menuItemLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  menuItemValue: {
     color: '#fff',
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
 
   logoutBtn: {
     borderRadius: 18,
     overflow: 'hidden',
+    marginTop: 10,
   },
 
   logoutGradient: {
@@ -369,12 +341,13 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
 
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -382,14 +355,14 @@ const styles = StyleSheet.create({
     width: '85%',
     maxWidth: 400,
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 24,
     alignItems: 'center',
-    elevation: 10,
+    elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowRadius: 20,
   },
   modalIconContainer: {
     width: 64,
@@ -403,14 +376,14 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#111827',
     marginBottom: 8,
   },
   modalMessage: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#4B5563',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 26,
     lineHeight: 22,
   },
   modalActions: {
@@ -421,19 +394,19 @@ const styles = StyleSheet.create({
   modalBtnCancel: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
   },
   modalBtnCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#374151',
   },
   modalBtnLogout: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: '#EF4444',
     alignItems: 'center',
   },
