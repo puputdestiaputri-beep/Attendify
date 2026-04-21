@@ -12,6 +12,9 @@ import {
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const { width } = Dimensions.get('window');
 
@@ -22,15 +25,47 @@ const INITIAL_LECTURERS = [
   { id: '3', name: 'Dr. Ahmad Subarjo', nip: '19700003', jabatan: 'Profesor', email: 'ahmad@example.com', phone: '08723456789' },
 ];
 
+const API_URL = 'http://localhost:5000/api';
+
 export default function ManageLecturersScreen() {
   const navigation = useNavigation<any>();
-  const [lecturers, setLecturers] = useState(INITIAL_LECTURERS);
+  const [lecturers, setLecturers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingLecturer, setEditingLecturer] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: '', nip: '', jabatan: '', email: '', phone: ''
+    name: '', nip: '', jabatan: '', email: '', phone: '', password: ''
   });
+
+  const fetchLecturers = async () => {
+    setIsLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        const dosenOnly = result.data.filter((u: any) => u.role === 'dosen');
+        setLecturers(dosenOnly);
+      }
+    } catch (error) {
+      console.error('Fetch lecturers error:', error);
+      Alert.alert('Error', 'Gagal mengambil data dosen');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchLecturers();
+    }, [])
+  );
+
 
   const filteredLecturers = lecturers.filter(l => 
     l.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -39,15 +74,16 @@ export default function ManageLecturersScreen() {
 
   const handleAddPress = () => {
     setEditingLecturer(null);
-    setFormData({ name: '', nip: '', jabatan: '', email: '', phone: '' });
+    setFormData({ name: '', nip: '', jabatan: '', email: '', phone: '', password: '' });
     setIsModalVisible(true);
   };
 
   const handleEditPress = (lecturer: any) => {
     setEditingLecturer(lecturer);
-    setFormData({ ...lecturer });
+    setFormData({ ...lecturer, password: '' }); // Password ignored for edit for now
     setIsModalVisible(true);
   };
+
 
   const handleDeletePress = (id: string) => {
     Alert.alert(
@@ -58,26 +94,79 @@ export default function ManageLecturersScreen() {
         { 
           text: 'Hapus', 
           style: 'destructive', 
-          onPress: () => setLecturers(prev => prev.filter(l => l.id !== id)) 
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('@attendify_auth_token');
+              const response = await fetch(`${API_URL}/users/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                fetchLecturers();
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Gagal menghapus dosen');
+            }
+          }
         }
+
       ]
     );
   };
 
-  const handleSave = () => {
-    if (!formData.name || !formData.nip) {
-      Alert.alert('Error', 'Nama dan NIP wajib diisi');
+  const handleSave = async () => {
+    if (!formData.name || !formData.email || (!editingLecturer && !formData.password)) {
+      Alert.alert('Error', 'Lengkapi data yang wajib diisi (Nama, Email, dan Password untuk data baru)');
       return;
     }
 
-    if (editingLecturer) {
-      setLecturers(prev => prev.map(l => l.id === editingLecturer.id ? { ...formData, id: l.id } : l));
-    } else {
-      const newLecturer = { ...formData, id: Date.now().toString() };
-      setLecturers(prev => [newLecturer, ...prev]);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      let response;
+      
+      if (editingLecturer) {
+        response = await fetch(`${API_URL}/users/${editingLecturer.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            role: 'dosen'
+          })
+        });
+      } else {
+        response = await fetch(`${API_URL}/register/admin-dosen`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: 'dosen'
+          })
+        });
+      }
+
+      const result = await response.json();
+      if (response.ok || result.status === 'success') {
+        Alert.alert('Berhasil', editingLecturer ? 'Data dosen berhasil diperbarui' : 'Dosen baru berhasil ditambahkan');
+        fetchLecturers();
+        setIsModalVisible(false);
+      } else {
+        Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat menyimpan data');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      Alert.alert('Error', 'Terjadi kesalahan koneksi');
     }
-    setIsModalVisible(false);
   };
+
 
   return (
     <View style={styles.container}>
@@ -242,20 +331,23 @@ export default function ManageLecturersScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Nomor Telepon / WA</Text>
-                  <View style={styles.inputWrap}>
-                    <Phone size={18} color="rgba(255,255,255,0.4)" />
-                    <TextInput
-                      style={[styles.input, { marginLeft: 8 }]}
-                      value={formData.phone}
-                      onChangeText={text => setFormData({...formData, phone: text})}
-                      placeholder="08..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
-                      keyboardType="phone-pad"
-                    />
+                {!editingLecturer && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Password Awal</Text>
+                    <View style={styles.inputWrap}>
+                      <ShieldCheck size={18} color="rgba(255,255,255,0.4)" />
+                      <TextInput
+                        style={[styles.input, { marginLeft: 8 }]}
+                        value={formData.password}
+                        onChangeText={text => setFormData({...formData, password: text})}
+                        placeholder="Password untuk dosen ini..."
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        secureTextEntry={true}
+                      />
+                    </View>
                   </View>
-                </View>
+                )}
+
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
                   <LinearGradient

@@ -21,8 +21,10 @@ const kelasCtrl = require('../controllers/kelasController');
 
 // 1. AUTH ROUTES
 router.post('/register', authCtrl.register);
+router.post('/register/admin-dosen', auth, roleCheck('admin'), authCtrl.registerAdminOrDosen);
 router.post('/login', authCtrl.login);
 router.get('/profile', auth, authCtrl.getProfile);
+
 
 // 2. USER ROUTES
 router.get('/users', auth, userCtrl.getAllUsers);

@@ -17,7 +17,7 @@ interface CreateAccountScreenProps {
 
 export default function CreateAccountScreen({ navigation }: CreateAccountScreenProps) {
   const { login } = useAuth();
-  const [role, setRole] = useState<'mahasiswa' | 'dosen' | 'admin'>('mahasiswa');
+  const role = 'mahasiswa';
   const [formData, setFormData] = useState({
     fullName: '',
     identifier: '',
@@ -93,41 +93,64 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const API_URL = 'http://localhost:5000/api';
       
-      const newUser = {
-        fullName: formData.fullName,
-        email: formData.email,
-        nim: formData.identifier,
-        prodi: formData.prodi,
-        kelas: formData.kelas,
-        password: formData.password,
-      };
-
-      await AsyncStorage.setItem(`@user_${formData.identifier.trim().toLowerCase()}`, JSON.stringify(newUser));
-      if (formData.email) {
-        await AsyncStorage.setItem(`@user_${formData.email.trim().toLowerCase()}`, JSON.stringify(newUser));
-      }
-      
-      console.log('Account created:', { ...formData, role });
-      
-      login(role, {
-        fullName: formData.fullName,
-        email: formData.email,
-        nim: formData.identifier,
-        prodi: formData.prodi,
-        kelas: formData.kelas,
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: 'mahasiswa', // Public registration is forced to mahasiswa
+        }),
       });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        const newUser = {
+          fullName: formData.fullName,
+          email: formData.email,
+          nim: formData.identifier,
+          prodi: formData.prodi,
+          kelas: formData.kelas,
+        };
+
+        // Cache for legacy support if needed
+        await AsyncStorage.setItem(`@user_${formData.identifier.trim().toLowerCase()}`, JSON.stringify(newUser));
+        if (formData.email) {
+          await AsyncStorage.setItem(`@user_${formData.email.trim().toLowerCase()}`, JSON.stringify(newUser));
+        }
+        
+        console.log('Account created successfully in backend');
+        
+        login(role as any, {
+          fullName: formData.fullName,
+          email: formData.email,
+          nim: formData.identifier,
+          prodi: formData.prodi,
+          kelas: formData.kelas,
+        });
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          general: result.message || 'Gagal membuat akun.',
+        }));
+      }
     } catch (error) {
       console.error('Registration error:', error);
       setErrors(prev => ({
         ...prev,
-        general: 'Gagal membuat akun. Coba lagi.',
+        general: 'Gagal terhubung ke server. Coba lagi.',
       }));
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <LinearGradient
@@ -159,46 +182,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
         {/* Main Card Container */}
         <View style={styles.cardContainer}>
           {/* Role Selector */}
-          <View style={styles.roleContainer}>
-            <TouchableOpacity
-              style={[styles.roleTab, role === 'mahasiswa' && styles.roleTabActive]}
-              onPress={() => setRole('mahasiswa')}
-            >
-              <User
-                size={18}
-                color={role === 'mahasiswa' ? Colors.attendify.primary : Colors.attendify.onSurface}
-              />
-              <Text style={[styles.roleTabText, role === 'mahasiswa' && styles.roleTabTextActive]}>
-                Mahasiswa
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.roleTab, role === 'dosen' && styles.roleTabActive]}
-              onPress={() => setRole('dosen')}
-            >
-              <UserPlus
-                size={18}
-                color={role === 'dosen' ? Colors.attendify.primary : Colors.attendify.onSurface}
-              />
-              <Text style={[styles.roleTabText, role === 'dosen' && styles.roleTabTextActive]}>
-                Dosen
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.roleTab, role === 'admin' && styles.roleTabActive]}
-              onPress={() => setRole('admin')}
-            >
-              <ShieldCheck
-                size={18}
-                color={role === 'admin' ? Colors.attendify.primary : Colors.attendify.onSurface}
-              />
-              <Text style={[styles.roleTabText, role === 'admin' && styles.roleTabTextActive]}>
-                Admin
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Public Registration is only for Mahasiswa - Role Selector Removed */}
 
           {/* Error Message */}
           {errors.general && (

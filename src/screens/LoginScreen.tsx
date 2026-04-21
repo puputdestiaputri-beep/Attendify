@@ -37,52 +37,50 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
     setIsLoading(true);
     try {
-      // Validasi pengecekan akun terdaftar
-      const userString = await AsyncStorage.getItem(`@user_${identifier.trim().toLowerCase()}`);
-      if (!userString) {
-        Alert.alert('Belum Terdaftar', 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.');
-        setIsLoading(false);
-        return;
-      }
-
-      const registeredUser = JSON.parse(userString);
+      const API_URL = 'http://localhost:5000/api';
       
-      if (registeredUser.password !== password) {
-        Alert.alert('Gagal', 'Password salah.');
-        setIsLoading(false);
-        return;
-      }
-
-      let userEmail = registeredUser.email || '';
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let cachedAvatar = '';
-      if (userEmail) {
-        try {
-          const storedAvatar = await AsyncStorage.getItem(`@avatar_${userEmail}`);
-          if (storedAvatar) {
-            cachedAvatar = storedAvatar;
-          }
-        } catch (e) {
-          console.error('Failed to load cached avatar', e);
-        }
-      }
-      
-      login(role, { 
-        fullName: registeredUser.fullName, 
-        email: registeredUser.email, 
-        nim: registeredUser.nim, 
-        prodi: registeredUser.prodi, 
-        kelas: registeredUser.kelas, 
-        avatar: cachedAvatar || undefined 
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: identifier.trim(), // Backend expects email as identifier
+          password: password,
+        }),
       });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        const { user: backendUser, token } = result.data;
+        
+        // Save token
+        await AsyncStorage.setItem('@attendify_auth_token', token);
+        
+        // Sync with AsyncStorage cache if needed
+        await AsyncStorage.setItem(`@user_${identifier.trim().toLowerCase()}`, JSON.stringify({
+          fullName: backendUser.name,
+          email: backendUser.email,
+          role: backendUser.role,
+        }));
+
+        login(backendUser.role as any, { 
+          fullName: backendUser.name, 
+          email: backendUser.email, 
+        });
+      } else {
+        // Fallback or Error
+        Alert.alert('Login Gagal', result.message || 'Email atau password salah.');
+      }
     } catch (error) {
       console.error('Login error:', error);
+      Alert.alert('Kesalahan', 'Gagal terhubung ke server. Pastikan backend berjalan.');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <LinearGradient

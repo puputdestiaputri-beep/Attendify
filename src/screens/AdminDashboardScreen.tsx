@@ -60,14 +60,16 @@ export default function AdminDashboardScreen() {
   };
 
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const confirmLogout = () => {
-    setShowLogoutModal(false);
-    logout();
-  };
+const handleLogout = () => {
+  setShowLogoutModal(true);
+};
+
+const confirmLogout = () => {
+  setShowLogoutModal(false);
+  logout();
+};
 
   const AdminCard = ({ title, icon: Icon, color, onPress, subtitle }: any) => (
     <TouchableOpacity 
