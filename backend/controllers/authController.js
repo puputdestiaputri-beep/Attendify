@@ -70,15 +70,20 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        const [users] = await db.query('SELECT * FROM pengguna WHERE email = ?', [email]);
+        // Check for user by email OR username (which could be NIM/NIP)
+        const [users] = await db.query(
+            'SELECT * FROM pengguna WHERE email = ? OR username = ?', 
+            [email, email]
+        );
+        
         if (users.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
+            return res.status(404).json({ status: 'error', message: 'Akun belum terdaftar' });
         }
 
         const user = users[0];
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            return res.status(401).json({ status: 'error', message: 'Password salah' });
         }
 
         const token = jwt.sign(

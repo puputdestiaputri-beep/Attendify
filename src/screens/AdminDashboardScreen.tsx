@@ -10,7 +10,7 @@ import {
   Cpu, LayoutDashboard, Settings, LogOut,
   ChevronRight, Bell, Search, RefreshCw,
   UserPlus, BookOpen, Database, BarChart3,
-  MonitorSmartphone, Camera, FileText
+  MonitorSmartphone, Camera, FileText, Calendar
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';

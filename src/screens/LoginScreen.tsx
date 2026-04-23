@@ -8,6 +8,7 @@ import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff, Shie
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveAuthToken } from '../services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,7 +24,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Custom Alert State
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -52,51 +53,56 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
     setIsLoading(true);
     try {
-      // Validasi pengecekan akun terdaftar
-      const userString = await AsyncStorage.getItem(`@user_${identifier.trim().toLowerCase()}`);
-      if (!userString) {
-        setIsLoading(false);
-        showAlert('Belum Terdaftar', 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.');
-        return;
-      }
+      // In a real device, replace localhost with your computer's IP address
+      const API_URL = 'http://localhost:5000/api';
+      
+      console.log('Attempting login via backend:', `${API_URL}/login`);
+      
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: identifier.trim(), // Backend handles this as email or username
+          password: password,
+        }),
+      });
 
-      const registeredUser = JSON.parse(userString);
-      
-      if (registeredUser.password !== password) {
-        setIsLoading(false);
-        showAlert('Gagal', 'Password salah.');
-        return;
-      }
+      const result = await response.json();
 
-      let userEmail = registeredUser.email || '';
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let cachedAvatar = '';
-      if (userEmail) {
-        try {
-          const storedAvatar = await AsyncStorage.getItem(`@avatar_${userEmail}`);
-          if (storedAvatar) {
-            cachedAvatar = storedAvatar;
-          }
-        } catch (e) {
-          console.error('Failed to load cached avatar', e);
+      if (response.ok && result.status === 'success') {
+        const { user: userData, token } = result.data;
+        
+        // Save token for future API calls
+        await saveAuthToken(token);
+        
+        // Ensure role matches what user selected, or use role from backend
+        // For admin, we should trust the backend role
+        
+        login(userData.role, {
+          fullName: userData.name,
+          email: userData.email,
+          nim: role === 'mahasiswa' ? identifier : undefined,
+        });
+
+        console.log('✅ Login successful via backend');
+      } else {
+        setIsLoading(false);
+        if (response.status === 404) {
+          showAlert('Belum Terdaftar', 'Akun belum terdaftar di sistem. Silakan hubungi admin.');
+        } else if (response.status === 401) {
+          showAlert('Gagal', 'Password salah.');
+        } else {
+          showAlert('Gagal', result.message || 'Terjadi kesalahan saat login.');
         }
       }
-      
-      login(role, { 
-        fullName: registeredUser.fullName, 
-        email: registeredUser.email, 
-        nim: registeredUser.nim, 
-        prodi: registeredUser.prodi, 
-        kelas: registeredUser.kelas, 
-        avatar: cachedAvatar || undefined 
-      });
     } catch (error) {
       console.error('Login error:', error);
-      showAlert('Kesalahan', 'Gagal terhubung ke server. Pastikan backend berjalan.');
-    } finally {
       setIsLoading(false);
+      showAlert('Kesalahan', 'Gagal terhubung ke server. Pastikan backend berjalan dan periksa koneksi internet Anda.');
+    } finally {
+      // Loading state is handled in logic
     }
   };
 
@@ -262,7 +268,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         </View>
 
         {/* Wave Separator */}
-        
+
       </ScrollView>
 
       {/* Custom Alert Modal */}

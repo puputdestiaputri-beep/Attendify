@@ -41,6 +41,7 @@ export const Colors = {
     gradientMiddle: '#1E1F48',
     gradientEnd: '#2D6CDF',
     primary: '#2D6CDF',
+    secondary: '#34D399',
     highlight: '#2D6CDF',
     accentGlow: '#6B46C1',
     card: 'rgba(255, 255, 255, 0.1)',

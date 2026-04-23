@@ -1,6 +1,6 @@
 const db = require('../config/db');
 const ExcelJS = require('exceljs');
-const PdfPrinter = require('pdfmake');
+const PdfPrinter = require('pdfmake/js/printer').default;
 const path = require('path');
 
 // Configure fonts for pdfmake

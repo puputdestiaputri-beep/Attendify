@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, StatusBar, ActivityIndicator,
-  RefreshControl, Dimensions, Alert, ScrollView
+  RefreshControl, Dimensions, Alert, ScrollView, Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   FileText, ChevronLeft, Calendar, 
   Search, Download, FileSpreadsheet,
   Users, BookOpen, Filter, CheckCircle2,
-  Clock, XCircle, Grid, RefreshCw
+  Clock, XCircle, Grid, RefreshCw, Edit2
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -28,12 +28,14 @@ interface Kelas {
 
 interface AttendanceEntry {
   id_absensi: number;
+  user_id: number;
+  jadwal_id: number;
   name: string;
   nim: string;
-  subject: string;
-  class_name: string;
+  nama_mk: string;
+  nama_kelas: string;
   tanggal: string;
-  time: string | null;
+  waktu_datang: string | null;
   status: string;
 }
 
@@ -44,6 +46,9 @@ export default function ManageAttendanceScreen() {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceEntry | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   const fetchData = async () => {
     try {
@@ -111,14 +116,54 @@ export default function ManageAttendanceScreen() {
     switch(status.toLowerCase()) {
       case 'hadir': return { color: '#34D399', icon: CheckCircle2 };
       case 'terlambat': return { color: '#FBBF24', icon: Clock };
+      case 'izin': return { color: '#60A5FA', icon: CheckCircle2 };
+      case 'sakit': return { color: '#A78BFA', icon: CheckCircle2 };
       default: return { color: '#F87171', icon: XCircle };
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!selectedRecord) return;
+    setIsUpdating(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/absensi/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: selectedRecord.user_id,
+          jadwal_id: selectedRecord.jadwal_id,
+          status: newStatus
+        })
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        setIsEditModalVisible(false);
+        fetchData();
+      } else {
+        Alert.alert('Error', result.message || 'Gagal update status');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Terjadi kesalahan jaringan');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const renderAttendanceItem = ({ item }: { item: AttendanceEntry }) => {
     const status = getStatusStyle(item.status);
     return (
-      <View style={styles.recordWrapper}>
+      <TouchableOpacity 
+        style={styles.recordWrapper}
+        onPress={() => {
+          setSelectedRecord(item);
+          setIsEditModalVisible(true);
+        }}
+      >
         <BlurView intensity={20} tint="dark" style={styles.recordCard}>
           <View style={styles.recordMain}>
             <View style={styles.avatarMini}>
@@ -126,18 +171,18 @@ export default function ManageAttendanceScreen() {
             </View>
             <View style={styles.infoCol}>
               <Text style={styles.studentName}>{item.name}</Text>
-              <Text style={styles.studentDetails}>{item.class_name} • {item.subject}</Text>
+              <Text style={styles.studentDetails}>{item.nama_kelas} • {item.nama_mk}</Text>
             </View>
             <View style={styles.statusCol}>
               <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
                 <status.icon size={12} color={status.color} />
                 <Text style={[styles.statusText, { color: status.color }]}>{item.status.toUpperCase()}</Text>
               </View>
-              <Text style={styles.timeText}>{item.time || '-'}</Text>
+              <Text style={styles.timeText}>{item.waktu_datang || '-'}</Text>
             </View>
           </View>
         </BlurView>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -216,6 +261,48 @@ export default function ManageAttendanceScreen() {
             }
           />
         )}
+
+        {/* Edit Status Modal */}
+        <Modal visible={isEditModalVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <BlurView intensity={40} tint="dark" style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Ubah Status Absensi</Text>
+              <Text style={styles.modalSubtitle}>
+                {selectedRecord?.name} - {selectedRecord?.nama_mk}
+              </Text>
+              
+              <View style={styles.statusOptions}>
+                {['hadir', 'terlambat', 'izin', 'sakit', 'alfa'].map(st => (
+                  <TouchableOpacity
+                    key={st}
+                    style={[
+                      styles.statusOptionBtn,
+                      selectedRecord?.status === st && { borderColor: getStatusStyle(st).color, backgroundColor: `${getStatusStyle(st).color}20` }
+                    ]}
+                    onPress={() => handleUpdateStatus(st)}
+                    disabled={isUpdating}
+                  >
+                    <Text style={[
+                      styles.statusOptionText,
+                      selectedRecord?.status === st && { color: getStatusStyle(st).color, fontWeight: 'bold' }
+                    ]}>
+                      {st.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity 
+                style={styles.cancelModalBtn}
+                onPress={() => setIsEditModalVisible(false)}
+                disabled={isUpdating}
+              >
+                <Text style={styles.cancelModalBtnText}>Batal</Text>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </Modal>
+
       </LinearGradient>
     </View>
   );
@@ -392,5 +479,61 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.3)',
     marginTop: 16,
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  statusOptions: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  statusOptionBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+  },
+  statusOptionText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cancelModalBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+  },
+  cancelModalBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
