@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Send, AlertTriangle, CheckCircle2 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomAlert from './CustomAlert';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -22,7 +23,16 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info'
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
 
   const handleSubmit = async () => {
     if (!title || !message) {
@@ -49,20 +59,23 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
 
       const result = await response.json();
       if (result.status === 'success') {
-        setIsSuccess(true);
-        setTimeout(() => {
-          setIsSuccess(false);
-          setTitle('');
-          setMessage('');
-          onClose();
-        }, 2000);
+        showAlert('Laporan Terkirim!', 'Admin akan segera meninjau pesan Anda.', 'success');
       } else {
-        Alert.alert('Error', result.message || 'Gagal mengirim laporan');
+        showAlert('Gagal', result.message || 'Gagal mengirim laporan', 'error');
       }
     } catch (err) {
-      Alert.alert('Error', 'Koneksi ke server gagal');
+      showAlert('Error', 'Koneksi ke server gagal', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAlertClose = () => {
+    setAlertConfig({ ...alertConfig, visible: false });
+    if (alertConfig.type === 'success') {
+      setTitle('');
+      setMessage('');
+      onClose();
     }
   };
 
@@ -93,57 +106,57 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
                 </TouchableOpacity>
               </View>
 
-              {isSuccess ? (
-                <View style={styles.successContainer}>
-                  <CheckCircle2 size={48} color="#34D399" />
-                  <Text style={styles.successText}>Laporan Terkirim!</Text>
-                  <Text style={styles.successSubtext}>Admin akan segera meninjau pesan Anda.</Text>
-                </View>
-              ) : (
-                <View style={styles.form}>
-                  <Text style={styles.label}>Judul Laporan</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contoh: Kamera Rusak, Jadwal Salah"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    value={title}
-                    onChangeText={setTitle}
-                  />
+              <View style={styles.form}>
+                <Text style={styles.label}>Judul Laporan</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: Kamera Rusak, Jadwal Salah"
+                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  value={title}
+                  onChangeText={setTitle}
+                />
 
-                  <Text style={styles.label}>Pesan / Detail</Text>
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Jelaskan masalah yang Anda alami..."
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    multiline={true}
-                    numberOfLines={4}
-                    value={message}
-                    onChangeText={setMessage}
-                  />
+                <Text style={styles.label}>Pesan / Detail</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Jelaskan masalah yang Anda alami..."
+                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  multiline={true}
+                  numberOfLines={4}
+                  value={message}
+                  onChangeText={setMessage}
+                />
 
-                  <TouchableOpacity 
-                    style={styles.submitBtn} 
-                    onPress={handleSubmit}
-                    disabled={isLoading}
+                <TouchableOpacity 
+                  style={styles.submitBtn} 
+                  onPress={handleSubmit}
+                  disabled={isLoading}
+                >
+                  <LinearGradient
+                    colors={[Colors.ai.primary, Colors.ai.accentGlow]}
+                    style={styles.submitGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
                   >
-                    <LinearGradient
-                      colors={[Colors.ai.primary, Colors.ai.accentGlow]}
-                      style={styles.submitGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                    >
-                      {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <>
-                          <Send size={18} color="#fff" />
-                          <Text style={styles.submitText}>Kirim Laporan</Text>
-                        </>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              )}
+                    {isLoading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Send size={18} color="#fff" />
+                        <Text style={styles.submitText}>Kirim Laporan</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              <CustomAlert
+                visible={alertConfig.visible}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                onClose={handleAlertClose}
+              />
             </LinearGradient>
           </KeyboardAvoidingView>
         </BlurView>
