@@ -213,21 +213,6 @@ const confirmLogout = () => {
               onPress={() => navigation.navigate('DatabaseLogs')}
             />
 
-            <AdminCard 
-              title="Attendance Reports" 
-              subtitle="Export data to Excel & PDF"
-              icon={FileText} 
-              color="#34D399"
-              onPress={() => navigation.navigate('ManageAttendance')}
-            />
-            <AdminCard 
-              title="System Settings" 
-              subtitle="App configuration & constants"
-              icon={Settings} 
-              color="#94A3B8"
-              onPress={() => navigation.navigate('Settings')}
-            />
-
           </View>
 
         </ScrollView>
