@@ -32,6 +32,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+<<<<<<< HEAD
   const [rememberMe, setRememberMe] = useState(false);
 
   // Load remembered credentials on mount
@@ -53,6 +54,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     };
     loadRemembered();
   }, []);
+=======
+>>>>>>> 7bf8a6b (update)
 
   // Custom Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -82,6 +85,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
     setIsLoading(true);
     try {
+<<<<<<< HEAD
       // Use centralized API_URL
       // Use centralized API_URL from Config.ts
 
@@ -103,6 +107,28 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       if (response.ok && result.status === 'success') {
         const { user: userData, token } = result.data;
         console.log('Login result user data:', JSON.stringify(userData));
+=======
+      // In a real device, replace localhost with your computer's IP address
+      const API_URL = 'http://localhost:5000/api';
+      
+      console.log('Attempting login via backend:', `${API_URL}/login`);
+      
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: identifier.trim(), // Backend handles this as email or username
+          password: password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        const { user: userData, token } = result.data;
+>>>>>>> 7bf8a6b (update)
         
         // Save token for future API calls
         await saveAuthToken(token);
@@ -113,6 +139,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         login(userData.role, {
           fullName: userData.name,
           email: userData.email,
+<<<<<<< HEAD
           nim: userData.username || (role === 'mahasiswa' ? identifier : undefined),
           prodi: userData.prodi,
           kelas: userData.kelas,
@@ -127,6 +154,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           await AsyncStorage.removeItem('@remembered_role');
         }
 
+=======
+          nim: role === 'mahasiswa' ? identifier : undefined,
+        });
+
+>>>>>>> 7bf8a6b (update)
         console.log('✅ Login successful via backend');
       } else {
         setIsLoading(false);
@@ -292,6 +324,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           </AnimatedCard>
         </Animated.View>
 
+<<<<<<< HEAD
         {/* Footer Info */}
         <Animated.View 
           entering={FadeInUp.delay(600)}
@@ -299,6 +332,19 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         >
           <Text style={styles.footerText}>© 2024 Attendify. Semua hak dilindungi.</Text>
         </Animated.View>
+=======
+          {/* Sign Up Link */}
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>New user? </Text>
+            <TouchableOpacity onPress={() => navigation?.navigate('CreateAccount')} disabled={isLoading}>
+              <Text style={styles.signupLink}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Wave Separator */}
+
+>>>>>>> 7bf8a6b (update)
       </ScrollView>
 
       {/* Custom Alert Modal - Modern Style */}
