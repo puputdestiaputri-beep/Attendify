@@ -23,6 +23,7 @@ import ManageLecturersScreen from '../screens/ManageLecturersScreen';
 import IoTSensorValidationScreen from '../screens/IoTSensorValidationScreen';
 import DatabaseLogsScreen from '../screens/DatabaseLogsScreen';
 import ManageAttendanceScreen from '../screens/ManageAttendanceScreen';
+import ESP32CameraScreen from '../screens/ESP32CameraScreen';
 import { Colors } from '@/constants/Colors';
 
 
@@ -170,6 +171,7 @@ function MahasiswaNavigator() {
       <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
       <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
+      <Stack.Screen name="ESP32Camera" component={ESP32CameraScreen} />
     </Stack.Navigator>
   );
 }
