@@ -6,8 +6,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
+import { API_URL } from '../../constants/Config';
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveAuthToken } from '../services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,7 +25,28 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Load remembered credentials on mount
+  React.useEffect(() => {
+    const loadRemembered = async () => {
+      try {
+        const savedIdentifier = await AsyncStorage.getItem('@remembered_identifier');
+        const savedRole = await AsyncStorage.getItem('@remembered_role');
+        if (savedIdentifier) {
+          setIdentifier(savedIdentifier);
+          setRememberMe(true);
+          if (savedRole) {
+            setRole(savedRole as any);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading remembered credentials', e);
+      }
+    };
+    loadRemembered();
+  }, []);
+
   // Custom Alert State
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -52,52 +75,66 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
     setIsLoading(true);
     try {
-      // Validasi pengecekan akun terdaftar
-      const userString = await AsyncStorage.getItem(`@user_${identifier.trim().toLowerCase()}`);
-      if (!userString) {
-        setIsLoading(false);
-        showAlert('Belum Terdaftar', 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.');
-        return;
-      }
+      // Use centralized API_URL
+      console.log('Attempting login via backend:', `${API_URL}/login`);
+      
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: identifier.trim(), // Backend handles this as email or username
+          password: password,
+        }),
+      });
 
-      const registeredUser = JSON.parse(userString);
-      
-      if (registeredUser.password !== password) {
-        setIsLoading(false);
-        showAlert('Gagal', 'Password salah.');
-        return;
-      }
+      const result = await response.json();
 
-      let userEmail = registeredUser.email || '';
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let cachedAvatar = '';
-      if (userEmail) {
-        try {
-          const storedAvatar = await AsyncStorage.getItem(`@avatar_${userEmail}`);
-          if (storedAvatar) {
-            cachedAvatar = storedAvatar;
-          }
-        } catch (e) {
-          console.error('Failed to load cached avatar', e);
+      if (response.ok && result.status === 'success') {
+        const { user: userData, token } = result.data;
+        
+        // Save token for future API calls
+        await saveAuthToken(token);
+        
+        // Ensure role matches what user selected, or use role from backend
+        // For admin, we should trust the backend role
+        
+        login(userData.role, {
+          fullName: userData.name,
+          email: userData.email,
+          nim: role === 'mahasiswa' ? identifier : undefined,
+        });
+
+        // Handle Remember Me
+        if (rememberMe) {
+          await AsyncStorage.setItem('@remembered_identifier', identifier.trim());
+          await AsyncStorage.setItem('@remembered_role', role);
+        } else {
+          await AsyncStorage.removeItem('@remembered_identifier');
+          await AsyncStorage.removeItem('@remembered_role');
+        }
+
+        console.log('✅ Login successful via backend');
+      } else {
+        setIsLoading(false);
+        if (response.status === 404) {
+          showAlert('Belum Terdaftar', 'Akun belum terdaftar di sistem. Silakan hubungi admin.');
+        } else if (response.status === 401) {
+          showAlert('Gagal', 'Password salah.');
+        } else {
+          showAlert('Gagal', result.message || 'Terjadi kesalahan saat login.');
         }
       }
-      
-      login(role, { 
-        fullName: registeredUser.fullName, 
-        email: registeredUser.email, 
-        nim: registeredUser.nim, 
-        prodi: registeredUser.prodi, 
-        kelas: registeredUser.kelas, 
-        avatar: cachedAvatar || undefined 
-      });
     } catch (error) {
       console.error('Login error:', error);
-    } finally {
       setIsLoading(false);
+      showAlert('Kesalahan', 'Gagal terhubung ke server. Pastikan backend berjalan dan periksa koneksi internet Anda.');
+    } finally {
+      // Loading state is handled in logic
     }
   };
+
 
   return (
     <LinearGradient
@@ -203,8 +240,14 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
           {/* Remember and Forgot Password */}
           <View style={styles.optionsRow}>
-            <TouchableOpacity style={styles.rememberContainer}>
-              <View style={styles.checkbox} />
+            <TouchableOpacity 
+              style={styles.rememberContainer}
+              onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                {rememberMe && <Text style={styles.checkboxTick}>✓</Text>}
+              </View>
               <Text style={styles.rememberText}>Remember me</Text>
             </TouchableOpacity>
 
@@ -260,7 +303,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         </View>
 
         {/* Wave Separator */}
-        
+
       </ScrollView>
 
       {/* Custom Alert Modal */}
@@ -411,11 +454,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: Colors.attendify.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: Colors.attendify.primary,
+  },
+  checkboxTick: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   rememberText: {
     color: Colors.attendify.neutral,

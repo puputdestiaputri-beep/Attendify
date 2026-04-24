@@ -8,10 +8,9 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Send, AlertTriangle, CheckCircle2 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
+import { API_URL } from '@/constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from './CustomAlert';
-
-const API_URL = 'http://localhost:5000/api';
 
 interface ReportIssueModalProps {
   visible: boolean;

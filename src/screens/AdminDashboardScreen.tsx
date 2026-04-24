@@ -10,7 +10,7 @@ import {
   Cpu, LayoutDashboard, Settings, LogOut,
   ChevronRight, Bell, Search, RefreshCw,
   UserPlus, BookOpen, Database, BarChart3,
-  MonitorSmartphone, Camera, FileText
+  MonitorSmartphone, Camera, FileText, Calendar
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -60,14 +60,16 @@ export default function AdminDashboardScreen() {
   };
 
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const confirmLogout = () => {
-    setShowLogoutModal(false);
-    logout();
-  };
+const handleLogout = () => {
+  setShowLogoutModal(true);
+};
+
+const confirmLogout = () => {
+  setShowLogoutModal(false);
+  logout();
+};
 
   const AdminCard = ({ title, icon: Icon, color, onPress, subtitle }: any) => (
     <TouchableOpacity 
@@ -209,21 +211,6 @@ export default function AdminDashboardScreen() {
               icon={Database} 
               color="#F472B6"
               onPress={() => navigation.navigate('DatabaseLogs')}
-            />
-
-            <AdminCard 
-              title="Attendance Reports" 
-              subtitle="Export data to Excel & PDF"
-              icon={FileText} 
-              color="#34D399"
-              onPress={() => navigation.navigate('ManageAttendance')}
-            />
-            <AdminCard 
-              title="System Settings" 
-              subtitle="App configuration & constants"
-              icon={Settings} 
-              color="#94A3B8"
-              onPress={() => navigation.navigate('Settings')}
             />
 
           </View>

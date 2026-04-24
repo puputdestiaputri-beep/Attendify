@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomAlert from '../components/CustomAlert';
 
 export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
@@ -34,6 +35,23 @@ export default function ProfileDetailsScreen() {
 
   const [saving, setSaving] = useState(false);
   const [changed, setChanged] = useState(false);
+
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
 
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : '-';
 
@@ -64,11 +82,11 @@ export default function ProfileDetailsScreen() {
 
       if (role) {
         login(role, updatedUser);
-        Alert.alert('Berhasil', 'Perubahan profil berhasil disimpan.');
+        showAlert('Berhasil', 'Perubahan profil berhasil disimpan.', 'success');
         setChanged(false);
       }
     } catch (e) {
-      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan.');
+      showAlert('Gagal', 'Terjadi kesalahan saat menyimpan.', 'error');
     } finally {
       setSaving(false);
     }
@@ -292,6 +310,14 @@ export default function ProfileDetailsScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </LinearGradient>
   );
 }

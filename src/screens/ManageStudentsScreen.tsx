@@ -12,6 +12,9 @@ import {
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const { width } = Dimensions.get('window');
 
@@ -22,15 +25,47 @@ const INITIAL_STUDENTS = [
   { id: '3', name: 'Rizwan Hakim', nim: '20240003', prodi: 'Informatika', kelas: 'A Pagi', email: 'rizwan@example.com' },
 ];
 
+const API_URL = 'http://localhost:5000/api';
+
 export default function ManageStudentsScreen() {
   const navigation = useNavigation<any>();
-  const [students, setStudents] = useState(INITIAL_STUDENTS);
+  const [students, setStudents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: '', nim: '', prodi: '', kelas: '', email: ''
+    name: '', nim: '', prodi: '', kelas: '', email: '', password: ''
   });
+
+  const fetchStudents = async () => {
+    setIsLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        const studentOnly = result.data.filter((u: any) => u.role === 'mahasiswa');
+        setStudents(studentOnly);
+      }
+    } catch (error) {
+      console.error('Fetch students error:', error);
+      Alert.alert('Error', 'Gagal mengambil data mahasiswa');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchStudents();
+    }, [])
+  );
+
 
   const filteredStudents = students.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -39,15 +74,16 @@ export default function ManageStudentsScreen() {
 
   const handleAddPress = () => {
     setEditingStudent(null);
-    setFormData({ name: '', nim: '', prodi: '', kelas: '', email: '' });
+    setFormData({ name: '', nim: '', prodi: '', kelas: '', email: '', password: '' });
     setIsModalVisible(true);
   };
 
   const handleEditPress = (student: any) => {
     setEditingStudent(student);
-    setFormData({ ...student });
+    setFormData({ ...student, password: '' });
     setIsModalVisible(true);
   };
+
 
   const handleDeletePress = (id: string) => {
     Alert.alert(
@@ -58,26 +94,77 @@ export default function ManageStudentsScreen() {
         { 
           text: 'Hapus', 
           style: 'destructive', 
-          onPress: () => setStudents(prev => prev.filter(s => s.id !== id)) 
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('@attendify_auth_token');
+              const response = await fetch(`${API_URL}/users/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                fetchStudents();
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Gagal menghapus mahasiswa');
+            }
+          }
         }
+
       ]
     );
   };
 
-  const handleSave = () => {
-    if (!formData.name || !formData.nim) {
-      Alert.alert('Error', 'Nama dan NIM wajib diisi');
+  const handleSave = async () => {
+    if (!formData.name || !formData.email || (!editingStudent && !formData.password)) {
+      Alert.alert('Error', 'Lengkapi data yang wajib diisi');
       return;
     }
 
-    if (editingStudent) {
-      setStudents(prev => prev.map(s => s.id === editingStudent.id ? { ...formData, id: s.id } : s));
-    } else {
-      const newStudent = { ...formData, id: Date.now().toString() };
-      setStudents(prev => [newStudent, ...prev]);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      let response;
+      
+      if (editingStudent) {
+        response = await fetch(`${API_URL}/users/${editingStudent.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            role: 'mahasiswa'
+          })
+        });
+      } else {
+        response = await fetch(`${API_URL}/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: 'mahasiswa'
+          })
+        });
+      }
+
+      const result = await response.json();
+      if (response.ok || result.status === 'success') {
+        Alert.alert('Berhasil', editingStudent ? 'Data mahasiswa diperbarui' : 'Mahasiswa baru ditambahkan');
+        fetchStudents();
+        setIsModalVisible(false);
+      } else {
+        Alert.alert('Gagal', result.message || 'Terjadi kesalahan');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Terjadi kesalahan koneksi');
     }
-    setIsModalVisible(false);
   };
+
 
   return (
     <View style={styles.container}>
@@ -238,19 +325,22 @@ export default function ManageStudentsScreen() {
                       />
                     </View>
                   </View>
-                  <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                    <Text style={styles.inputLabel}>Email</Text>
+                {!editingStudent && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Password Awal</Text>
                     <View style={styles.inputWrap}>
                       <TextInput
                         style={styles.input}
-                        value={formData.email}
-                        onChangeText={text => setFormData({...formData, email: text})}
-                        placeholder="email@..."
+                        value={formData.password}
+                        onChangeText={text => setFormData({...formData, password: text})}
+                        placeholder="Password awal..."
                         placeholderTextColor="rgba(255,255,255,0.3)"
-                        keyboardType="email-address"
+                        secureTextEntry={true}
                       />
                     </View>
                   </View>
+                )}
+
                 </View>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>

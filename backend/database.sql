@@ -101,7 +101,7 @@ CREATE TABLE absensi (
     jadwal_id INT,
     tanggal DATETIME,
     waktu_datang TIME,
-    status ENUM('hadir','terlambat','pulang','alfa'),
+    status ENUM('hadir','terlambat','pulang','alfa','sakit','izin'),
     status_telat ENUM('ya','tidak'),
     keterangan VARCHAR(100),
 
