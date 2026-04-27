@@ -43,6 +43,10 @@ export default function HomeScreen() {
     navigation.navigate('Notification');
   };
 
+  const handleESP32Camera = () => {
+    navigation.navigate('ESP32Camera');
+  };
+
   return (
     <LinearGradient
       colors={isDarkMode ? 
@@ -159,6 +163,16 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.actionBtnText}>Lihat Jadwal</Text>
               <Text style={styles.actionBtnSub}>Agenda Kuliah</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionBtn} onPress={handleESP32Camera}>
+            <LinearGradient colors={['#10B981', '#06B6D4']} style={styles.actionGradient}>
+              <View style={styles.iconCircle}>
+                <Camera color="#fff" size={28} />
+              </View>
+              <Text style={styles.actionBtnText}>ESP32 Camera</Text>
+              <Text style={styles.actionBtnSub}>Live IoT</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
