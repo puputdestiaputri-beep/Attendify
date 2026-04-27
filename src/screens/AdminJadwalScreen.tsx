@@ -1,1173 +1,1071 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, FlatList, Modal, Alert, ActivityIndicator, Dimensions, StatusBar, TouchableOpacity, Linking
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Pressable,
+  Animated,
+  Dimensions,
+  Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '@/constants/Colors';
-import {
-  Calendar, Clock, MapPin, User, BookOpen, ChevronRight, ArrowLeft, RefreshCw, BarChart3,
-  Users, CheckCircle2, Layers, FileText, Mail, MessageCircle, Download, CalendarDays, AlertCircle
-} from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { BlurView } from 'expo-blur';
+import { ArrowLeft, FileSpreadsheet, FileText, Users, GraduationCap, ChevronRight, CheckCircle, Clock, FileX, AlertCircle, Sparkles } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as FileSystem from 'expo-file-system';
+import { Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+
+// @ts-ignore
+import autoTable from 'jspdf-autotable';
 
 const { width } = Dimensions.get('window');
+const API_URL = 'http://localhost:5000/api';
 
-const DAYS = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+type StatusType = 'Hadir' | 'Telat' | 'Izin' | 'Alfa';
+
+const daftarKelas = [
+  { id: '1', nama: 'IF-4A', jumlahMahasiswa: 30, dosen: 'Dr. Siti Aminah', matkul: 'Pemrograman Web' },
+  { id: '2', nama: 'IF-4B', jumlahMahasiswa: 28, dosen: 'Dr. Budi Santoso', matkul: 'Kecerdasan Buatan' },
+  { id: '3', nama: 'IF-4C', jumlahMahasiswa: 32, dosen: 'Dr. Ahmad Kadir', matkul: 'Sistem Database' },
+];
+
+const dataAbsensiByKelas: Record<string, { nama: string; status: StatusType; tanggal: string }[]> = {
+  '1': [
+   { nama: 'Andi Wijaya', status: 'Izin', tanggal: '2026-04-27' },
+{ nama: 'Budi Santoso', status: 'Alfa', tanggal: '2026-04-27' },
+{ nama: 'Chika Widia Aprilia', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Citra Dewi', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Doni Pratama', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Erika Wijaya', status: 'Telat', tanggal: '2026-04-27' },
+{ nama: 'Fajar Rahman', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Gilang Saputra', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Hani Kusuma', status: 'Izin', tanggal: '2026-04-27' },
+{ nama: 'Imas Ratna Sari', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Indra Setiawan', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Joko Prabowo', status: 'Alfa', tanggal: '2026-04-27' },
+{ nama: 'Kartika Sari', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Lestari Putri', status: 'Telat', tanggal: '2026-04-27' },
+{ nama: 'Lukman Hakim', status: 'Telat', tanggal: '2026-04-27' },
+{ nama: 'Marsyella Hartati', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Mega Lestari', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Nanda Putra', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Nindy Faoziyah', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Oki Ramadhan', status: 'Izin', tanggal: '2026-04-27' },
+{ nama: 'Puput Destia Putri', status: 'Izin', tanggal: '2026-04-27' },
+{ nama: 'Putra Nugraha', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Qori Aulia', status: 'Telat', tanggal: '2026-04-27' },
+{ nama: 'Rian Hidayat', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Rizky Maulana', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Salsa Billa', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Teguh Santoso', status: 'Alfa', tanggal: '2026-04-27' },
+{ nama: 'Umi Farah', status: 'Hadir', tanggal: '2026-04-27' },
+{ nama: 'Vina Oktaviani', status: 'Telat', tanggal: '2026-04-27' },
+{ nama: 'Wansyca Ayu Wardany', status: 'Izin', tanggal: '2026-04-27' },
+  ],
+  '2': [
+    { nama: 'Gita Sari', status: 'Hadir', tanggal: '2026-04-27' },
+    { nama: 'Hendra Kusuma', status: 'Hadir', tanggal: '2026-04-27' },
+    { nama: 'Ina Putri', status: 'Izin', tanggal: '2026-04-27' },
+    { nama: 'Joko Suryanto', status: 'Hadir', tanggal: '2026-04-27' },
+    { nama: 'Kiki Amalia', status: 'Telat', tanggal: '2026-04-27' },
+  ],
+  '3': [
+    { nama: 'Ludi Hermawan', status: 'Hadir', tanggal: '2026-04-27' },
+    { nama: 'Mita Shofianti', status: 'Hadir', tanggal: '2026-04-27' },
+    { nama: 'Niko Setiawan', status: 'Hadir', tanggal: '2026-04-27' },
+  ],
+};
+
+const jadwalKuliahByKelas: Record<string, any> = {
+  '1': { kelas: 'IF-4A', dosen: 'Dr. Siti Aminah', matkul: 'Pemrograman Web', ruangan: 'Lab 2', jam: '08:00 - 09:40' },
+  '2': { kelas: 'IF-4B', dosen: 'Dr. Budi Santoso', matkul: 'Kecerdasan Buatan', ruangan: 'Lab 3', jam: '10:00 - 11:40' },
+  '3': { kelas: 'IF-4C', dosen: 'Dr. Ahmad Kadir', matkul: 'Sistem Database', ruangan: 'Lab 1', jam: '13:00 - 14:40' },
+};
+
+const statusColor: Record<StatusType, string> = {
+  Hadir: '#22c55e',
+  Telat: '#eab308',
+  Izin: '#2563eb',
+  Alfa: '#ef4444',
+};
+
+// Wrapper component for colored icons
+const ColoredIcon = ({ icon: Icon, color, size }: { icon: any; color: string; size: number }) => {
+  // @ts-ignore
+  return <Icon size={size} color={color} />;
+};
+
+const statusIcon: Record<StatusType, React.ReactElement> = {
+  Hadir: <ColoredIcon icon={CheckCircle} size={16} color="#22c55e" />,
+  Telat: <ColoredIcon icon={Clock} size={16} color="#eab308" />,
+  Izin: <ColoredIcon icon={FileX} size={16} color="#2563eb" />,
+  Alfa: <ColoredIcon icon={AlertCircle} size={16} color="#ef4444" />,
+};
+
+function hitungRekap(data: any[]) {
+  return {
+    hadir: data.filter(d => d.status === 'Hadir').length,
+    telat: data.filter(d => d.status === 'Telat').length,
+    izin: data.filter(d => d.status === 'Izin').length,
+    alfa: data.filter(d => d.status === 'Alfa').length,
+  };
+}
+
+// Animated Card Component
+const AnimatedStatCard = ({ status, color, icon, number, label, index }: any) => {
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.statCard,
+        { borderLeftColor: color },
+        {
+          transform: [{ scale: scaleAnim }],
+          opacity: opacityAnim,
+        },
+      ]}
+    >
+      {icon}
+      <Text style={styles.statNumber}>{number}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+};
+
+// Animated Info Card Component
+const AnimatedInfoCard = ({ children, delay }: any) => {
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 700,
+        delay: delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 700,
+        delay: delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ translateY: slideAnim }],
+        opacity: opacityAnim,
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+};
 
 export default function AdminJadwalScreen() {
   const navigation = useNavigation<any>();
-  const [activeDay, setActiveDay] = useState('senin');
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'day' | 'class'>('day');
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<any>(null);
-  const [classAbsensi, setClassAbsensi] = useState<any[]>([]);
-  const [classJadwal, setClassJadwal] = useState<any[]>([]);
-  const [showClassModal, setShowClassModal] = useState(false);
-  const [classLoading, setClassLoading] = useState(false);
-  
-  // Modal 2 States
-  const [selectedJadwal, setSelectedJadwal] = useState<any>(null);
-  const [jadwalAbsensi, setJadwalAbsensi] = useState<any[]>([]);
-  const [showJadwalDetailModal, setShowJadwalDetailModal] = useState(false);
-  const [jadwalDetailLoading, setJadwalDetailLoading] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedKelasId, setSelectedKelasId] = useState<string | null>(null);
+  const [loadingExcel, setLoadingExcel] = useState(false);
+  const [loadingPDF, setLoadingPDF] = useState(false);
+  const headerScaleAnim = useRef(new Animated.Value(0.9)).current;
+  const headerOpacityAnim = useRef(new Animated.Value(0)).current;
 
-  const API_URL = 'http://localhost:5000/api';
+  const jadwal = selectedKelasId ? jadwalKuliahByKelas[selectedKelasId] : null;
+  const absensi = selectedKelasId ? dataAbsensiByKelas[selectedKelasId] || [] : [];
+  const rekap = hitungRekap(absensi);
+  const totalMahasiswa = selectedKelasId ? daftarKelas.find(k => k.id === selectedKelasId)?.jumlahMahasiswa || 0 : 0;
 
+  // Header animation
   useEffect(() => {
-    fetchSchedules();
-  }, []);
-
-  const fetchClasses = async () => {
-    try {
-      const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const response = await fetch(`${API_URL}/kelas`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.status === 'success') {
-        setClasses(result.data);
-      }
-    } catch (err) {
-      console.error('Fetch kelas error:', err);
-    }
-  };
-
-  const fetchClassDetails = async (classId: string) => {
-    setClassLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const absensiRes = await fetch(`${API_URL}/absensi?class_id=${classId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const absensiResult = await absensiRes.json();
-      const filteredJadwal = schedules.filter(s => s.kelas_id === parseInt(classId));
-      if (absensiResult.status === 'success') {
-        setClassAbsensi(absensiResult.data);
-        setClassJadwal(filteredJadwal);
-        setSelectedClass(classes.find((c: any) => c.id_kelas === parseInt(classId)));
-      }
-    } catch (err) {
-      console.error('Fetch class details error:', err);
-    } finally {
-      setClassLoading(false);
-    }
-  };
-
-  const fetchJadwalAbsensi = async (jadwalId: string) => {
-    setJadwalDetailLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const response = await fetch(`${API_URL}/absensi?jadwal_id=${jadwalId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.status === 'success') {
-        setJadwalAbsensi(result.data);
-      }
-    } catch (err) {
-      console.error('Fetch jadwal absensi error:', err);
-    } finally {
-      setJadwalDetailLoading(false);
-    }
-  };
-
-  const fetchSchedules = async () => {
-    try {
-      setIsLoading(true);
-      const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const response = await fetch(`${API_URL}/jadwal`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.status === 'success') {
-        setSchedules(result.data);
-      }
-      fetchClasses();
-    } catch (err) {
-      console.error('Fetch jadwal error:', err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  const filteredSchedules = schedules.filter(s => s.hari.toLowerCase() === activeDay);
-
-  const ScheduleCard = ({ item }: { item: any }) => {
-    const attendanceRate = item.total_students > 0 
-      ? Math.round((item.attended_count / item.total_students) * 100) 
-      : 0;
-
-    return (
-      <BlurView intensity={20} tint="dark" style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.iconBox}>
-            <BookOpen size={20} color={Colors.ai.primary} />
-          </View>
-          <View style={styles.titleInfo}>
-            <Text style={styles.subjectText}>{item.subject}</Text>
-            <Text style={styles.classText}>{item.class_name}</Text>
-          </View>
-          <View style={styles.timeBadge}>
-            <Clock size={12} color="rgba(255,255,255,0.6)" />
-            <Text style={styles.timeText}>{item.jam_mulai.substring(0, 5)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardDivider} />
-
-        <View style={styles.detailsGrid}>
-          <View style={styles.detailItem}>
-            <User size={14} color="rgba(255,255,255,0.4)" />
-            <Text style={styles.detailText} numberOfLines={1}>{item.dosen_name}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <MapPin size={14} color="rgba(255,255,255,0.4)" />
-            <Text style={styles.detailText}>{item.ruang}</Text>
-          </View>
-        </View>
-
-        <View style={styles.recapContainer}>
-          <View style={styles.recapHeader}>
-            <View style={styles.recapTitleRow}>
-              <BarChart3 size={14} color={Colors.ai.secondary} />
-              <Text style={styles.recapTitle}>Rekap Absensi Hari Ini</Text>
-            </View>
-            <Text style={styles.attendancePercent}>{attendanceRate}%</Text>
-          </View>
-          
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${attendanceRate}%` }]} />
-          </View>
-
-          <View style={styles.recapFooter}>
-            <View style={styles.statBox}>
-              <Users size={12} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.statLabel}>Total: {item.total_students}</Text>
-            </View>
-            <View style={styles.statBox}>
-              <CheckCircle2 size={12} color="#34D399" />
-              <Text style={[styles.statLabel, { color: '#34D399' }]}>Hadir: {item.attended_count}</Text>
-            </View>
-          </View>
-        </View>
-      </BlurView>
-    );
-  };
-
-  const ClassCard = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={styles.classCard}
-      onPress={() => {
-        fetchClassDetails(item.id_kelas.toString());
-        setShowClassModal(true);
-      }}
-    >
-      <View style={styles.classIconBox}>
-        <Users size={24} color={Colors.ai.primary} />
-      </View>
-      <View style={styles.classInfo}>
-        <Text style={styles.classNameText}>{item.nama_kelas}</Text>
-        <Text style={styles.classDescText}>{item.prodi} - {item.keterangan}</Text>
-      </View>
-      <ChevronRight size={20} color="rgba(255,255,255,0.5)" />
-    </TouchableOpacity>
-  );
+    Animated.parallel([
+      Animated.timing(headerScaleAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerOpacityAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [selectedKelasId]);
 
   const downloadReport = async (type: 'excel' | 'pdf') => {
-    const jadwalId = selectedJadwal?.id;
-    if (!jadwalId) return;
-    
-    setIsDownloading(true);
+    const isExcel = type === 'excel';
+    const setLoading = isExcel ? setLoadingExcel : setLoadingPDF;
+    setLoading(true);
+
     try {
-      const token = await AsyncStorage.getItem('@attendify_auth_token');
-      
-      // Build URL dengan parameter
-      const params = new URLSearchParams();
-      params.append('jadwal_id', jadwalId.toString());
-      
-      const url = `${API_URL}/reports/${type}?${params.toString()}`;
-      
-      // Untuk mobile, coba fetch dulu untuk validate
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!response.ok) {
-        Alert.alert('Error', `Gagal mengunduh laporan ${type.toUpperCase()}`);
-        setIsDownloading(false);
-        return;
-      }
-      
-      // Jika successful, open URL dengan Linking (akan trigger download)
-      const downloadUrl = `${API_URL}/reports/${type}?jadwal_id=${jadwalId}`;
-      
-      // Gunakan fetch untuk download dengan custom headers
-      const blob = await response.blob();
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        
-        Alert.alert(
-          'Laporan Siap',
-          `Laporan ${type.toUpperCase()} untuk ${selectedJadwal.subject} siap diunduh`,
+      if (isExcel) {
+        // Generate Excel file
+        const workbook = XLSX.utils.book_new();
+
+        // Sheet 1: Informasi Jadwal
+        const scheduleData = [
+          ['INFORMASI JADWAL KULIAH'],
+          [],
+          ['Kelas', jadwal?.kelas],
+          ['Mata Kuliah', jadwal?.matkul],
+          ['Dosen', jadwal?.dosen],
+          ['Ruangan', jadwal?.ruangan],
+          ['Jam Kuliah', jadwal?.jam],
+          ['Tanggal Export', new Date().toLocaleDateString('id-ID')],
+        ];
+        const scheduleSheet = XLSX.utils.aoa_to_sheet(scheduleData);
+        scheduleSheet['!cols'] = [{ wch: 25 }, { wch: 30 }];
+        XLSX.utils.book_append_sheet(workbook, scheduleSheet, 'Jadwal');
+
+        // Sheet 2: Rekap Absensi
+        const rekapData = [
+          ['REKAP ABSENSI'],
+          [],
+          ['Status', 'Jumlah'],
+          ['Hadir', rekap.hadir],
+          ['Telat', rekap.telat],
+          ['Izin', rekap.izin],
+          ['Alfa', rekap.alfa],
+          [],
+          ['Total Mahasiswa', totalMahasiswa],
+          ['Persentase Kehadiran', `${((rekap.hadir / totalMahasiswa) * 100).toFixed(2)}%`],
+        ];
+        const rekapSheet = XLSX.utils.aoa_to_sheet(rekapData);
+        rekapSheet['!cols'] = [{ wch: 25 }, { wch: 15 }];
+        XLSX.utils.book_append_sheet(workbook, rekapSheet, 'Rekap');
+
+        // Sheet 3: Daftar Absensi
+        const absensiData = [
+          ['DAFTAR ABSENSI MAHASISWA'],
+          [],
+          ['No', 'Nama Mahasiswa', 'Status', 'Tanggal'],
+          ...absensi.map((item, idx) => [
+            idx + 1,
+            item.nama,
+            item.status,
+            item.tanggal,
+          ]),
+        ];
+        const absensiSheet = XLSX.utils.aoa_to_sheet(absensiData);
+        absensiSheet['!cols'] = [
+          { wch: 5 },
+          { wch: 25 },
+          { wch: 12 },
+          { wch: 15 },
+        ];
+        XLSX.utils.book_append_sheet(workbook, absensiSheet, 'Daftar Absensi');
+
+        // Write file
+        const wbout = XLSX.write(workbook, {
+          bookType: 'xlsx',
+          type: 'base64',
+        });
+
+        const fileName = `Laporan-Absensi-${jadwal?.kelas}-${new Date().getTime()}.xlsx`;
+        const fileUri = `${Paths.cache}/${fileName}`;
+
+        await FileSystem.writeAsStringAsync(fileUri, wbout, {
+          encoding: 'base64',
+        } as any);
+
+        await Sharing.shareAsync(fileUri, {
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          dialogTitle: `Share ${fileName}`,
+        });
+
+        Alert.alert('Sukses', `File ${fileName} telah berhasil dibuat dan dibagikan!`);
+      } else {
+        // Generate PDF file
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+
+        let yPosition = 10;
+
+        // Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text('LAPORAN ABSENSI MAHASISWA', 105, yPosition, { align: 'center' });
+        yPosition += 8;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 105, yPosition, {
+          align: 'center',
+        });
+        yPosition += 12;
+
+        // Informasi Jadwal
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('INFORMASI JADWAL KULIAH', 10, yPosition);
+        yPosition += 8;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text(`Kelas         : ${jadwal?.kelas}`, 10, yPosition);
+        yPosition += 6;
+        doc.text(`Mata Kuliah   : ${jadwal?.matkul}`, 10, yPosition);
+        yPosition += 6;
+        doc.text(`Dosen         : ${jadwal?.dosen}`, 10, yPosition);
+        yPosition += 6;
+        doc.text(`Ruangan       : ${jadwal?.ruangan}`, 10, yPosition);
+        yPosition += 6;
+        doc.text(`Jam Kuliah    : ${jadwal?.jam}`, 10, yPosition);
+        yPosition += 12;
+
+        // Rekap Absensi
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('REKAP ABSENSI', 10, yPosition);
+        yPosition += 8;
+
+        const rekapTableData = [
+          ['Hadir', 'Telat', 'Izin', 'Alfa', 'Total', 'Kehadiran'],
           [
-            {
-              text: 'Buka Di Browser',
-              onPress: () => {
-                Linking.openURL(downloadUrl).catch(err => {
-                  Alert.alert('Error', 'Tidak bisa membuka URL');
-                });
-              }
-            },
-            {
-              text: 'Batal',
-              style: 'cancel'
-            }
-          ]
-        );
-      };
-      
-      reader.readAsDataURL(blob);
-    } catch (err) {
-      console.error('Download error:', err);
-      Alert.alert('Error', `Gagal mengunduh laporan: ${err}`);
+            rekap.hadir.toString(),
+            rekap.telat.toString(),
+            rekap.izin.toString(),
+            rekap.alfa.toString(),
+            totalMahasiswa.toString(),
+            `${((rekap.hadir / totalMahasiswa) * 100).toFixed(2)}%`,
+          ],
+        ];
+
+        autoTable(doc, {
+          head: rekapTableData.slice(0, 1),
+          body: rekapTableData.slice(1),
+          startY: yPosition,
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'center',
+          },
+          bodyStyles: {
+            halign: 'center',
+          },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 30 },
+          },
+        });
+
+        yPosition = (doc as any).lastAutoTable.finalY + 12;
+
+        // Daftar Absensi
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('DAFTAR ABSENSI MAHASISWA', 10, yPosition);
+        yPosition += 8;
+
+        const tableData = [
+          ['No', 'Nama Mahasiswa', 'Status', 'Tanggal'],
+          ...absensi.map((item, idx) => [
+            (idx + 1).toString(),
+            item.nama,
+            item.status,
+            item.tanggal,
+          ]),
+        ];
+
+        autoTable(doc, {
+          head: tableData.slice(0, 1),
+          body: tableData.slice(1),
+          startY: yPosition,
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: 255,
+            fontStyle: 'bold',
+          },
+          bodyStyles: {
+            fontSize: 9,
+          },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 60 },
+            2: { cellWidth: 30, halign: 'center' },
+            3: { cellWidth: 40, halign: 'center' },
+          },
+        });
+
+        // Write PDF to file
+        const pdfData = doc.output('datauristring');
+        const base64Data = pdfData.split(',')[1];
+        const fileName = `Laporan-Absensi-${jadwal?.kelas}-${new Date().getTime()}.pdf`;
+        const fileUri = `${Paths.cache}/${fileName}`;
+
+        await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+          encoding: 'base64',
+        } as any);
+
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Share ${fileName}`,
+        });
+
+        Alert.alert('Sukses', `File ${fileName} telah berhasil dibuat dan dibagikan!`);
+      }
+    } catch (err: any) {
+      console.error('Export Error:', err);
+      Alert.alert('Error', `Gagal membuat file: ${err.message}`);
     } finally {
-      setIsDownloading(false);
+      setLoading(false);
     }
-  };
-
-  const sendEmailReport = () => {
-    Alert.alert('Kirim Email', 'Mengirim report ke dekan, kaprodi, dan dosen...', [
-      { text: 'Kirim', onPress: () => console.log('Email sent') },
-      { text: 'Batal' }
-    ]);
-  };
-
-  const scheduleWAReport = () => {
-    Alert.alert('Jadwal WA', 'Mengaktifkan pengiriman report WA mingguan', [
-      { text: 'Aktifkan', onPress: () => console.log('WA scheduled') },
-      { text: 'Batal' }
-    ]);
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-        style={styles.background}
+    <LinearGradient 
+      colors={['#0a0e27', '#0f172a', '#1a1f3a']} 
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flex: 1 }}
+    >
+      
+      {/* ANIMATED HEADER */}
+      <Animated.View 
+        style={[
+          styles.headerContainer,
+          {
+            transform: [{ scale: headerScaleAnim }],
+            opacity: headerOpacityAnim,
+          }
+        ]}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#fff" />
+          <TouchableOpacity
+            onPress={() => {
+              headerScaleAnim.setValue(0.9);
+              headerOpacityAnim.setValue(0);
+              setTimeout(() => {
+                if (selectedKelasId) setSelectedKelasId(null);
+                else navigation.goBack();
+              }, 200);
+            }}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <LinearGradient 
+              colors={['rgba(59, 130, 246, 0.2)', 'rgba(59, 130, 246, 0.1)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.backButtonGradient}
+            >
+              {/* @ts-ignore */}
+              <ArrowLeft color="#60a5fa" size={24} />
+            </LinearGradient>
           </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Jadwal Perkuliahan</Text>
-            <Text style={styles.headerSubtitle}>Monitor class activities and attendance</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>
+              {selectedKelasId ? jadwal?.kelas : 'Daftar Kelas'}
+            </Text>
           </View>
-          <TouchableOpacity 
-            onPress={fetchSchedules} 
-            disabled={isLoading}
-            style={styles.refreshButton}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <RefreshCw size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+          {/* @ts-ignore */}
+          <Sparkles color="#60a5fa" size={20} />
         </View>
+      </Animated.View>
 
-        {/* TAB SWITCHER */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, viewMode === 'day' && styles.tabButtonActive]}
-            onPress={() => setViewMode('day')}
-          >
-            <Layers size={16} color={viewMode === 'day' ? '#fff' : 'rgba(255,255,255,0.6)'} />
-            <Text style={[styles.tabText, viewMode === 'day' && styles.tabTextActive]}>Per Hari</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, viewMode === 'class' && styles.tabButtonActive]}
-            onPress={() => setViewMode('class')}
-          >
-            <Users size={16} color={viewMode === 'class' ? '#fff' : 'rgba(255,255,255,0.6)'} />
-            <Text style={[styles.tabText, viewMode === 'class' && styles.tabTextActive]}>Per Kelas</Text>
-          </TouchableOpacity>
-        </View>
+      {selectedKelasId ? (
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          scrollEventThrottle={16}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
 
-        {viewMode === 'day' ? (
-          <View style={styles.daySelectorContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayScroll}>
-              {DAYS.map((day) => (
-                <TouchableOpacity
-                  key={day}
-                  onPress={() => setActiveDay(day)}
-                  style={[
-                    styles.dayTab,
-                    activeDay === day && styles.dayTabActive
+          {/* INFO JADWAL KULIAH */}
+          <AnimatedInfoCard delay={0}>
+            <LinearGradient
+              colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.6)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.sectionHeader}>
+                <LinearGradient 
+                  colors={['#3b82f6', '#2563eb']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconBg}
+                >
+                  {/* @ts-ignore */}
+                  <GraduationCap size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.section}>Informasi Jadwal Kuliah</Text>
+              </View>
+              <View style={styles.infoGrid}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>👨‍🏫 Dosen</Text>
+                  <Text style={styles.infoValue}>{jadwal?.dosen}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>📚 Mata Kuliah</Text>
+                  <Text style={styles.infoValue}>{jadwal?.matkul}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>🏫 Ruangan</Text>
+                  <Text style={styles.infoValue}>{jadwal?.ruangan}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>🕐 Jam Kuliah</Text>
+                  <Text style={styles.infoValue}>{jadwal?.jam}</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </AnimatedInfoCard>
+
+          {/* REKAP ABSENSI */}
+          <AnimatedInfoCard delay={100}>
+            <LinearGradient
+              colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.6)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.sectionHeader}>
+                <LinearGradient 
+                  colors={['#6366f1', '#4f46e5']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconBg}
+                >
+                  {/* @ts-ignore */}
+                  <Users size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.section}>Rekap Absensi Mahasiswa</Text>
+              </View>
+              <View style={styles.statGrid}>
+                <AnimatedStatCard 
+                  index={0}
+                  color="#22c55e"
+                  number={rekap.hadir}
+                  label="Hadir"
+                  icon={<ColoredIcon icon={CheckCircle} size={24} color="#22c55e" />}
+                />
+                <AnimatedStatCard 
+                  index={1}
+                  color="#eab308"
+                  number={rekap.telat}
+                  label="Telat"
+                  icon={<ColoredIcon icon={Clock} size={24} color="#eab308" />}
+                />
+                <AnimatedStatCard 
+                  index={2}
+                  color="#2563eb"
+                  number={rekap.izin}
+                  label="Izin"
+                  icon={<ColoredIcon icon={FileX} size={24} color="#2563eb" />}
+                />
+                <AnimatedStatCard 
+                  index={3}
+                  color="#ef4444"
+                  number={rekap.alfa}
+                  label="Alfa"
+                  icon={<ColoredIcon icon={AlertCircle} size={24} color="#ef4444" />}
+                />
+              </View>
+              <View style={styles.progressBar}>
+                <View style={styles.progressLabelContainer}>
+                  <Text style={styles.progressLabel}>Total Kehadiran</Text>
+                  <Text style={styles.progressPercentage}>{Math.round((rekap.hadir / totalMahasiswa) * 100)}%</Text>
+                </View>
+                <LinearGradient
+                  colors={['rgba(34, 197, 94, 0.2)', 'rgba(34, 197, 94, 0.05)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.progressBarContainer}
+                >
+                  <LinearGradient
+                    colors={['#22c55e', '#16a34a']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.progressBarFill, 
+                      { width: `${(rekap.hadir / totalMahasiswa) * 100}%` }
+                    ]}
+                  />
+                </LinearGradient>
+              </View>
+            </LinearGradient>
+          </AnimatedInfoCard>
+
+          {/* DAFTAR ABSENSI */}
+          <AnimatedInfoCard delay={200}>
+            <LinearGradient
+              colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.6)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.sectionHeader}>
+                <LinearGradient 
+                  colors={['#ec4899', '#db2777']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconBg}
+                >
+                  {/* @ts-ignore */}
+                  <FileText size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.section}>Daftar Absensi ({absensi.length})</Text>
+              </View>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableCol1, styles.tableHeaderText]}>Nama</Text>
+                <Text style={[styles.tableCol2, styles.tableHeaderText]}>Status</Text>
+                <Text style={[styles.tableCol3, styles.tableHeaderText]}>Tanggal</Text>
+              </View>
+              {absensi.map((d, i) => (
+                <Pressable 
+                  key={i} 
+                  style={({ pressed }) => [
+                    styles.tableRow,
+                    pressed && { 
+                      backgroundColor: 'rgba(96, 165, 250, 0.15)',
+                      transform: [{ scale: 0.99 }]
+                    }
                   ]}
                 >
-                  <Text style={[
-                    styles.dayTabText,
-                    activeDay === day && styles.dayTabTextActive
-                  ]}>
-                    {day.charAt(0).toUpperCase() + day.slice(1)}
-                  </Text>
-                  {activeDay === day && <View style={styles.activeDot} />}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {isLoading && schedules.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={Colors.ai.primary} />
-            <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        ) : viewMode === 'day' ? (
-          <ScrollView 
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {filteredSchedules.length > 0 ? (
-              filteredSchedules.map((item) => (
-                <ScheduleCard key={item.id} item={item} />
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Calendar size={64} color="rgba(255,255,255,0.1)" />
-                <Text style={styles.emptyText}>Tidak ada jadwal untuk hari {activeDay}</Text>
-              </View>
-            )}
-          </ScrollView>
-        ) : classes.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={Colors.ai.primary} />
-            <Text style={styles.loadingText}>Loading kelas...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={classes}
-            keyExtractor={(item) => item.id_kelas.toString()}
-            renderItem={({ item }) => <ClassCard item={item} />}
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-
-        {/* CLASS DETAIL MODAL - Step 5 */}
-        <Modal visible={showClassModal} animationType="slide" presentationStyle="pageSheet">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedClass?.nama_kelas || 'Loading...'}</Text>
-              <TouchableOpacity onPress={() => setShowClassModal(false)} style={styles.closeButton}>
-                <ArrowLeft size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            {classLoading ? (
-              <ActivityIndicator size="large" color={Colors.ai.primary} style={styles.loadingSpinner} />
-            ) : (
-              <>
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Jadwal Mata Kuliah</Text>
-                  <FlatList
-                    data={classJadwal}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity 
-                        style={styles.jadwalItem}
-                        onPress={() => {
-                          setSelectedJadwal(item);
-                          fetchJadwalAbsensi(item.id.toString());
-                          setShowJadwalDetailModal(true);
-                        }}
-                      >
-                        <View style={styles.jadwalLeft}>
-                          <Text style={styles.jadwalMK}>{item.subject}</Text>
-                          <Text style={styles.jadwalDosen}>{item.dosen_name}</Text>
-                        </View>
-                        <View style={styles.jadwalRight}>
-                          <Text style={styles.jadwalHari}>{item.hari}</Text>
-                          <Text style={styles.jadwalJam}>{item.jam_mulai} - {item.jam_selesai}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    )}
-                    style={styles.jadwalList}
-                  />
-                </View>
-
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Report Absensi Terbaru</Text>
-                  <FlatList
-                    data={classAbsensi.slice(0, 10)}
-                    keyExtractor={(item) => item.id_absensi.toString()}
-                    renderItem={({ item }) => (
-                      <View style={styles.absensiRow}>
-                        <Text style={styles.absensiName}>{item.name}</Text>
-                        <Text style={[styles.absensiStatus, { 
-                          color: item.status === 'hadir' ? '#10B981' : 
-                          item.status === 'terlambat' ? '#F59E0B' : '#EF4444' 
-                        }]}>
-                          {item.status?.toUpperCase()}
-                        </Text>
-                        <Text style={styles.absensiDate}>{new Date(item.tanggal).toLocaleDateString('id-ID')}</Text>
+                  <Text style={[styles.tableCol1, styles.tableText]}>{d.nama}</Text>
+                  <View style={[styles.tableCol2, styles.statusBadge]}>
+                    <LinearGradient
+                      colors={[statusColor[d.status] + '30', statusColor[d.status] + '10']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.statusBadgeGradient}
+                    >
+                      <View style={{ marginRight: 6 }}>
+                        {statusIcon[d.status]}
                       </View>
-                    )}
-                    style={styles.absensiList}
-                  />
-                </View>
+                      <Text style={[styles.tableText, { color: statusColor[d.status], fontWeight: '600' }]}>
+                        {d.status}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                  <Text style={[styles.tableCol3, styles.tableText, { fontSize: 12 }]}>{d.tanggal}</Text>
+                </Pressable>
+              ))}
+            </LinearGradient>
+          </AnimatedInfoCard>
 
-                <View style={styles.reportButtons}>
-                  <TouchableOpacity style={styles.reportButton} onPress={() => downloadReport('excel')}>
-                    <FileText size={20} color="#fff" />
-                    <Text style={styles.reportButtonText}>Excel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.reportButton} onPress={() => downloadReport('pdf')}>
-                    <Download size={20} color="#fff" />
-                    <Text style={styles.reportButtonText}>PDF</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.reportButton} onPress={sendEmailReport}>
-                    <Mail size={20} color="#fff" />
-                    <Text style={styles.reportButtonText}>Email Dekan</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.reportButton} onPress={scheduleWAReport}>
-                    <MessageCircle size={20} color="#fff" />
-                    <Text style={styles.reportButtonText}>WA Mingguan</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </Modal>
+          {/* EXPORT BUTTONS */}
+          <AnimatedInfoCard delay={300}>
+            <View style={styles.buttonContainer}>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.exportBtn,
+                  styles.excelBtn,
+                  pressed && { transform: [{ scale: 0.95 }] }
+                ]}
+                onPress={() => downloadReport('excel')}
+                disabled={loadingExcel}
+              >
+                {loadingExcel ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    {/* @ts-ignore */}
+                    <FileSpreadsheet size={20} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.btnText}>Excel</Text>
+                  </>
+                )}
+              </Pressable>
 
-        {/* JADWAL DETAIL MODAL - Modal 2 */}
-        <Modal visible={showJadwalDetailModal} animationType="slide" presentationStyle="pageSheet">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>{selectedJadwal?.subject || 'Loading...'}</Text>
-                <Text style={styles.modalSubtitle}>{selectedJadwal?.class_name}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowJadwalDetailModal(false)} style={styles.closeButton}>
-                <ArrowLeft size={24} color="#fff" />
-              </TouchableOpacity>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.exportBtn,
+                  styles.pdfBtn,
+                  pressed && { transform: [{ scale: 0.95 }] }
+                ]}
+                onPress={() => downloadReport('pdf')}
+                disabled={loadingPDF}
+              >
+                {loadingPDF ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    {/* @ts-ignore */}
+                    <FileText size={20} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.btnText}>PDF</Text>
+                  </>
+                )}
+              </Pressable>
             </View>
+          </AnimatedInfoCard>
 
-            {jadwalDetailLoading ? (
-              <ActivityIndicator size="large" color={Colors.ai.primary} style={styles.loadingSpinner} />
-            ) : (
-              <ScrollView style={styles.jadwalDetailContent} showsVerticalScrollIndicator={false}>
-                {/* Dosen & Ruangan Info */}
-                <View style={styles.infoSection}>
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoIconBox}>
-                      <User size={20} color={Colors.ai.primary} />
-                    </View>
-                    <View style={styles.infoDetails}>
-                      <Text style={styles.infoLabel}>Dosen Pengampu</Text>
-                      <Text style={styles.infoValue}>{selectedJadwal?.dosen_name}</Text>
-                    </View>
+        </ScrollView>
+      ) : (
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          scrollEventThrottle={16}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
+          <View style={styles.klasListContainer}>
+            {daftarKelas.map((k, idx) => {
+              const colorGroups = [
+                ['rgba(59, 130, 246, 0.2)', 'rgba(59, 130, 246, 0.05)'],
+                ['rgba(139, 92, 246, 0.2)', 'rgba(139, 92, 246, 0.05)'],
+                ['rgba(236, 72, 153, 0.2)', 'rgba(236, 72, 153, 0.05)'],
+              ];
+              const colors = colorGroups[idx % 3] as [string, string];
+              
+              return (
+              <Pressable 
+                key={k.id} 
+                style={({ pressed }) => [
+                  styles.klasCard,
+                  pressed && { 
+                    transform: [{ scale: 0.97 }],
+                  }
+                ]}
+                onPress={() => {
+                  headerScaleAnim.setValue(0.9);
+                  headerOpacityAnim.setValue(0);
+                  setTimeout(() => setSelectedKelasId(k.id), 200);
+                }}
+              >
+                <LinearGradient
+                  colors={colors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.klasCardHeader}>
+                  <View>
+                    <Text style={styles.klasName}>{k.nama}</Text>
+                    <Text style={styles.klasMatkul}>📖 {k.matkul}</Text>
                   </View>
-
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoIconBox}>
-                      <MapPin size={20} color={Colors.ai.primary} />
-                    </View>
-                    <View style={styles.infoDetails}>
-                      <Text style={styles.infoLabel}>Ruangan</Text>
-                      <Text style={styles.infoValue}>{selectedJadwal?.ruang}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoIconBox}>
-                      <Clock size={20} color={Colors.ai.primary} />
-                    </View>
-                    <View style={styles.infoDetails}>
-                      <Text style={styles.infoLabel}>Waktu Kuliah</Text>
-                      <Text style={styles.infoValue}>{selectedJadwal?.jam_mulai} - {selectedJadwal?.jam_selesai}</Text>
-                    </View>
-                  </View>
+                  {/* @ts-ignore */}
+                  <ChevronRight color="#60a5fa" size={20} />
                 </View>
-
-                {/* Daftar Mahasiswa by Status */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Daftar Mahasiswa</Text>
-                  
-                  {jadwalAbsensi.length > 0 ? (
-                    <View>
-                      {/* Hadir */}
-                      {jadwalAbsensi.filter(a => a.status === 'hadir').length > 0 && (
-                        <View style={styles.statusSection}>
-                          <View style={styles.statusHeader}>
-                            <CheckCircle2 size={16} color="#10B981" />
-                            <Text style={[styles.statusTitle, { color: '#10B981' }]}>
-                              Hadir ({jadwalAbsensi.filter(a => a.status === 'hadir').length})
-                            </Text>
-                          </View>
-                          {jadwalAbsensi.filter(a => a.status === 'hadir').map((item) => (
-                            <View key={`${item.id_absensi}-hadir`} style={styles.studentRow}>
-                              <Text style={styles.studentName}>{item.name}</Text>
-                              <Text style={[styles.studentStatus, { color: '#10B981' }]}>Hadir</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Terlambat */}
-                      {jadwalAbsensi.filter(a => a.status === 'terlambat').length > 0 && (
-                        <View style={styles.statusSection}>
-                          <View style={styles.statusHeader}>
-                            <Clock size={16} color="#F59E0B" />
-                            <Text style={[styles.statusTitle, { color: '#F59E0B' }]}>
-                              Terlambat ({jadwalAbsensi.filter(a => a.status === 'terlambat').length})
-                            </Text>
-                          </View>
-                          {jadwalAbsensi.filter(a => a.status === 'terlambat').map((item) => (
-                            <View key={`${item.id_absensi}-terlambat`} style={styles.studentRow}>
-                              <Text style={styles.studentName}>{item.name}</Text>
-                              <Text style={[styles.studentStatus, { color: '#F59E0B' }]}>Terlambat</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Sakit */}
-                      {jadwalAbsensi.filter(a => a.status === 'sakit').length > 0 && (
-                        <View style={styles.statusSection}>
-                          <View style={styles.statusHeader}>
-                            <AlertCircle size={16} color="#8B5CF6" />
-                            <Text style={[styles.statusTitle, { color: '#8B5CF6' }]}>
-                              Sakit ({jadwalAbsensi.filter(a => a.status === 'sakit').length})
-                            </Text>
-                          </View>
-                          {jadwalAbsensi.filter(a => a.status === 'sakit').map((item) => (
-                            <View key={`${item.id_absensi}-sakit`} style={styles.studentRow}>
-                              <Text style={styles.studentName}>{item.name}</Text>
-                              <Text style={[styles.studentStatus, { color: '#8B5CF6' }]}>Sakit</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Izin */}
-                      {jadwalAbsensi.filter(a => a.status === 'izin').length > 0 && (
-                        <View style={styles.statusSection}>
-                          <View style={styles.statusHeader}>
-                            <FileText size={16} color="#06B6D4" />
-                            <Text style={[styles.statusTitle, { color: '#06B6D4' }]}>
-                              Izin ({jadwalAbsensi.filter(a => a.status === 'izin').length})
-                            </Text>
-                          </View>
-                          {jadwalAbsensi.filter(a => a.status === 'izin').map((item) => (
-                            <View key={`${item.id_absensi}-izin`} style={styles.studentRow}>
-                              <Text style={styles.studentName}>{item.name}</Text>
-                              <Text style={[styles.studentStatus, { color: '#06B6D4' }]}>Izin</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Alfa */}
-                      {jadwalAbsensi.filter(a => a.status === 'alfa').length > 0 && (
-                        <View style={styles.statusSection}>
-                          <View style={styles.statusHeader}>
-                            <AlertCircle size={16} color="#EF4444" />
-                            <Text style={[styles.statusTitle, { color: '#EF4444' }]}>
-                              Alfa ({jadwalAbsensi.filter(a => a.status === 'alfa').length})
-                            </Text>
-                          </View>
-                          {jadwalAbsensi.filter(a => a.status === 'alfa').map((item) => (
-                            <View key={`${item.id_absensi}-alfa`} style={styles.studentRow}>
-                              <Text style={styles.studentName}>{item.name}</Text>
-                              <Text style={[styles.studentStatus, { color: '#EF4444' }]}>Alfa</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  ) : (
-                    <View style={styles.emptyAbsensi}>
-                      <Text style={styles.emptyAbsensiText}>Tidak ada data absensi</Text>
-                    </View>
-                  )}
+                <View style={styles.klasInfoRow}>
+                  <Text style={styles.klasInfo}>👨‍🏫 {k.dosen}</Text>
+                  <Text style={styles.klasInfo}>👥 {k.jumlahMahasiswa}</Text>
                 </View>
-
-                {/* Download Buttons */}
-                <View style={styles.jadwalReportButtons}>
-                  <TouchableOpacity 
-                    style={[styles.jadwalReportButton, isDownloading && styles.buttonDisabled]}
-                    onPress={() => downloadReport('excel')}
-                    disabled={isDownloading}
-                  >
-                    {isDownloading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <FileText size={20} color="#fff" />
-                    )}
-                    <Text style={styles.jadwalReportButtonText}>Excel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.jadwalReportButton, isDownloading && styles.buttonDisabled]}
-                    onPress={() => downloadReport('pdf')}
-                    disabled={isDownloading}
-                  >
-                    {isDownloading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Download size={20} color="#fff" />
-                    )}
-                    <Text style={styles.jadwalReportButtonText}>PDF</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            )}
+              </Pressable>
+            );
+            })}
           </View>
-        </Modal>
-      </LinearGradient>
-    </View>
+        </ScrollView>
+      )}
+
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  background: { flex: 1 },
+  // HEADER
+  headerContainer: {
+    paddingTop: 50,
+    marginBottom: 8,
+  },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
   backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  backButtonGradient: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 12,
-  },
-  refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(30, 79, 168, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 4,
-  },
-  tabButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(30, 79, 168, 0.3)',
-  },
-  tabText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tabTextActive: {
-    color: '#fff',
-  },
-  daySelectorContainer: {
-    marginBottom: 20,
-  },
-  dayScroll: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  dayTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  dayTabActive: {
-    backgroundColor: 'rgba(30, 79, 168, 0.3)',
-    borderColor: Colors.ai.primary,
-  },
-  dayTabText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  dayTabTextActive: {
-    color: '#fff',
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.ai.primary,
-    marginTop: 4,
-  },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  classCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  classIconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: 'rgba(30, 79, 168, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  classInfo: {
-    flex: 1,
-  },
-  classNameText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  classDescText: {
-    color: 'rgba(255,255,255,0.6)',
+  subtitle: {
+    color: '#64748b',
     fontSize: 13,
-    marginTop: 2,
+    fontWeight: '500',
+    marginBottom: 4,
   },
+  title: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+
+  // CARD STYLING
   card: {
-    borderRadius: 24,
-    padding: 20,
+    marginHorizontal: 16,
     marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(148, 163, 184, 0.1)',
     overflow: 'hidden',
   },
-  cardHeader: {
+
+  // SECTION HEADER
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  iconBox: {
+  iconBg: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(30, 79, 168, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  titleInfo: {
+  section: {
+    color: '#f1f5f9',
+    fontSize: 16,
+    fontWeight: '700',
     flex: 1,
   },
-  subjectText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+
+  // INFO GRID
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
   },
-  classText: {
-    color: Colors.ai.primary,
+  infoItem: {
+    width: '50%',
+    paddingHorizontal: 6,
+    marginBottom: 14,
+  },
+  infoLabel: {
+    color: '#94a3b8',
     fontSize: 12,
     fontWeight: '600',
-    marginTop: 2,
+    marginBottom: 6,
   },
-  timeBadge: {
+  infoValue: {
+    color: '#f1f5f9',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // STAT GRID
+  statGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+    marginBottom: 18,
   },
-  timeText: {
+  statCard: {
+    width: '50%',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginHorizontal: 5,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.1)',
+  },
+  statNumber: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
+    marginVertical: 8,
   },
-  cardDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    gap: 20,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  detailText: {
-    color: 'rgba(255,255,255,0.6)',
+  statLabel: {
+    color: '#cbd5e1',
     fontSize: 13,
+    fontWeight: '600',
   },
-  recapContainer: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: 16,
-    padding: 16,
+
+  // PROGRESS BAR
+  progressBar: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.1)',
   },
-  recapHeader: {
+  progressLabelContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
-  recapTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  recapTitle: {
-    color: '#fff',
-    fontSize: 13,
+  progressLabel: {
+    color: '#cbd5e1',
+    fontSize: 14,
     fontWeight: '600',
   },
-  attendancePercent: {
-    color: Colors.ai.secondary,
-    fontWeight: 'bold',
-    fontSize: 14,
+  progressPercentage: {
+    color: '#22c55e',
+    fontSize: 16,
+    fontWeight: '800',
   },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 3,
-    marginBottom: 12,
+  progressBarContainer: {
+    height: 10,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.ai.secondary,
-    borderRadius: 3,
+    borderRadius: 6,
   },
-  recapFooter: {
+
+  // TABLE STYLING
+  tableHeader: {
     flexDirection: 'row',
-    gap: 16,
+    paddingBottom: 12,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 163, 184, 0.1)',
   },
-  statBox: {
+  tableHeaderText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableRow: {
     flexDirection: 'row',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 163, 184, 0.05)',
     alignItems: 'center',
-    gap: 6,
   },
-  statLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 11,
+  tableCol1: {
+    flex: 2,
+  },
+  tableCol2: {
+    flex: 1.2,
+  },
+  tableCol3: {
+    flex: 0.8,
+  },
+  tableText: {
+    color: '#cbd5e1',
+    fontSize: 13,
     fontWeight: '500',
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 12,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: 16,
-    fontSize: 15,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: Colors.ai.gradientStart,
-  },
-  modalHeader: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  modalTitle: {
+  statusBadgeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  // BUTTON STYLING
+  buttonContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 16,
+    gap: 12,
+  },
+  exportBtn: {
     flex: 1,
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  loadingSpinner: {
-    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
     justifyContent: 'center',
+    fontWeight: '600',
+    borderWidth: 1,
   },
-  section: {
-    padding: 20,
-    marginBottom: 20,
+  excelBtn: {
+    backgroundColor: '#16a34a',
+    borderColor: 'rgba(22, 163, 74, 0.3)',
   },
-  sectionTitle: {
+  pdfBtn: {
+    backgroundColor: '#dc2626',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
+  },
+  btnText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+
+  // KELAS LIST
+  klasListContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  klasCard: {
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.1)',
+    overflow: 'hidden',
+  },
+  klasCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  jadwalList: {
-    marginBottom: 20,
-  },
-  jadwalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  jadwalLeft: {
-    flex: 1,
-  },
-  jadwalMK: {
+  klasName: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  jadwalDosen: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-  },
-  jadwalRight: {
-    alignItems: 'flex-end',
-  },
-  jadwalHari: {
-    color: Colors.ai.primary,
-    fontWeight: '600',
-  },
-  jadwalJam: {
-    color: 'rgba(255,255,255,0.8)',
-  },
-  absensiList: {},
-  absensiRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 8,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: 6,
   },
-  absensiName: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 14,
+  klasMatkul: {
+    color: '#60a5fa',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 8,
   },
-  absensiStatus: {
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  absensiDate: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-  },
-  reportButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 20,
-    paddingBottom: 40,
-  },
-  reportButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    backgroundColor: Colors.ai.primary,
-    borderRadius: 12,
-  },
-  reportButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  // Modal 2 Styles
-  modalSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    marginTop: 2,
-  },
-  jadwalDetailContent: {
-    flex: 1,
-  },
-  infoSection: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  infoIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(30, 79, 168, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  infoDetails: {
-    flex: 1,
-  },
-  infoLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  infoValue: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  statusSection: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    gap: 8,
-  },
-  statusTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  studentRow: {
+  klasInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
-  studentName: {
-    flex: 1,
-    color: '#fff',
+  klasInfo: {
+    color: '#94a3b8',
     fontSize: 13,
-  },
-  studentStatus: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  emptyAbsensi: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyAbsensiText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
-  },
-  jadwalReportButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 20,
-    paddingBottom: 40,
-  },
-  jadwalReportButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    backgroundColor: Colors.ai.primary,
-    borderRadius: 12,
-  },
-  jadwalReportButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
+    fontWeight: '500',
   },
 });
-

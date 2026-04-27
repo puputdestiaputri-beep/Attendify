@@ -4,7 +4,8 @@
     "lib": [
       "ES2022",
       "dom",
-      "dom.iterable"
+      "dom.iterable",
+      "react-native"
     ],
     "jsx": "react-jsx",
     "module": "esnext",
@@ -18,8 +19,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "declaration": true,
-    "declarationMap": true,
+    "rootDir": "./",
     "sourceMap": true,
     "paths": {
       "@/*": [

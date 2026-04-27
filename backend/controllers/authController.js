@@ -34,7 +34,7 @@ exports.register = async (req, res) => {
 
 exports.registerAdminOrDosen = async (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, nip } = req.body;
         
         if (!name || !email || !password || !role) {
             return res.status(400).json({ status: 'error', message: 'All fields are required' });
@@ -48,14 +48,14 @@ exports.registerAdminOrDosen = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         const [result] = await db.query(
-            'INSERT INTO pengguna (nama, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
-            [name, email, hashedPassword, role, 'Y']
+            'INSERT INTO pengguna (nama, email, username, password, role, status) VALUES (?, ?, ?, ?, ?, ?)',
+            [name, email, nip || null, hashedPassword, role, 'Y']
         );
 
         res.status(201).json({
             status: 'success',
             message: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully`,
-            data: { id: result.insertId, name, email, role }
+            data: { id: result.insertId, name, email, nip, role }
         });
     } catch (err) {
         if (err.code === 'ER_DUP_ENTRY') {

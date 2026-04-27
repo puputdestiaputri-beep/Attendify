@@ -115,8 +115,8 @@ export default function ManageLecturersScreen() {
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.email || (!editingLecturer && !formData.password)) {
-      Alert.alert('Error', 'Lengkapi data yang wajib diisi (Nama, Email, dan Password untuk data baru)');
+    if (!formData.name || !formData.nip || !formData.email || (!editingLecturer && !formData.password)) {
+      Alert.alert('Error', 'Lengkapi data yang wajib diisi (Nama, NIP, Email, dan Password untuk data baru)');
       return;
     }
 
@@ -133,6 +133,7 @@ export default function ManageLecturersScreen() {
           },
           body: JSON.stringify({
             name: formData.name,
+            nip: formData.nip,
             email: formData.email,
             role: 'dosen'
           })
@@ -146,6 +147,7 @@ export default function ManageLecturersScreen() {
           },
           body: JSON.stringify({
             name: formData.name,
+            nip: formData.nip,
             email: formData.email,
             password: formData.password,
             role: 'dosen'
@@ -155,7 +157,7 @@ export default function ManageLecturersScreen() {
 
       const result = await response.json();
       if (response.ok || result.status === 'success') {
-        Alert.alert('Berhasil', editingLecturer ? 'Data dosen berhasil diperbarui' : 'Dosen baru berhasil ditambahkan');
+        Alert.alert('Berhasil', editingLecturer ? 'Data dosen berhasil diperbarui' : `Dosen ${formData.name} berhasil ditambahkan dengan NIP ${formData.nip}`);
         fetchLecturers();
         setIsModalVisible(false);
       } else {
@@ -332,20 +334,31 @@ export default function ManageLecturersScreen() {
                 </View>
 
                 {!editingLecturer && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Password Awal</Text>
-                    <View style={styles.inputWrap}>
-                      <ShieldCheck size={18} color="rgba(255,255,255,0.4)" />
-                      <TextInput
-                        style={[styles.input, { marginLeft: 8 }]}
-                        value={formData.password}
-                        onChangeText={text => setFormData({...formData, password: text})}
-                        placeholder="Password untuk dosen ini..."
-                        placeholderTextColor="rgba(255,255,255,0.3)"
-                        secureTextEntry={true}
-                      />
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Password Awal</Text>
+                      <View style={styles.inputWrap}>
+                        <ShieldCheck size={18} color="rgba(255,255,255,0.4)" />
+                        <TextInput
+                          style={[styles.input, { marginLeft: 8 }]}
+                          value={formData.password}
+                          onChangeText={text => setFormData({...formData, password: text})}
+                          placeholder="Password untuk dosen ini..."
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          secureTextEntry={true}
+                        />
+                      </View>
                     </View>
-                  </View>
+
+                    <View style={styles.infoBox}>
+                      <Text style={styles.infoText}>
+                        💡 <Text style={styles.infoTextBold}>Tips Login:</Text> Dosen dapat login menggunakan:
+                        {'\n'}• Email: {formData.email || '(email yang diisi)'}
+                        {'\n'}• NIP (sebagai username): {formData.nip || '(NIP yang diisi)'}
+                        {'\n'}• Password: (password yang diatur di sini)
+                      </Text>
+                    </View>
+                  </>
                 )}
 
 
@@ -572,5 +585,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  infoBox: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  infoText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  infoTextBold: {
+    fontWeight: '600',
+    color: '#60a5fa',
   },
 });

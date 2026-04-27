@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 exports.getAllUsers = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id_user as id, nama as name, email, role FROM pengguna');
+        const [users] = await db.query('SELECT id_user as id, nama as name, email, username as nip, role FROM pengguna');
         res.json({ status: 'success', data: users });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
@@ -12,7 +12,7 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
     try {
         const { id } = req.params;
-        const [users] = await db.query('SELECT id_user as id, nama as name, email, role FROM pengguna WHERE id_user = ?', [id]);
+        const [users] = await db.query('SELECT id_user as id, nama as name, email, username as nip, role FROM pengguna WHERE id_user = ?', [id]);
         if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
         res.json({ status: 'success', data: users[0] });
     } catch (err) {

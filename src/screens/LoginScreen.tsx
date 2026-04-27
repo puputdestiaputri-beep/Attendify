@@ -76,8 +76,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     setIsLoading(true);
     try {
       // Use centralized API_URL
+      // Ambil URL backend dari environment variable
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+
       console.log('Attempting login via backend:', `${API_URL}/login`);
-      
+
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: {
