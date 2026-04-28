@@ -1,43 +1,29 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": [
-      "ES2022",
-      "dom",
-      "dom.iterable",
-      "react-native"
-    ],
-    "jsx": "react-jsx",
+    "target": "ES2020",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
     "strict": true,
+    "noEmit": true,
+
+
+    // 'baseUrl' is deprecated in TypeScript 5.5+ and will be removed in 7.0. See https://aka.ms/ts6
+    // Consider migrating to 'moduleResolution': 'node16' or 'nodenext' and using 'imports' in package.json for path aliases.
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
+
     "skipLibCheck": true,
-    "noEmit": true,
-    "rootDir": "./",
-    "sourceMap": true,
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
+    "ignoreDeprecations": "6.0"
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    ".expo",
-    "backend"
-  ],
-  "extends": "expo/tsconfig.base"
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "backend"]
 }
