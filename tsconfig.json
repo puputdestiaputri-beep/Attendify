@@ -5,25 +5,28 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-
     "strict": true,
     "noEmit": true,
-
-
-    // 'baseUrl' is deprecated in TypeScript 5.5+ and will be removed in 7.0. See https://aka.ms/ts6
-    // Consider migrating to 'moduleResolution': 'node16' or 'nodenext' and using 'imports' in package.json for path aliases.
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
-
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "backend"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "backend"
+  ]
 }

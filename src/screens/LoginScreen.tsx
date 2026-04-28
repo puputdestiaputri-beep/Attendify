@@ -17,7 +17,6 @@ interface LoginScreenProps {
   navigation: any;
 }
 
-
 export default function LoginScreen({ navigation }: LoginScreenProps) {
   const { login } = useAuth();
   const [role, setRole] = useState<'mahasiswa' | 'dosen' | 'admin'>('mahasiswa');

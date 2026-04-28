@@ -1,3 +1,6 @@
+// Polyfill for TextEncoder/TextDecoder for React Native/Expo
+import 'text-encoding';
+
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
