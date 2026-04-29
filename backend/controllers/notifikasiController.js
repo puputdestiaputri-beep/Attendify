@@ -25,7 +25,19 @@ exports.getNotifikasi = async (req, res) => {
 
 exports.createNotifikasi = async (req, res) => {
     try {
-        const { user_id, title, message, type } = req.body;
+        let { user_id, title, message, type } = req.body;
+        
+        // If user_id is 1 (default from frontend) or missing, find the first admin
+        if (!user_id || user_id === 1) {
+            const [admins] = await db.query('SELECT id_user FROM pengguna WHERE role = "admin" LIMIT 1');
+            if (admins.length > 0) {
+                user_id = admins[0].id_user;
+            } else {
+                // Fallback to 1 if no admin found (to avoid crash)
+                user_id = 1;
+            }
+        }
+
         // type should be 'absensi', 'terlambat', or 'informasi' according to ENUM
         const validTypes = ['absensi', 'terlambat', 'informasi'];
         const jenis_notif = validTypes.includes(type) ? type : 'informasi';
@@ -34,7 +46,7 @@ exports.createNotifikasi = async (req, res) => {
             'INSERT INTO notifikasi (user_id, judul, pesan, jenis_notif, tanggal, status_baca) VALUES (?, ?, ?, ?, NOW(), ?)',
             [user_id, title, message, jenis_notif, 'belum']
         );
-        res.status(201).json({ status: 'success', message: 'Notification created' });
+        res.status(201).json({ status: 'success', message: 'Notification created and sent to admin' });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }

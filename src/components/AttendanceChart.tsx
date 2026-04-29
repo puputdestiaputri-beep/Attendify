@@ -27,7 +27,6 @@ export const AttendanceChart: React.FC<AttendanceChartProps> = ({
   containerStyle 
 }) => {
   const maxValue = 100;
-  const chartWidth = width - 60;
 
   const getColor = (percentage: number) => {
     if (percentage >= 80) return '#22C55E'; // Green
@@ -49,7 +48,6 @@ export const AttendanceChart: React.FC<AttendanceChartProps> = ({
       <View style={styles.chartContainer}>
         {data.map((item, index) => {
           const barColor = getColor(item.attendance);
-          const barWidth = (item.attendance / maxValue) * (chartWidth - 100);
 
           return (
             <View key={index} style={styles.chartRow}>
@@ -63,16 +61,9 @@ export const AttendanceChart: React.FC<AttendanceChartProps> = ({
                   colors={[barColor, `${barColor}80`]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={[styles.bar, { width: Math.max(barWidth, 5) }]}
-                >
-                  {item.attendance >= 30 && (
-                    <Text style={styles.barText}>{item.attendance}%</Text>
-                  )}
-                </LinearGradient>
-
-                {item.attendance < 30 && (
-                  <Text style={styles.percentageText}>{item.attendance}%</Text>
-                )}
+                  style={[styles.bar, { width: `${item.attendance}%` }]}
+                />
+                <Text style={styles.barText}>{item.attendance}%</Text>
               </View>
             </View>
           );
@@ -142,26 +133,25 @@ const styles = StyleSheet.create({
   },
   barSection: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 6,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
   },
   bar: {
-    height: 24,
-    borderRadius: 12,
+    height: '100%',
+    borderRadius: 6,
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
   barText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#fff',
-  },
-  percentageText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#fff',
-    minWidth: 24,
+    position: 'absolute',
+    left: 8,
   },
   legend: {
     flexDirection: 'row',

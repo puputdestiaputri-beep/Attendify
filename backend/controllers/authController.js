@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, username } = req.body;
+        const { name, email, password, username, phone, prodi, kelas } = req.body;
         // PUBLIC REGISTRATION is ONLY for MAHASISWA
         const role = 'mahasiswa';
         
@@ -15,8 +15,8 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         const [result] = await db.query(
-            'INSERT INTO pengguna (nama, email, username, password, role, status) VALUES (?, ?, ?, ?, ?, ?)',
-            [name, email, username || null, hashedPassword, role, 'Y']
+            'INSERT INTO pengguna (nama, email, nohp, username, password, role, status, prodi, kelas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, email, phone || null, username || null, hashedPassword, role, 'Y', prodi || null, kelas || null]
         );
 
         res.status(201).json({
@@ -92,11 +92,25 @@ exports.login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
+        console.log('Login response user data:', {
+            id: user.id_user,
+            name: user.nama,
+            prodi: user.prodi,
+            kelas: user.kelas
+        });
+
         res.json({
             status: 'success',
             message: 'Logged in successfully',
             data: {
-                user: { id: user.id_user, name: user.nama, email: user.email, role: user.role },
+                user: { 
+                    id: user.id_user, 
+                    name: user.nama, 
+                    email: user.email, 
+                    role: user.role,
+                    prodi: user.prodi,
+                    kelas: user.kelas
+                },
                 token
             }
         });
@@ -107,7 +121,7 @@ exports.login = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id_user as id, nama as name, email, role, created_at FROM pengguna WHERE id_user = ?', [req.userId]);
+        const [users] = await db.query('SELECT id_user as id, nama as name, email, role, prodi, kelas, created_at FROM pengguna WHERE id_user = ?', [req.userId]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }

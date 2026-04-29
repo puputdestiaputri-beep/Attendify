@@ -26,9 +26,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@/constants/Config';
 
 const { width } = Dimensions.get('window');
-const API_URL = 'http://localhost:5000/api';
 
 interface Notification {
   id: number;

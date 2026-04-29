@@ -19,12 +19,15 @@ CREATE TABLE wajah (
 CREATE TABLE pengguna (
     id_user INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(100),
-    nohp VARCHAR(15),
+    email VARCHAR(100),
     username VARCHAR(20),
     password VARCHAR(200),
     role ENUM('admin','dosen','mahasiswa'),
     id_wajah INT,
     status ENUM('Y','N'),
+    prodi VARCHAR(100),
+    kelas VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (id_wajah) REFERENCES wajah(id_wajah)
 );

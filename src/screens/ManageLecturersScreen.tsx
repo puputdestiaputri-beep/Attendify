@@ -14,18 +14,9 @@ import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
+import { API_URL } from '@/constants/Config';
 
 const { width } = Dimensions.get('window');
-
-// Mock Data
-const INITIAL_LECTURERS = [
-  { id: '1', name: 'Dr. Handoko', nip: '19750001', jabatan: 'Lektor Kepala', email: 'handoko@example.com', phone: '08123456789' },
-  { id: '2', name: 'Ir. Siti Khadijah', nip: '19820002', jabatan: 'Asisten Ahli', email: 'siti@example.com', phone: '08523456789' },
-  { id: '3', name: 'Dr. Ahmad Subarjo', nip: '19700003', jabatan: 'Profesor', email: 'ahmad@example.com', phone: '08723456789' },
-];
-
-const API_URL = 'http://localhost:5000/api';
 
 export default function ManageLecturersScreen() {
   const navigation = useNavigation<any>();

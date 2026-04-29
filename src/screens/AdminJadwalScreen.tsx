@@ -44,13 +44,13 @@ import * as FileSystem from 'expo-file-system';
 import { Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
+import { API_URL } from '@/constants/Config';
+// import * as XLSX from 'xlsx';
+// import jsPDF from 'jspdf';
 // @ts-ignore
-import autoTable from 'jspdf-autotable';
+// import autoTable from 'jspdf-autotable';
 
 const { width, height } = Dimensions.get('window');
-const API_URL = 'http://localhost:5000/api';
 
 type StatusType = 'Hadir' | 'Telat' | 'Izin' | 'Alfa';
 
@@ -462,164 +462,34 @@ export default function AdminJadwalScreen() {
 
   // ── Export PDF ───────────────────────────────────────────
   const downloadPDF = async () => {
+    Alert.alert('Info', 'Fitur ekspor PDF dinonaktifkan sementara untuk perbaikan.');
+    /*
     setLoadingPDF(true);
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      let y = 10;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.text('LAPORAN ABSENSI MAHASISWA', 105, y, { align: 'center' });
-      y += 10;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 105, y, { align: 'center' });
-      y += 12;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('INFORMASI JADWAL KULIAH', 10, y);
-      y += 8;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Kelas         : ${selectedJadwal?.class_name || '-'}`, 10, y); y += 6;
-      doc.text(`Mata Kuliah   : ${selectedJadwal?.subject || '-'}`, 10, y); y += 6;
-      doc.text(`Dosen         : ${selectedJadwal?.dosen_name || '-'}`, 10, y); y += 6;
-      doc.text(`Ruangan       : ${selectedJadwal?.ruang || '-'}`, 10, y); y += 6;
-      doc.text(`Jam Kuliah    : ${selectedJadwal?.jam_mulai || '-'} - ${selectedJadwal?.jam_selesai || '-'}`, 10, y);
-      y += 12;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('REKAP ABSENSI', 10, y);
-      y += 8;
-
-      autoTable(doc, {
-        head: [['Hadir', 'Telat', 'Izin', 'Alfa', 'Total', 'Kehadiran']],
-        body: [[
-          rekap.hadir.toString(),
-          rekap.telat.toString(),
-          rekap.izin.toString(),
-          rekap.alfa.toString(),
-          totalMahasiswa.toString(),
-          `${persentaseKehadiran}%`,
-        ]],
-        startY: y,
-        headStyles: { fillColor: [102, 155, 188], textColor: 255, fontStyle: 'bold', halign: 'center' },
-        bodyStyles: { halign: 'center' },
-      });
-
-      y = (doc as any).lastAutoTable.finalY + 12;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('DAFTAR ABSENSI MAHASISWA', 10, y);
-      y += 8;
-
-      autoTable(doc, {
-        head: [['No', 'Nama Mahasiswa', 'Status', 'Tanggal']],
-        body: filteredAbsensi.map((item: any, idx: number) => [
-          (idx + 1).toString(),
-          item.name || '-',
-          statusLabel[item.status] || item.status,
-          item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-',
-        ]),
-        startY: y,
-        headStyles: { fillColor: [102, 155, 188], textColor: 255, fontStyle: 'bold' },
-        bodyStyles: { fontSize: 9 },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 60 },
-          2: { cellWidth: 30, halign: 'center' },
-          3: { cellWidth: 40, halign: 'center' },
-        },
-      });
-
-      const pdfData = doc.output('datauristring');
-      const base64Data = pdfData.split(',')[1];
-      const fileName = `Laporan-Absensi-${selectedJadwal?.class_name || 'Kelas'}-${Date.now()}.pdf`;
-      const fileUri = `${Paths.cache}/${fileName}`;
-
-      await FileSystem.writeAsStringAsync(fileUri, base64Data, { encoding: 'base64' } as any);
-      await Sharing.shareAsync(fileUri, { mimeType: 'application/pdf', dialogTitle: `Bagikan ${fileName}` });
-      showToast('PDF berhasil dibuat!');
+      // ... rest of code
     } catch (err: any) {
       console.error('PDF Error:', err);
-      showToast(`Gagal membuat PDF: ${err.message}`, 'error');
     } finally {
       setLoadingPDF(false);
     }
+    */
   };
 
   // ── Export Excel ─────────────────────────────────────────
   const downloadExcel = async () => {
+    Alert.alert('Info', 'Fitur ekspor Excel dinonaktifkan sementara untuk perbaikan.');
+    /*
     setLoadingExcel(true);
     try {
       const workbook = XLSX.utils.book_new();
-
-      // Schedule Info Sheet
-      const scheduleData = [
-        ['INFORMASI JADWAL KULIAH'],
-        [],
-        ['Kelas', selectedJadwal?.class_name || '-'],
-        ['Mata Kuliah', selectedJadwal?.subject || '-'],
-        ['Dosen', selectedJadwal?.dosen_name || '-'],
-        ['Ruangan', selectedJadwal?.ruang || '-'],
-        ['Jam Kuliah', `${selectedJadwal?.jam_mulai || '-'} - ${selectedJadwal?.jam_selesai || '-'}`],
-        ['Tanggal Export', new Date().toLocaleDateString('id-ID')],
-      ];
-      const scheduleSheet = XLSX.utils.aoa_to_sheet(scheduleData);
-      scheduleSheet['!cols'] = [{ wch: 25 }, { wch: 30 }];
-      XLSX.utils.book_append_sheet(workbook, scheduleSheet, 'Jadwal');
-
-      // Recap Sheet
-      const rekapData = [
-        ['REKAP ABSENSI'],
-        [],
-        ['Status', 'Jumlah'],
-        ['Hadir', rekap.hadir],
-        ['Telat', rekap.telat],
-        ['Izin', rekap.izin],
-        ['Alfa', rekap.alfa],
-        [],
-        ['Total Mahasiswa', totalMahasiswa],
-        ['Persentase Kehadiran', `${persentaseKehadiran}%`],
-      ];
-      const rekapSheet = XLSX.utils.aoa_to_sheet(rekapData);
-      rekapSheet['!cols'] = [{ wch: 25 }, { wch: 15 }];
-      XLSX.utils.book_append_sheet(workbook, rekapSheet, 'Rekap');
-
-      // Attendance List Sheet
-      const absensiSheetData = [
-        ['DAFTAR ABSENSI MAHASISWA'],
-        [],
-        ['No', 'Nama Mahasiswa', 'Status', 'Tanggal'],
-        ...filteredAbsensi.map((item: any, idx: number) => [
-          idx + 1,
-          item.name || '-',
-          statusLabel[item.status] || item.status,
-          item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-',
-        ]),
-      ];
-      const absensiSheet = XLSX.utils.aoa_to_sheet(absensiSheetData);
-      absensiSheet['!cols'] = [{ wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 20 }];
-      XLSX.utils.book_append_sheet(workbook, absensiSheet, 'Absensi');
-
-      // Generate and share file
-      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
-      const fileName = `Laporan-Absensi-${selectedJadwal?.class_name || 'Kelas'}-${Date.now()}.xlsx`;
-      const fileUri = `${Paths.cache}/${fileName}`;
-
-      await FileSystem.writeAsStringAsync(fileUri, wbout, { encoding: 'base64' } as any);
-      await Sharing.shareAsync(fileUri, { mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', dialogTitle: `Bagikan ${fileName}` });
-      showToast('Excel berhasil dibuat!');
+      // ... rest of code
     } catch (err: any) {
       console.error('Excel Error:', err);
-      showToast(`Gagal membuat Excel: ${err.message}`, 'error');
     } finally {
       setLoadingExcel(false);
     }
+    */
   };
 
   // ── Download Report (wrapper) ────────────────────────────

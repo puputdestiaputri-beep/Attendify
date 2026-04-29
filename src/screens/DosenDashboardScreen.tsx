@@ -16,10 +16,10 @@ import {
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '@/constants/Config';
 import ReportIssueModal from '../components/ReportIssueModal';
 
 const { width } = Dimensions.get('window');
-const API_URL = 'http://localhost:5000/api';
 
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────

@@ -14,11 +14,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '@/constants/Config';
 
 const { width } = Dimensions.get('window');
-
-// Mock API BASE
-const API_URL = 'http://localhost:5000/api';
 
 export default function IoTSensorValidationScreen() {
   const navigation = useNavigation<any>();

@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@/constants/Config';
 
 const { width } = Dimensions.get('window');
 
@@ -26,7 +27,7 @@ export default function AdminDashboardScreen() {
   const { user, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const API_URL = 'http://localhost:5000/api';
+  // Use centralized API_URL from Config.ts
 
 
   // Pulse animation for IoT Status

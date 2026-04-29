@@ -104,7 +104,10 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
           name: formData.fullName,
           email: formData.email,
           username: formData.identifier,
+          phone: formData.phone,
           password: formData.password,
+          prodi: formData.prodi,
+          kelas: formData.kelas,
           role: 'mahasiswa', // Public registration is forced to mahasiswa
         }),
       });

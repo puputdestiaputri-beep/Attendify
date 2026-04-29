@@ -12,6 +12,8 @@ const verifyToken = (req, res, next) => {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
+            console.log('JWT Verification Error:', err.message);
+            console.log('Token received:', token ? token.substring(0, 10) + '...' : 'null');
             return res.status(401).json({ status: 'error', message: 'Unauthorized!' });
         }
         req.userId = decoded.id;

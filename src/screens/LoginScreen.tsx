@@ -75,8 +75,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     setIsLoading(true);
     try {
       // Use centralized API_URL
-      // Ambil URL backend dari environment variable
-      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+      // Use centralized API_URL from Config.ts
 
       console.log('Attempting login via backend:', `${API_URL}/login`);
 
@@ -95,6 +94,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
       if (response.ok && result.status === 'success') {
         const { user: userData, token } = result.data;
+        console.log('Login result user data:', JSON.stringify(userData));
         
         // Save token for future API calls
         await saveAuthToken(token);
@@ -105,7 +105,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         login(userData.role, {
           fullName: userData.name,
           email: userData.email,
-          nim: role === 'mahasiswa' ? identifier : undefined,
+          nim: userData.username || (role === 'mahasiswa' ? identifier : undefined),
+          prodi: userData.prodi,
+          kelas: userData.kelas,
         });
 
         // Handle Remember Me

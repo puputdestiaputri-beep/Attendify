@@ -25,4 +25,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is gracefully running on port ${PORT}.`);
     console.log(`Endpoints available under: http://localhost:${PORT}/api/`);
+    console.log('JWT_SECRET loaded:', process.env.JWT_SECRET ? 'YES' : 'NO');
 });

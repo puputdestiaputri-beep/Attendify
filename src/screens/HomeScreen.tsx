@@ -17,6 +17,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  console.log('HomeScreen User Data:', JSON.stringify(user));
   const { isDarkMode } = useTheme();
   const [showReportModal, setShowReportModal] = useState(false);
 
@@ -145,7 +146,14 @@ export default function HomeScreen() {
         {/* Menu */}
         <Text style={styles.sectionTitle}>Menu Utama</Text>
 
-        <View style={styles.actionRow}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.actionScroll}
+          snapToInterval={width * 0.45 + 15}
+          decelerationRate="fast"
+          snapToAlignment="start"
+        >
           <TouchableOpacity style={styles.actionBtn} onPress={handleScan}>
             <LinearGradient colors={['#6366F1', '#4F46E5']} style={styles.actionGradient}>
               <View style={styles.iconCircle}>
@@ -166,7 +174,7 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtn} onPress={handleESP32Camera}>
+          <TouchableOpacity style={[styles.actionBtn, { marginRight: 0 }]} onPress={handleESP32Camera}>
             <LinearGradient colors={['#10B981', '#06B6D4']} style={styles.actionGradient}>
               <View style={styles.iconCircle}>
                 <Camera color="#fff" size={28} />
@@ -175,7 +183,7 @@ export default function HomeScreen() {
               <Text style={styles.actionBtnSub}>Live IoT</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {/* Tips */}
         <View style={styles.tipCard}>
@@ -354,15 +362,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  actionScroll: {
+    paddingRight: 20, // Extra space at the end
+  },
+
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
 
   actionBtn: {
-    width: (width - 56) / 2,
+    width: width * 0.45,
     borderRadius: 20,
     overflow: 'hidden',
+    marginRight: 15,
   },
 
   actionGradient: {

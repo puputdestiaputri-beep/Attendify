@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+import { API_URL } from '@/constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -25,7 +26,7 @@ const INITIAL_STUDENTS = [
   { id: '3', name: 'Rizwan Hakim', nim: '20240003', prodi: 'Informatika', kelas: 'A Pagi', email: 'rizwan@example.com' },
 ];
 
-const API_URL = 'http://localhost:5000/api';
+// API_URL imported from constants/Config
 
 export default function ManageStudentsScreen() {
   const navigation = useNavigation<any>();

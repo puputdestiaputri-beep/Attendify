@@ -42,6 +42,7 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('@attendify_auth_token');
+      console.log('Sending report with token:', token ? 'Token exists' : 'Token MISSING');
       const response = await fetch(`${API_URL}/notifikasi`, {
         method: 'POST',
         headers: {
