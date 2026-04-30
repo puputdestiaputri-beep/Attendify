@@ -15,14 +15,9 @@ import {
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
-<<<<<<< Updated upstream
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '@/constants/Config';
-=======
 import { DesignSystem } from '../../constants/DesignSystem';
 import DashboardCard from '../components/ui/DashboardCard';
 import StudentCard from '../components/ui/StudentCard';
->>>>>>> Stashed changes
 import ReportIssueModal from '../components/ReportIssueModal';
 
 
