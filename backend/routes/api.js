@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const manualScanCtrl = require('../controllers/manualScanController');
 
 // Middleware
 const auth = require('../middleware/auth');
@@ -16,7 +17,7 @@ const reportCtrl = require('../controllers/reportController');
 const wajahCtrl = require('../controllers/wajahController');
 const logCtrl = require('../controllers/logController');
 const kelasCtrl = require('../controllers/kelasController');
-
+const iotCtrl = require('../controllers/iotController');
 
 
 // 1. AUTH ROUTES
@@ -75,6 +76,22 @@ router.get('/logs/stats', auth, roleCheck('admin'), logCtrl.getLogStats);
 router.get('/kelas', auth, kelasCtrl.getAllKelas);
 router.get('/kelas/:id', auth, kelasCtrl.getKelasById);
 
+// 10. IoT / ESP32 INTEGRATION ROUTES
+router.post('/iot/recognize', iotCtrl.recognizeFromIoT);
+router.post('/iot/health', iotCtrl.healthCheck);
+router.get('/iot/stats', auth, roleCheck('admin'), iotCtrl.getIoTStats);
 
+// 11. MANUAL SCAN PERMISSION ROUTES (Dosen-controlled fallback)
+router.get('/manual-scan/permission', auth, manualScanCtrl.getPermission);
+router.post('/manual-scan/allow', auth, roleCheck('dosen'), manualScanCtrl.allowManualScan);
+router.post('/manual-scan/disable', auth, roleCheck('dosen'), manualScanCtrl.disableManualScan);
+router.get('/manual-scan/users', auth, roleCheck('dosen'), manualScanCtrl.getUsersWithPermissions);
+
+
+// 11. MANUAL SCAN PERMISSION ROUTES (New Fallback Feature)
+router.get('/manual-scan/permission', auth, manualScanCtrl.getPermission);
+router.post('/manual-scan/allow', auth, roleCheck('dosen'), manualScanCtrl.allowManualScan);
+router.post('/manual-scan/disable', auth, roleCheck('dosen'), manualScanCtrl.disableManualScan);
+router.get('/manual-scan/users', auth, roleCheck('dosen'), manualScanCtrl.getUsersWithPermissions);
 
 module.exports = router;

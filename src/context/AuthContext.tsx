@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { performLogout, saveAuthState, loadAuthState } from '../services/authService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -81,9 +83,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Don't render app until auth is initialized
+  // Show branded splash during auth init instead of blank screen
   if (isLoading) {
-    return null; // Or show splash screen
+    return (
+      <View style={styles.splashContainer}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient
+          colors={['#0F172A', '#1E293B', '#334155']}
+          style={styles.splashGradient}
+        >
+          <View style={styles.splashContent}>
+            <Text style={styles.splashTitle}>Attendify</Text>
+            <Text style={styles.splashSubtitle}>Sistem Absensi Cerdas</Text>
+            <ActivityIndicator size="large" color="#3B82F6" style={styles.spinner} />
+            <Text style={styles.splashLoading}>Memuat data pengguna...</Text>
+          </View>
+        </LinearGradient>
+      </View>
+    );
   }
 
   return (
@@ -92,6 +109,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+  },
+  splashGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashContent: {
+    alignItems: 'center',
+  },
+  splashTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  splashSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 40,
+    textAlign: 'center',
+  },
+  spinner: {
+    marginBottom: 16,
+  },
+  splashLoading: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+  },
+});
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export const useAuth = () => useContext(AuthContext);

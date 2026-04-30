@@ -49,7 +49,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
     }
 
     if (!formData.identifier.trim()) {
-      newErrors.identifier = role === 'mahasiswa' ? 'NIM harus diisi' : role === 'dosen' ? 'NIP harus diisi' : 'Username harus diisi';
+      newErrors.identifier = 'NIM harus diisi';
     }
 
     if (!formData.email.trim()) {
@@ -58,20 +58,13 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
       newErrors.email = 'Format email tidak valid';
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Nomor telepon harus diisi';
-    } else if (!/^\d{10,12}$/.test(formData.phone.replace(/\D/g, ''))) {
+    // Phone is optional - only validate if filled
+    if (formData.phone.trim() && !/^\d{10,12}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Nomor telepon tidak valid (10-12 digit)';
     }
 
-    if (role === 'mahasiswa') {
-      if (!formData.prodi.trim()) {
-        newErrors.prodi = 'Program studi harus diisi';
-      }
-      if (!formData.kelas.trim()) {
-        newErrors.kelas = 'Kelas harus diisi';
-      }
-    }
+    // Prodi and Kelas are optional for initial registration
+    // Can be added later in profile
 
     if (!formData.password.trim()) {
       newErrors.password = 'Password harus diisi';
@@ -244,12 +237,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             </View>
             {errors.email && <Text style={styles.errorMsg}>{errors.email}</Text>}
 
-            {/* Phone */}
+            {/* Phone (Optional) */}
             <View style={[styles.inputContainer, errors.phone && styles.inputContainerError]}>
               <Phone size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Nomor Telepon"
+                placeholder="Nomor Telepon (Opsional)"
                 placeholderTextColor={Colors.attendify.neutral}
                 value={formData.phone}
                 onChangeText={(text) => updateFormData('phone', text)}
@@ -259,14 +252,14 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             </View>
             {errors.phone && <Text style={styles.errorMsg}>{errors.phone}</Text>}
 
-            {/* Program Studi (Mahasiswa only) */}
+            {/* Program Studi (Mahasiswa only, Optional) */}
             {role === 'mahasiswa' && (
               <>
                 <View style={[styles.inputContainer, errors.prodi && styles.inputContainerError]}>
                   <GraduationCap size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Program Studi"
+                    placeholder="Program Studi (Opsional)"
                     placeholderTextColor={Colors.attendify.neutral}
                     value={formData.prodi}
                     onChangeText={(text) => updateFormData('prodi', text)}
@@ -277,14 +270,14 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               </>
             )}
 
-            {/* Kelas (Mahasiswa only) */}
+            {/* Kelas (Mahasiswa only, Optional) */}
             {role === 'mahasiswa' && (
               <>
                 <View style={[styles.inputContainer, errors.kelas && styles.inputContainerError]}>
                   <Users size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Kelas"
+                    placeholder="Kelas (Opsional)"
                     placeholderTextColor={Colors.attendify.neutral}
                     value={formData.kelas}
                     onChangeText={(text) => updateFormData('kelas', text)}

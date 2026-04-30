@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, Image,
-  StyleSheet, Dimensions, ScrollView, Alert
+  View, Text, TouchableOpacity,
+  StyleSheet, ScrollView, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Mail, Send, Loader } from 'lucide-react-native';
+import { Lock, Mail, Send, ArrowLeft, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { Colors } from '../../constants/Colors';
+import { DesignSystem } from '../../constants/DesignSystem';
+import AnimatedButton from '../../components/ui/AnimatedButton';
+import AnimatedInput from '../components/ui/AnimatedInput';
+import AnimatedCard from '../components/ui/AnimatedCard';
 
+import { Dimensions } from 'react-native';
 const { width } = Dimensions.get('window');
 
 interface ForgotPasswordScreenProps {
@@ -67,7 +74,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 
   return (
     <LinearGradient
-      colors={[Colors.attendify.primary, Colors.attendify.tertiary, Colors.attendify.secondary]}
+      colors={[DesignSystem.colors.neutral, '#0F3A6D', DesignSystem.colors.secondary]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -77,93 +84,118 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header Section */}
-        <View style={styles.headerSection}>
+        {/* Header */}
+        <Animated.View 
+          entering={FadeInDown.duration(600).springify()}
+          style={styles.headerSection}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft color="#FFF" size={22} />
+          </TouchableOpacity>
+          
           <View style={styles.logoContainer}>
-            <Lock size={48} color="#fff" />
+            <LinearGradient
+              colors={[DesignSystem.colors.secondary, DesignSystem.colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoBg}
+            >
+              <Lock size={40} color="#FFF" />
+            </LinearGradient>
           </View>
-          <Text style={styles.brandName}>ATTENDIFY</Text>
-          <Text style={styles.subtitle}>Reset Password</Text>
-        </View>
+          <Text style={styles.brandName}>RESET PASSWORD</Text>
+          <Text style={styles.subtitle}>Pulihkan akses akun Anda</Text>
+        </Animated.View>
 
-        {/* Main Card Container */}
-        <View style={styles.cardContainer}>
-          {/* Error Message */}
-          {errors.general && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>❌ {errors.general}</Text>
-            </View>
-          )}
+        {/* Main Card */}
+        <Animated.View 
+          entering={FadeInUp.delay(200).springify()}
+          style={styles.cardWrapper}
+        >
+          <AnimatedCard variant="glass" style={styles.mainCard}>
+            {/* Success Message */}
+            {isSent && (
+              <Animated.View 
+                entering={ZoomIn.springify()}
+                style={styles.successAlert}
+              >
+                <CheckCircle size={20} color={DesignSystem.colors.success} />
+                <Text style={styles.successAlertText}>Link reset telah dikirim ke email!</Text>
+              </Animated.View>
+            )}
 
-          {/* Success Message */}
-          {isSent && (
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>✅ Link telah dikirim ke email Anda!</Text>
-            </View>
-          )}
+            {/* Error Message */}
+            {errors.general && (
+              <Animated.View 
+                entering={FadeInDown.springify()}
+                style={styles.errorAlert}
+              >
+                <AlertCircle size={18} color={DesignSystem.colors.error} />
+                <Text style={styles.errorAlertText}>{errors.general}</Text>
+              </Animated.View>
+            )}
 
-          {/* Description */}
-          <Text style={styles.descriptionText}>
-            Masukkan email Anda dan kami akan mengirimkan link untuk mereset password Anda.
-          </Text>
+            {/* Description */}
+            <Text style={styles.descriptionText}>
+              Masukkan email terdaftar Anda. Kami akan mengirimkan link untuk mereset password.
+            </Text>
 
-          {/* Email Input */}
-          <View style={[styles.inputContainer, errors.email && styles.inputContainerError]}>
-            <Mail size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Masukkan email Anda"
-              placeholderTextColor={Colors.attendify.neutral}
+            {/* Email Input */}
+            <AnimatedInput
+              icon={Mail}
+              label="Email Terdaftar"
+              placeholder="Masukkan email Anda..."
               value={email}
-              onChangeText={(text) => {
+              onChangeText={(text: string) => {
                 setEmail(text);
                 if (errors.email) {
                   setErrors(prev => ({ ...prev, email: '' }));
                 }
               }}
+              error={errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!isLoading}
             />
-          </View>
-          {errors.email && <Text style={styles.errorMsg}>{errors.email}</Text>}
 
-          {/* Info Text */}
-          <Text style={styles.infoText}>
-            Kami akan mengirimkan link reset password ke email Anda. Silakan ikuti instruksi untuk membuat password baru.
-          </Text>
+            {/* Info Text */}
+            <Text style={styles.infoText}>
+              Periksa inbox atau folder spam Anda untuk email reset password. Link akan berlaku selama 24 jam.
+            </Text>
 
-          {/* Send Button */}
-          <TouchableOpacity
-            style={[styles.sendButton, isLoading && styles.sendButtonLoading]}
-            onPress={handleSendReset}
-            disabled={isLoading}
-          >
-            <LinearGradient
-              colors={[Colors.attendify.primary, Colors.attendify.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
+            {/* Send Button */}
+            <Animated.View 
+              entering={FadeInUp.delay(400).springify()}
+              style={styles.buttonWrapper}
             >
-              {isLoading ? (
-                <Loader size={20} color="#fff" />
-              ) : (
-                <>
-                  <Text style={styles.sendButtonText}>Send Reset Link</Text>
-                  <Send size={20} color="#fff" />
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+              <AnimatedButton
+                title={isLoading ? 'Mengirim...' : 'Kirim Link Reset'}
+                onPress={handleSendReset}
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </Animated.View>
 
-          {/* Back to Login */}
-          <View style={styles.backToLoginContainer}>
-            <Text style={styles.backToLoginText}>Remember password? </Text>
-            <TouchableOpacity onPress={() => navigation.goBack()} disabled={isLoading}>
-              <Text style={styles.backToLoginLink}>Back to Login</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            {/* Back to Login */}
+            <View style={styles.backToLoginContainer}>
+              <Text style={styles.backToLoginText}>Ingat password? </Text>
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()} 
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <View style={styles.backToLoginLinkContainer}>
+                  <Text style={styles.backToLoginLink}>Kembali ke login</Text>
+                  <ArrowRight size={12} color={DesignSystem.colors.secondary} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </AnimatedCard>
+        </Animated.View>
       </ScrollView>
     </LinearGradient>
   );
@@ -175,149 +207,126 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 30,
+    paddingHorizontal: 0,
   },
   headerSection: {
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingBottom: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: DesignSystem.radius.md,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   brandName: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-    letterSpacing: 2,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  cardContainer: {
-    backgroundColor: Colors.attendify.surface,
-    borderRadius: 30,
-    marginHorizontal: 20,
-    padding: 28,
-    marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  errorBox: {
-    backgroundColor: '#ffe5e5',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#ffcccc',
-  },
-  errorText: {
-    color: Colors.attendify.error,
     fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
     fontWeight: '500',
   },
-  successBox: {
-    backgroundColor: '#e5ffe5',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#ccffcc',
+  cardWrapper: {
+    paddingHorizontal: 20,
+    marginVertical: 20,
   },
-  successText: {
-    color: Colors.attendify.success,
-    fontSize: 14,
+  mainCard: {
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+  },
+  successAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderWidth: 1,
+    borderRadius: DesignSystem.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 20,
+    gap: 8,
+  },
+  successAlertText: {
+    flex: 1,
+    color: DesignSystem.colors.success,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  errorAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderWidth: 1,
+    borderRadius: DesignSystem.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 20,
+    gap: 8,
+  },
+  errorAlertText: {
+    flex: 1,
+    color: DesignSystem.colors.error,
+    fontSize: 13,
     fontWeight: '500',
   },
   descriptionText: {
-    color: Colors.attendify.neutral,
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     marginBottom: 24,
     lineHeight: 20,
     textAlign: 'center',
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.attendify.surfaceVariant,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(30, 79, 168, 0.2)',
-    marginBottom: 6,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  inputContainerError: {
-    borderColor: Colors.attendify.error,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    color: Colors.attendify.onSurface,
-    fontSize: 15,
-  },
-  errorMsg: {
-    color: Colors.attendify.error,
-    fontSize: 12,
-    marginBottom: 16,
-    marginLeft: 16,
-    fontWeight: '500',
-  },
   infoText: {
-    color: Colors.attendify.neutral,
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 12,
     marginVertical: 20,
     lineHeight: 18,
     textAlign: 'center',
   },
-  sendButton: {
-    height: 52,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  sendButtonLoading: {
-    opacity: 0.7,
-  },
-  buttonGradient: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  buttonWrapper: {
+    marginVertical: 20,
   },
   backToLoginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 4,
   },
   backToLoginText: {
-    color: Colors.attendify.neutral,
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+  },
+  backToLoginLinkContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   backToLoginLink: {
-    color: Colors.attendify.secondary,
-    fontWeight: 'bold',
-    fontSize: 14,
-    textDecorationLine: 'underline',
+    color: DesignSystem.colors.secondary,
+    fontWeight: '700',
+    fontSize: 13,
   },
 });

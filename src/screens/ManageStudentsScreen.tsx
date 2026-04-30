@@ -5,19 +5,21 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
+
 import {
   ArrowLeft, Search, UserPlus, Trash2, 
   Edit3, Filter, X, Check, GraduationCap, 
-  Users, IdCard, Mail, Phone
+  Users, IdCard, Mail, Phone, Shield
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { API_URL } from '@/constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
+import { Student } from './types';
 
 const { width } = Dimensions.get('window');
+
 
 // Mock Data
 const INITIAL_STUDENTS = [
@@ -30,8 +32,10 @@ const INITIAL_STUDENTS = [
 
 export default function ManageStudentsScreen() {
   const navigation = useNavigation<any>();
-  const [students, setStudents] = useState<any[]>([]);
+
+  const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
@@ -43,15 +47,14 @@ export default function ManageStudentsScreen() {
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const response = await fetch(`${API_URL}/users`, {
+      const response = await fetch(`${API_URL}/manual-scan/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       const result = await response.json();
       if (result.status === 'success') {
-        const studentOnly = result.data.filter((u: any) => u.role === 'mahasiswa');
-        setStudents(studentOnly);
+        setStudents(result.data);
       }
     } catch (error) {
       console.error('Fetch students error:', error);
@@ -67,11 +70,11 @@ export default function ManageStudentsScreen() {
     }, [])
   );
 
-
-  const filteredStudents = students.filter(s => 
+  const filteredStudents = students.filter((s: Student) => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     s.nim.includes(searchQuery)
   );
+
 
   const handleAddPress = () => {
     setEditingStudent(null);
@@ -79,14 +82,15 @@ export default function ManageStudentsScreen() {
     setIsModalVisible(true);
   };
 
-  const handleEditPress = (student: any) => {
+  const handleEditPress = (student: Student) => {
     setEditingStudent(student);
+
     setFormData({ ...student, password: '' });
     setIsModalVisible(true);
   };
 
+  const handleDeletePress = (id: string | number) => {
 
-  const handleDeletePress = (id: string) => {
     Alert.alert(
       'Hapus Data',
       'Apakah Anda yakin ingin menghapus data siswa ini?',
@@ -110,7 +114,6 @@ export default function ManageStudentsScreen() {
             }
           }
         }
-
       ]
     );
   };
@@ -166,12 +169,11 @@ export default function ManageStudentsScreen() {
     }
   };
 
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
+        colors={['#0F172A', '#1E293B', '#334155']}
         style={styles.background}
       >
         {/* Header */}
@@ -204,7 +206,8 @@ export default function ManageStudentsScreen() {
 
         {/* Student List */}
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {filteredStudents.map(student => (
+{filteredStudents.map((student: Student) => (
+
             <BlurView key={student.id} intensity={15} tint="dark" style={styles.studentCard}>
               <View style={styles.cardHeader}>
                 <View style={styles.avatar}>
@@ -212,11 +215,36 @@ export default function ManageStudentsScreen() {
                 </View>
                 <View style={styles.studentInfo}>
                   <Text style={styles.studentName}>{student.name}</Text>
-                  <Text style={styles.studentNim}>{student.nim}</Text>
+                  <Text style={styles.studentNim}>{student.nim || student.username}</Text>
                 </View>
                 <View style={styles.actionRow}>
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, styles.manualBtn]} 
+                    onPress={async () => {
+                      try {
+                        const token = await AsyncStorage.getItem('@attendify_auth_token');
+                        const response = await fetch(`${API_URL}/manual-scan/allow`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ user_id: student.id })
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                          Alert.alert('Sukses', 'Manual scan diizinkan (5 menit)');
+                          fetchStudents(); // Refresh list
+                        }
+                      } catch (err) {
+                        Alert.alert('Error', 'Gagal mengizinkan scan');
+                      }
+                    }}
+                  >
+                    <Shield size={16} color="#10B981" />
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleEditPress(student)} style={styles.actionBtn}>
-                    <Edit3 size={18} color={Colors.ai.primary} />
+                    <Edit3 size={18} color="#3B82F6" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDeletePress(student.id)} style={styles.actionBtn}>
                     <Trash2 size={18} color="#F87171" />
@@ -235,6 +263,12 @@ export default function ManageStudentsScreen() {
                   <Users size={14} color="rgba(255,255,255,0.4)" />
                   <Text style={styles.metaText}>{student.kelas}</Text>
                 </View>
+                <View style={styles.metaItem}>
+                  <Shield size={14} color={student.manual_permission ? '#10B981' : '#6B7280'} />
+                  <Text style={[styles.metaText, { color: student.manual_permission ? '#10B981' : '#6B7280' }]}>
+                    {student.permission_status === 'active' ? 'Manual OK' : 'Manual Off'}
+                  </Text>
+                </View>
               </View>
             </BlurView>
           ))}
@@ -243,7 +277,7 @@ export default function ManageStudentsScreen() {
         {/* FAB */}
         <TouchableOpacity style={styles.fab} onPress={handleAddPress}>
           <LinearGradient
-            colors={[Colors.ai.primary, Colors.ai.accentGlow]}
+            colors={['#3B82F6', '#1D4ED8']}
             style={styles.fabGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -314,18 +348,18 @@ export default function ManageStudentsScreen() {
                 </View>
 
                 <View style={styles.row}>
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                    <Text style={styles.inputLabel}>Kelas</Text>
-                    <View style={styles.inputWrap}>
-                      <TextInput
-                        style={styles.input}
-                        value={formData.kelas}
-                        onChangeText={text => setFormData({...formData, kelas: text})}
-                        placeholder="A Pagi..."
-                        placeholderTextColor="rgba(255,255,255,0.3)"
-                      />
-                    </View>
-                  </View>
+  <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+    <Text style={styles.inputLabel}>Kelas</Text>
+    <View style={styles.inputWrap}>
+      <TextInput
+        style={styles.input}
+        value={formData.kelas}
+        onChangeText={text => setFormData({...formData, kelas: text})}
+        placeholder="A Pagi..."
+        placeholderTextColor="rgba(255,255,255,0.3)"
+      />
+    </View>
+  </View>
                 {!editingStudent && (
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Password Awal</Text>
@@ -346,7 +380,7 @@ export default function ManageStudentsScreen() {
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
                   <LinearGradient
-                    colors={[Colors.ai.primary, Colors.ai.accentGlow]}
+                    colors={['#3B82F6', '#1D4ED8']}
                     style={styles.saveGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
@@ -465,6 +499,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  manualBtn: {
+    backgroundColor: '#10B98133',
+  },
   cardDivider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -579,3 +616,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

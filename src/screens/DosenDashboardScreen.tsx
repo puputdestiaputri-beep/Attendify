@@ -1,28 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Animated, Alert, Dimensions, StatusBar, Modal
+  TouchableOpacity, Alert, Dimensions, StatusBar, Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
 import {
   CheckCircle2, XCircle, Clock,
   Users, TrendingUp, Activity, LogOut, RefreshCw,
   BookOpen, Radio, Bell, Search, Filter, ChevronRight,
-  AlertTriangle
+  AlertTriangle, ShieldCheck, Zap, Shield
 } from 'lucide-react-native';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
+<<<<<<< Updated upstream
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '@/constants/Config';
+=======
+import { DesignSystem } from '../../constants/DesignSystem';
+import DashboardCard from '../components/ui/DashboardCard';
+import StudentCard from '../components/ui/StudentCard';
+>>>>>>> Stashed changes
 import ReportIssueModal from '../components/ReportIssueModal';
+
 
 const { width } = Dimensions.get('window');
 
+// Pulse animation for live indicator
+const usePulseAnim = (isLive: boolean) => {
+  const pulseAnim = useSharedValue(1);
+  useEffect(() => {
+    if (isLive) {
+      pulseAnim.value = withRepeat(
+        withSequence(
+          withTiming(0.3, { duration: 800 }),
+          withTiming(1, { duration: 800 })
+        ),
+        -1,
+        true
+      );
+    } else {
+      pulseAnim.value = 1;
+    }
+  }, [isLive]);
+  return pulseAnim;
+};
 
-// ─── Mock Data ──────────────────────────────────────────────────────────────
+// Mock Data
 const STUDENTS = [
   { id: 1, name: 'Budi Santoso', npm: '20240001', status: 'Hadir', waktu: '08:01' },
   { id: 2, name: 'Aisyah Mutiara', npm: '20240002', status: 'Hadir', waktu: '08:03' },
@@ -33,54 +59,62 @@ const STUDENTS = [
   { id: 7, name: 'Ahmad Fauzi', npm: '20240007', status: 'Tidak Hadir', waktu: '-' },
 ];
 
-const WEEKLY_STATS = [
-  { day: 'Sen', percent: 92 },
-  { day: 'Sel', percent: 78 },
-  { day: 'Rab', percent: 85 },
-  { day: 'Kam', percent: 100 },
-  { day: 'Jum', percent: 60 },
-];
-
 type FilterType = 'Semua' | 'Hadir' | 'Telat' | 'Tidak Hadir';
 
 export default function DosenDashboardScreen() {
   const navigation = useNavigation<any>();
-  const { logout } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
   const [studentsList, setStudentsList] = useState(STUDENTS);
   const [isLoading, setIsLoading] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
 
-
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('14:45');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [successTitle, setSuccessTitle] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [manualScanEnabled, setManualScanEnabled] = useState(false);
+  const [manualScanTimer, setManualScanTimer] = useState(300); // 5 minutes
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pulseAnim = usePulseAnim(isLive);
 
-  // Pulse animation for live indicator
+
+  // Manual scan timer
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ])
-    );
-    if (isLive) loop.start();
-    return () => loop.stop();
-  }, [isLive]);
+    if (manualScanEnabled && manualScanTimer > 0) {
+      timerIntervalRef.current = setInterval(() => {
+        setManualScanTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(timerIntervalRef.current!);
+            setManualScanEnabled(false);
+            return 300;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (!manualScanEnabled) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [manualScanEnabled, manualScanTimer]);
+
+
 
   const total = studentsList.length;
   const hadir = studentsList.filter(s => s.status === 'Hadir').length;
   const telat = studentsList.filter(s => s.status === 'Telat').length;
   const alpha = studentsList.filter(s => s.status === 'Tidak Hadir').length;
-  const pct = Math.round((hadir / total) * 100);
 
   const filtered = activeFilter === 'Semua'
     ? studentsList
@@ -116,7 +150,7 @@ export default function DosenDashboardScreen() {
         },
         body: JSON.stringify({ 
           user_id: selectedStudentId, 
-          jadwal_id: 1, // Demo value
+          jadwal_id: 1,
           status: status.toLowerCase()
         })
       });
@@ -146,6 +180,22 @@ export default function DosenDashboardScreen() {
     }
   };
 
+const toggleManualScan = async () => {
+    if (manualScanEnabled) {
+      setManualScanEnabled(false);
+      setManualScanTimer(300);
+      setSuccessTitle('Manual Scan Dimatikan');
+      setSuccessMessage('Fitur scan manual wajah telah dinonaktifkan.');
+      setShowSuccessModal(true);
+      return;
+    }
+
+    setManualScanEnabled(true);
+    setSuccessTitle('Manual Scan Aktif');
+    setSuccessMessage('Mahasiswa sekarang dapat scan wajah secara manual (5 menit). Demo mode.');
+    setShowSuccessModal(true);
+  };
+
 
   const handleFinishClass = () => {
     if (isSubmitted) {
@@ -162,7 +212,6 @@ export default function DosenDashboardScreen() {
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('@attendify_auth_token');
-      // For demo, we use jadwal_id: 1. In a multi-class system, this would be dynamic.
       const response = await fetch(`${API_URL}/absensi/finish`, {
         method: 'POST',
         headers: {
@@ -187,7 +236,6 @@ export default function DosenDashboardScreen() {
     }
   };
 
-
   const getStatusColor = (status: string) => {
     if (status === 'Hadir') return { bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.3)', text: '#4ADE80' };
     if (status === 'Telat') return { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', text: '#FBBF24' };
@@ -200,11 +248,17 @@ export default function DosenDashboardScreen() {
     return <XCircle size={14} color="#F87171" />;
   };
 
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
+        colors={['#0F172A', '#1E293B', '#334155']}
         style={styles.background}
       >
         <ScrollView
@@ -212,7 +266,7 @@ export default function DosenDashboardScreen() {
           showsVerticalScrollIndicator={false}
         >
 
-          {/* ── Top Header ── */}
+          {/* Top Header */}
           <View style={styles.topHeader}>
             <View style={styles.headerRow}>
               <View>
@@ -227,17 +281,53 @@ export default function DosenDashboardScreen() {
                 <Text style={styles.reportBtnText}>Lapor</Text>
               </TouchableOpacity>
             </View>
-
           </View>
 
-          {/* ── Active Class Banner ── */}
+          {/* Manual Scan Control Card */}
+          <BlurView intensity={25} tint="dark" style={styles.manualScanCard}>
+            <View style={styles.manualScanHeader}>
+              <ShieldCheck size={24} color="#10B981" />
+              <Text style={styles.manualScanTitle}>Scan Manual Wajah</Text>
+            </View>
+            <Text style={styles.manualScanDesc}>
+              Izinkan mahasiswa scan wajah secara manual (5 menit)
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.manualScanToggle,
+                manualScanEnabled && styles.manualScanToggleActive
+              ]}
+              onPress={toggleManualScan}
+              disabled={isLoading}
+            >
+              <LinearGradient
+                colors={manualScanEnabled ? ['#10B981', '#059669'] : ['#6B7280', '#475569']}
+                style={styles.manualScanGradient}
+              >
+                <Text style={styles.manualScanToggleText}>
+                  {manualScanEnabled ? `AKTIF ${formatTimer(manualScanTimer)}` : 'NYALAKAN'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            {manualScanEnabled && (
+              <View style={styles.manualScanFooter}>
+                <Zap size={16} color="#10B981" />
+                <Text style={styles.manualScanFooterText}>Mahasiswa dapat scan sekarang</Text>
+              </View>
+            )}
+          </BlurView>
+
+          {/* Active Class Banner */}
           <BlurView intensity={30} tint="dark" style={styles.courseBanner}>
             <View style={styles.courseHeader}>
               <View style={styles.statusRow}>
-                <Animated.View style={[styles.liveDot, {
-                  opacity: isSubmitted ? 0.4 : pulseAnim,
-                  backgroundColor: isSubmitted ? 'rgba(255,255,255,0.4)' : '#10B981'
-                }]} />
+                <Animated.View
+                  style={useAnimatedStyle(() => ({
+                    ...styles.liveDot,
+                    opacity: isSubmitted ? 0.4 : pulseAnim.value,
+                    backgroundColor: isSubmitted ? 'rgba(255,255,255,0.4)' : '#10B981',
+                  }), [isSubmitted, pulseAnim])}
+                />
                 <Text style={[styles.liveLabel, isSubmitted && { color: 'rgba(255,255,255,0.4)' }]}>
                   {isSubmitted ? 'SESI BERAKHIR' : 'SESI AKTIF'}
                 </Text>
@@ -275,7 +365,7 @@ export default function DosenDashboardScreen() {
             </TouchableOpacity>
           </BlurView>
 
-          {/* ── Statistics Grid ── */}
+          {/* Statistics Grid */}
           <View style={styles.statRow}>
             {[
               { label: 'Hadir', value: hadir, color: '#4ADE80', icon: CheckCircle2 },
@@ -290,11 +380,11 @@ export default function DosenDashboardScreen() {
             ))}
           </View>
 
-          {/* ── Attendance List Section ── */}
+          {/* Attendance List Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Daftar Kehadiran</Text>
             <TouchableOpacity onPress={handleRefresh}>
-              <RefreshCw size={18} color={Colors.ai.primary} />
+              <RefreshCw size={18} color="#3B82F6" />
             </TouchableOpacity>
           </View>
 
@@ -344,7 +434,7 @@ export default function DosenDashboardScreen() {
                       style={styles.manualActionBtn}
                       onPress={() => handleManualCheckIn(item.id)}
                     >
-                      <CheckCircle2 size={20} color={Colors.ai.primary} />
+                      <CheckCircle2 size={20} color="#3B82F6" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -432,7 +522,6 @@ export default function DosenDashboardScreen() {
           </View>
         </Modal>
 
-
         {/* Success Submit Modal */}
         <Modal
           visible={showSuccessModal}
@@ -461,7 +550,6 @@ export default function DosenDashboardScreen() {
         <ReportIssueModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
       </LinearGradient>
     </View>
-
   );
 }
 
@@ -505,42 +593,65 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginTop: 2,
   },
-  logoutCircle: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(248,113,113,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.25)',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  logoutCircleText: {
-    fontSize: 13,
-    color: '#F87171',
-    fontWeight: '700',
-  },
-  logoutFullBtn: {
+  manualScanCard: {
     marginHorizontal: 20,
-    marginTop: 24,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.3)',
+    backgroundColor: 'rgba(16,185,129,0.05)',
+  },
+  manualScanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  manualScanTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  manualScanDesc: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
     marginBottom: 16,
-    borderRadius: 18,
+    lineHeight: 20,
+  },
+  manualScanToggle: {
+    borderRadius: 16,
     overflow: 'hidden',
   },
-  logoutGradient: {
+  manualScanToggleActive: {
+    elevation: 4,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  manualScanGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 17,
-    gap: 10,
+    paddingVertical: 14,
+    gap: 8,
   },
-  logoutFullText: {
+  manualScanToggleText: {
     color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  },
+  manualScanFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  manualScanFooterText: {
+    color: '#10B981',
+    fontSize: 13,
+    fontWeight: '600',
   },
   courseBanner: {
     marginHorizontal: 20,
@@ -666,8 +777,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   filterBtnActive: {
-    backgroundColor: Colors.ai.primary,
-    borderColor: Colors.ai.primary,
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   filterText: {
     color: 'rgba(255,255,255,0.5)',
@@ -741,78 +852,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255,255,255,0.4)',
   },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '85%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  modalIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  modalMessage: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 12,
-  },
-  modalBtnCancel: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-  },
-  modalBtnCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4B5563',
-  },
-  modalBtnLogout: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-  },
-  modalBtnLogoutText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
   manualActionBtn: {
     padding: 8,
     marginLeft: 8,
@@ -820,6 +859,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
     width: '85%',
@@ -841,24 +886,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(16,185,129,0.3)',
   },
-  finishClassBtn: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  finishClassBtnText: {
-    color: '#fff',
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
   },
   cancelBtnSmall: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -874,6 +924,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#10B981',
     alignItems: 'center',
+  },
+  finishClassBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   choiceGroup: {
     width: '100%',
@@ -905,5 +960,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     fontSize: 15,
     fontWeight: '600',
+  },
+  finishClassBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    marginTop: 8,
   },
 });

@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, Image,
-  StyleSheet, KeyboardAvoidingView, Platform, Dimensions, ScrollView, Modal, Animated
+  View, Text, TouchableOpacity,
+  StyleSheet, Platform, Dimensions, ScrollView, Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Mail, Users, User, Send, MessageCircle, Loader, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
+import { Lock, Mail, Users, User, MessageCircle, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { Colors } from '../../constants/Colors';
+import { DesignSystem } from '../../constants/DesignSystem';
 import { API_URL } from '../../constants/Config';
+import AnimatedButton from '../../components/ui/AnimatedButton';
+import AnimatedInput from '../components/ui/AnimatedInput';
+import AnimatedCard from '../components/ui/AnimatedCard';
+
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveAuthToken } from '../services/authService';
@@ -142,7 +149,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
   return (
     <LinearGradient
-      colors={[Colors.attendify.primary, Colors.attendify.tertiary, Colors.attendify.secondary]}
+      colors={[DesignSystem.colors.neutral, '#0F3A6D', '#1E4FA8']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -152,165 +159,153 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo and Header */}
-        <View style={styles.headerSection}>
+        {/* Header - Animated */}
+        <Animated.View 
+          entering={FadeInDown.duration(600).springify()}
+          style={styles.headerSection}
+        >
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>🤖</Text>
+            <LinearGradient
+              colors={[DesignSystem.colors.secondary, DesignSystem.colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoBg}
+            >
+              <Text style={styles.logoText}>📱</Text>
+            </LinearGradient>
           </View>
           <Text style={styles.brandName}>ATTENDIFY</Text>
-          <Text style={styles.subtitle}>Welcome back !</Text>
-        </View>
+          <Text style={styles.subtitle}>Sistem Kehadiran Pintar</Text>
+        </Animated.View>
 
-        {/* Main Card Container */}
-        <View style={styles.cardContainer}>
-          {/* Role Selector */}
-          <View style={styles.roleContainer}>
-            <TouchableOpacity
-              style={[styles.roleTab, role === 'mahasiswa' && styles.roleTabActive]}
-              onPress={() => setRole('mahasiswa')}
-            >
-              <Users
-                size={18}
-                color={role === 'mahasiswa' ? Colors.attendify.primary : Colors.attendify.onSurface}
-              />
-              <Text style={[styles.roleTabText, role === 'mahasiswa' && styles.roleTabTextActive]}>
-                Mahasiswa
-              </Text>
-            </TouchableOpacity>
+        {/* Main Card - Glassmorphism */}
+        <Animated.View 
+          entering={FadeInUp.delay(200).springify()}
+          style={styles.cardWrapper}
+        >
+          <AnimatedCard variant="glass" style={styles.mainCard}>
+            {/* Role Selector - Modern Tabs */}
+            <View style={styles.roleSection}>
+              <Text style={styles.sectionTitle}>Pilih Role</Text>
+              <View style={styles.roleContainer}>
+                {(['mahasiswa', 'dosen', 'admin'] as const).map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    style={[
+                      styles.roleTab,
+                      role === r && styles.roleTabActive,
+                    ]}
+                    onPress={() => setRole(r)}
+                    activeOpacity={0.8}
+                  >
+                    <Animated.View 
+                      entering={role === r ? ZoomIn.springify() : undefined}
+                    >
+                      {r === 'mahasiswa' && <Users size={18} color={role === r ? '#FFF' : 'rgba(255,255,255,0.5)'} />}
+                      {r === 'dosen' && <User size={18} color={role === r ? '#FFF' : 'rgba(255,255,255,0.5)'} />}
+                      {r === 'admin' && <ShieldCheck size={18} color={role === r ? '#FFF' : 'rgba(255,255,255,0.5)'} />}
+                    </Animated.View>
+                    <Text style={[styles.roleTabText, role === r && styles.roleTabTextActive]}>
+                      {r === 'mahasiswa' ? 'Mahasiswa' : r === 'dosen' ? 'Dosen' : 'Admin'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-            <TouchableOpacity
-              style={[styles.roleTab, role === 'dosen' && styles.roleTabActive]}
-              onPress={() => setRole('dosen')}
-            >
-              <User
-                size={18}
-                color={role === 'dosen' ? Colors.attendify.primary : Colors.attendify.onSurface}
-              />
-              <Text style={[styles.roleTabText, role === 'dosen' && styles.roleTabTextActive]}>
-                Dosen
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.roleTab, role === 'admin' && styles.roleTabActive]}
-              onPress={() => setRole('admin')}
-            >
-              <ShieldCheck
-                size={18}
-                color={role === 'admin' ? Colors.attendify.primary : Colors.attendify.onSurface}
-              />
-              <Text style={[styles.roleTabText, role === 'admin' && styles.roleTabTextActive]}>
-                Admin
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Form Inputs */}
-          <View style={styles.inputWrapper}>
-            <View style={styles.inputContainer}>
-              <Mail size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder={role === 'mahasiswa' ? 'NIM / Email' : role === 'dosen' ? 'NIP / Email' : 'Username / Email'}
-                placeholderTextColor={Colors.attendify.neutral}
+            {/* Form Inputs */}
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Login</Text>
+              
+              <AnimatedInput
+                icon={Mail}
+                label={role === 'mahasiswa' ? 'NIM atau Email' : role === 'dosen' ? 'NIP atau Email' : 'Username atau Email'}
+                placeholder={role === 'mahasiswa' ? 'Masukkan NIM...' : 'Masukkan username...'}
                 value={identifier}
                 onChangeText={setIdentifier}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 editable={!isLoading}
               />
-            </View>
 
-            <View style={styles.inputContainer}>
-              <Lock size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={Colors.attendify.neutral}
+              <AnimatedInput
+                icon={Lock}
+                label="Password"
+                placeholder="Masukkan password..."
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 editable={!isLoading}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                {showPassword ? (
-                  <Eye size={20} color={Colors.attendify.neutral} />
-                ) : (
-                  <EyeOff size={20} color={Colors.attendify.neutral} />
-                )}
+            </View>
+
+            {/* Options Row */}
+            <View style={styles.optionsRow}>
+              <TouchableOpacity 
+                style={styles.rememberContainer}
+                onPress={() => setRememberMe(!rememberMe)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                  {rememberMe && <Text style={styles.checkboxTick}>✓</Text>}
+                </View>
+                <Text style={styles.rememberText}>Ingat saya</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={() => navigation?.navigate('ForgotPassword')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.forgotPasswordText}>Lupa password?</Text>
               </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Remember and Forgot Password */}
-          <View style={styles.optionsRow}>
-            <TouchableOpacity 
-              style={styles.rememberContainer}
-              onPress={() => setRememberMe(!rememberMe)}
-              activeOpacity={0.7}
+            {/* Login Button */}
+            <Animated.View 
+              entering={FadeInUp.delay(400).springify()}
             >
-              <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-                {rememberMe && <Text style={styles.checkboxTick}>✓</Text>}
-              </View>
-              <Text style={styles.rememberText}>Remember me</Text>
-            </TouchableOpacity>
+              <AnimatedButton
+                title={isLoading ? 'Memproses...' : 'Login'}
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </Animated.View>
 
-            <TouchableOpacity onPress={() => navigation?.navigate('ForgotPassword')}>
-              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>atau</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          {/* Login Button */}
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.loginButtonLoading]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            <LinearGradient
-              colors={[Colors.attendify.primary, Colors.attendify.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
-            >
-              {isLoading ? (
-                <Loader size={20} color="#fff" />
-              ) : (
-                <Text style={styles.loginButtonText}>Login</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+            {/* Sign Up Link */}
+            <View style={styles.signupContainer}>
+              <Text style={styles.signupText}>Belum punya akun? </Text>
+              <TouchableOpacity 
+                onPress={() => navigation?.navigate('CreateAccount')} 
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <View style={styles.signupLinkContainer}>
+                  <Text style={styles.signupLink}>Daftar Sekarang</Text>
+                  <ArrowRight size={14} color={DesignSystem.colors.secondary} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </AnimatedCard>
+        </Animated.View>
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Social Login */}
-          <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
-              <MessageCircle size={24} color={Colors.attendify.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
-              <Mail size={24} color={Colors.attendify.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>New user? </Text>
-            <TouchableOpacity onPress={() => navigation?.navigate('CreateAccount')} disabled={isLoading}>
-              <Text style={styles.signupLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Wave Separator */}
-
+        {/* Footer Info */}
+        <Animated.View 
+          entering={FadeInUp.delay(600)}
+          style={styles.footerInfo}
+        >
+          <Text style={styles.footerText}>© 2024 Attendify. Semua hak dilindungi.</Text>
+        </Animated.View>
       </ScrollView>
 
-      {/* Custom Alert Modal */}
+      {/* Custom Alert Modal - Modern Style */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -318,25 +313,33 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         onRequestClose={hideAlert}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalIconContainer}>
-                {alertTitle === 'Gagal' || alertTitle === 'Belum Terdaftar' || alertTitle === 'Perhatian' ? (
-                  <Text style={styles.modalIcon}>⚠️</Text>
-                ) : (
-                  <Text style={styles.modalIcon}>✅</Text>
-                )}
-              </View>
-              <Text style={styles.modalTitle}>{alertTitle}</Text>
-            </View>
-            <Text style={styles.modalMessage}>{alertMessage}</Text>
-            <TouchableOpacity style={styles.modalButton} onPress={hideAlert}>
-              <Text style={styles.modalButtonText}>Mengerti</Text>
-            </TouchableOpacity>
-          </View>
+          <Animated.View 
+            entering={ZoomIn.springify()}
+            style={styles.modalContent}
+          >
+            <BlurView intensity={90} style={styles.modalBlur}>
+              <LinearGradient
+                colors={['rgba(30, 79, 168, 0.1)', 'rgba(45, 108, 223, 0.05)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.modalGradient}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalIcon}>
+                    {alertTitle === 'Gagal' || alertTitle === 'Belum Terdaftar' || alertTitle === 'Perhatian' ? '⚠️' : '✅'}
+                  </Text>
+                  <Text style={styles.modalTitle}>{alertTitle}</Text>
+                </View>
+                <Text style={styles.modalMessage}>{alertMessage}</Text>
+                <AnimatedButton
+                  title="Mengerti"
+                  onPress={hideAlert}
+                />
+              </LinearGradient>
+            </BlurView>
+          </Animated.View>
         </View>
       </Modal>
-
     </LinearGradient>
   );
 }
@@ -347,110 +350,95 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 30,
+    paddingHorizontal: 0,
   },
   headerSection: {
     alignItems: 'center',
     paddingTop: 40,
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
   logoContainer: {
+    marginBottom: 20,
+  },
+  logoBg: {
     width: 80,
     height: 80,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   logoText: {
     fontSize: 48,
   },
   brandName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFF',
     marginBottom: 8,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
   },
-  cardContainer: {
-    backgroundColor: Colors.attendify.surface,
-    borderRadius: 30,
-    marginHorizontal: 20,
-    padding: 28,
+  cardWrapper: {
+    paddingHorizontal: 20,
     marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+  },
+  mainCard: {
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+  },
+  roleSection: {
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   roleContainer: {
     flexDirection: 'row',
-    backgroundColor: Colors.attendify.surfaceVariant,
-    borderRadius: 12,
+    gap: 8,
+    backgroundColor: DesignSystem.colors.surfaceVariant,
+    borderRadius: DesignSystem.radius.md,
     padding: 4,
-    marginBottom: 24,
   },
   roleTab: {
     flex: 1,
     flexDirection: 'row',
     paddingVertical: 12,
+    paddingHorizontal: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 10,
-    gap: 8,
+    borderRadius: DesignSystem.radius.sm,
+    gap: 6,
   },
   roleTabActive: {
-    backgroundColor: 'rgba(30, 79, 168, 0.1)',
+    backgroundColor: DesignSystem.colors.primary,
   },
   roleTabText: {
-    color: Colors.attendify.neutral,
-    fontWeight: '500',
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    fontSize: 12,
   },
   roleTabTextActive: {
-    color: Colors.attendify.primary,
-    fontWeight: '700',
+    color: '#FFF',
   },
-  inputWrapper: {
-    marginBottom: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.attendify.surfaceVariant,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(30, 79, 168, 0.2)',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    color: Colors.attendify.onSurface,
-    fontSize: 15,
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  eyeText: {
-    fontSize: 18,
+  formSection: {
+    marginBottom: 24,
   },
   optionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   rememberContainer: {
     flexDirection: 'row',
@@ -458,167 +446,123 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: Colors.attendify.primary,
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: DesignSystem.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   checkboxActive: {
-    backgroundColor: Colors.attendify.primary,
+    backgroundColor: DesignSystem.colors.primary,
   },
   checkboxTick: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#FFF',
+    fontSize: 10,
     fontWeight: 'bold',
   },
   rememberText: {
-    color: Colors.attendify.neutral,
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
     fontWeight: '500',
   },
   forgotPasswordText: {
-    color: Colors.attendify.primary,
-    fontSize: 14,
+    color: DesignSystem.colors.secondary,
+    fontSize: 13,
     fontWeight: '600',
-  },
-  loginButton: {
-    height: 52,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  loginButtonLoading: {
-    opacity: 0.7,
-  },
-  buttonGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(11, 30, 95, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dividerText: {
     marginHorizontal: 12,
-    color: Colors.attendify.neutral,
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
     fontWeight: '500',
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 24,
-  },
-  socialButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: Colors.attendify.surfaceVariant,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(30, 79, 168, 0.2)',
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 4,
   },
   signupText: {
-    color: Colors.attendify.neutral,
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+  },
+  signupLinkContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
   },
   signupLink: {
-    color: Colors.attendify.secondary,
-    fontWeight: 'bold',
-    fontSize: 14,
-    textDecorationLine: 'underline',
+    color: DesignSystem.colors.secondary,
+    fontWeight: '700',
+    fontSize: 13,
   },
-  waveSeparator: {
-    height: 50,
-    justifyContent: 'flex-start',
-    overflow: 'hidden',
-  },
-  waveContainer: {
-    height: 60,
-    justifyContent: 'center',
+  footerInfo: {
     alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  footerText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: DesignSystem.radius.lg,
+    overflow: 'hidden',
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 320,
+  },
+  modalBlur: {
+    borderRadius: DesignSystem.radius.lg,
+  },
+  modalGradient: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.glassBorder,
+    borderRadius: DesignSystem.radius.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 24,
   },
   modalHeader: {
     alignItems: 'center',
     marginBottom: 16,
   },
-  modalIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(30, 79, 168, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   modalIcon: {
-    fontSize: 28,
+    fontSize: 36,
+    marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.attendify.onSurface,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
     textAlign: 'center',
   },
   modalMessage: {
-    fontSize: 15,
-    color: Colors.attendify.neutral,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalButton: {
-    backgroundColor: Colors.attendify.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    marginBottom: 20,
+    lineHeight: 20,
   },
 });
