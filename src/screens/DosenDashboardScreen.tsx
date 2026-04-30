@@ -6,12 +6,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-
+import { API_URL } from '@env';
 import {
   CheckCircle2, XCircle, Clock,
-  Users, TrendingUp, Activity, LogOut, RefreshCw,
-  BookOpen, Radio, Bell, Search, Filter, ChevronRight,
-  AlertTriangle, ShieldCheck, Zap, Shield
+  Users, RefreshCw, Radio,
+  AlertTriangle, ShieldCheck, Zap
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';

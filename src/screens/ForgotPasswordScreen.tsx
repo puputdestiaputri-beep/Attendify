@@ -141,7 +141,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 
             {/* Description */}
             <Text style={styles.descriptionText}>
-              Masukkan email terdaftar Anda. Kami akan mengirimkan link untuk mereset password.
+              Masukkan email terdaftar Anda.
             </Text>
 
             {/* Email Input */}
@@ -162,10 +162,6 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
               editable={!isLoading}
             />
 
-            {/* Info Text */}
-            <Text style={styles.infoText}>
-              Periksa inbox atau folder spam Anda untuk email reset password. Link akan berlaku selama 24 jam.
-            </Text>
 
             {/* Send Button */}
             <Animated.View 
@@ -242,11 +238,13 @@ const styles = StyleSheet.create({
     color: '#FFF',
     marginBottom: 4,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.6)',
     fontWeight: '500',
+    textAlign: 'center',
   },
   cardWrapper: {
     paddingHorizontal: 20,

@@ -186,7 +186,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           <AnimatedCard variant="glass" style={styles.mainCard}>
             {/* Role Selector - Modern Tabs */}
             <View style={styles.roleSection}>
-              <Text style={styles.sectionTitle}>Pilih Role</Text>
+            
               <View style={styles.roleContainer}>
                 {(['mahasiswa', 'dosen', 'admin'] as const).map((r) => (
                   <TouchableOpacity
@@ -220,7 +220,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               <AnimatedInput
                 icon={Mail}
                 label={role === 'mahasiswa' ? 'NIM atau Email' : role === 'dosen' ? 'NIP atau Email' : 'Username atau Email'}
-                placeholder={role === 'mahasiswa' ? 'Masukkan NIM...' : 'Masukkan username...'}
+                placeholder={role === 'mahasiswa' ? 'Masukkan Email' : 'Masukkan Email'}
                 value={identifier}
                 onChangeText={setIdentifier}
                 keyboardType="email-address"
@@ -231,7 +231,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               <AnimatedInput
                 icon={Lock}
                 label="Password"
-                placeholder="Masukkan password..."
+                placeholder="Masukkan password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
