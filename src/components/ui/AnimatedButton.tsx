@@ -69,7 +69,7 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
     >
       <Animated.View style={[animatedStyle, styles.inner]}>
         <LinearGradient
-          colors={getColors()}
+          colors={getColors() as unknown as readonly [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}

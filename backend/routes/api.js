@@ -45,12 +45,16 @@ router.post('/absensi/finish', auth, roleCheck('dosen', 'admin'), absensiCtrl.fi
 router.get('/absensi', auth, absensiCtrl.getAllAbsensi);
 router.get('/absensi/:mahasiswa_id', auth, absensiCtrl.getAbsensiByMahasiswa);
 router.post('/absensi/update', auth, roleCheck('dosen', 'admin'), absensiCtrl.updateAttendanceStatus);
+router.get('/admin/attendance', auth, roleCheck('admin'), absensiCtrl.getAdminAttendance);
 
 
 // 5. REPORTS
 router.get('/reports/absensi', auth, roleCheck('admin'), reportCtrl.exportAttendance);
 router.get('/reports/excel', auth, roleCheck('admin'), reportCtrl.exportExcel);
 router.get('/reports/pdf', auth, roleCheck('admin'), reportCtrl.exportPDF);
+router.post('/reports', auth, reportCtrl.createReport);
+router.get('/admin/reports', auth, roleCheck('admin'), reportCtrl.getAdminReports);
+router.put('/admin/reports/:id/status', auth, roleCheck('admin'), reportCtrl.updateReportStatus);
 
 
 // 6. NOTIFIKASI

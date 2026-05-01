@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 import { useAuth } from '../context/AuthContext';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -139,7 +140,7 @@ const cameraRef = useRef<any>(null);
 
   if (!hasPermission.granted) {
     return (
-      <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.permissionContainer}>
+      <AnimatedBackground style={styles.permissionContainer}>
         <View style={styles.permHeader}>
           <ShieldAlert size={64} color="#3B82F6" />
           <Text style={styles.permTitle}>Akses Kamera Ditolak</Text>
@@ -153,7 +154,7 @@ const cameraRef = useRef<any>(null);
         <TouchableOpacity style={styles.permBack} onPress={() => navigation.goBack()}>
           <Text style={styles.permBackText}>Kembali</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </AnimatedBackground>
     );
   }
 

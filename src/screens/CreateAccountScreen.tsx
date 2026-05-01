@@ -8,6 +8,8 @@ import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader, Grad
 import { Colors } from '../../constants/Colors';
 import { API_URL } from '../../constants/Config';
 import { useAuth } from '../context/AuthContext';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+import AnimatedCard from '../components/ui/AnimatedCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
@@ -150,12 +152,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
 
   return (
-    <LinearGradient
-      colors={[Colors.attendify.primary, Colors.attendify.tertiary, Colors.attendify.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -180,7 +177,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
         </View>
 
         {/* Main Card Container */}
-        <View style={styles.cardContainer}>
+        <AnimatedCard variant="glass" style={styles.cardContainer}>
           {/* Role Selector */}
           {/* Public Registration is only for Mahasiswa - Role Selector Removed */}
 
@@ -195,11 +192,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
           <View style={styles.inputWrapper}>
             {/* Full Name */}
             <View style={[styles.inputContainer, errors.fullName && styles.inputContainerError]}>
-              <User size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <User size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Nama Lengkap"
-                placeholderTextColor={Colors.attendify.neutral}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={formData.fullName}
                 onChangeText={(text) => updateFormData('fullName', text)}
                 editable={!isLoading}
@@ -209,11 +206,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
             {/* NIM/NIP */}
             <View style={[styles.inputContainer, errors.identifier && styles.inputContainerError]}>
-              <IdCard size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <IdCard size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder={role === 'mahasiswa' ? 'NIM' : role === 'dosen' ? 'NIP' : 'Username'}
-                placeholderTextColor={Colors.attendify.neutral}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={formData.identifier}
                 onChangeText={(text) => updateFormData('identifier', text)}
                 editable={!isLoading}
@@ -223,11 +220,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
             {/* Email */}
             <View style={[styles.inputContainer, errors.email && styles.inputContainerError]}>
-              <Mail size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <Mail size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor={Colors.attendify.neutral}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={formData.email}
                 onChangeText={(text) => updateFormData('email', text)}
                 keyboardType="email-address"
@@ -239,11 +236,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
             {/* Phone (Optional) */}
             <View style={[styles.inputContainer, errors.phone && styles.inputContainerError]}>
-              <Phone size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <Phone size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Nomor Telepon (Opsional)"
-                placeholderTextColor={Colors.attendify.neutral}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={formData.phone}
                 onChangeText={(text) => updateFormData('phone', text)}
                 keyboardType="phone-pad"
@@ -256,11 +253,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {role === 'mahasiswa' && (
               <>
                 <View style={[styles.inputContainer, errors.prodi && styles.inputContainerError]}>
-                  <GraduationCap size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+                  <GraduationCap size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Program Studi (Opsional)"
-                    placeholderTextColor={Colors.attendify.neutral}
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     value={formData.prodi}
                     onChangeText={(text) => updateFormData('prodi', text)}
                     editable={!isLoading}
@@ -274,11 +271,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {role === 'mahasiswa' && (
               <>
                 <View style={[styles.inputContainer, errors.kelas && styles.inputContainerError]}>
-                  <Users size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+                  <Users size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Kelas (Opsional)"
-                    placeholderTextColor={Colors.attendify.neutral}
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     value={formData.kelas}
                     onChangeText={(text) => updateFormData('kelas', text)}
                     editable={!isLoading}
@@ -290,11 +287,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
             {/* Password */}
             <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
-              <Lock size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <Lock size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor={Colors.attendify.neutral}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={formData.password}
                 onChangeText={(text) => updateFormData('password', text)}
                 secureTextEntry={!showPassword}
@@ -302,9 +299,9 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                 {showPassword ? (
-                  <Eye size={20} color={Colors.attendify.neutral} />
+                  <Eye size={20} color="rgba(255,255,255,0.5)" />
                 ) : (
-                  <EyeOff size={20} color={Colors.attendify.neutral} />
+                  <EyeOff size={20} color="rgba(255,255,255,0.5)" />
                 )}
               </TouchableOpacity>
             </View>
@@ -312,11 +309,11 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
 
             {/* Confirm Password */}
             <View style={[styles.inputContainer, errors.confirmPassword && styles.inputContainerError]}>
-              <Lock size={20} color={Colors.attendify.primary} style={styles.inputIcon} />
+              <Lock size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Konfirmasi Password"
-                placeholderTextColor={Colors.attendify.neutral}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={formData.confirmPassword}
                 onChangeText={(text) => updateFormData('confirmPassword', text)}
                 secureTextEntry={!showConfirmPassword}
@@ -324,9 +321,9 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
                 {showConfirmPassword ? (
-                  <Eye size={20} color={Colors.attendify.neutral} />
+                  <Eye size={20} color="rgba(255,255,255,0.5)" />
                 ) : (
-                  <EyeOff size={20} color={Colors.attendify.neutral} />
+                  <EyeOff size={20} color="rgba(255,255,255,0.5)" />
                 )}
               </TouchableOpacity>
             </View>
@@ -369,9 +366,9 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               <Text style={styles.signInLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </AnimatedCard>
       </ScrollView>
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 
@@ -431,16 +428,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
   },
   cardContainer: {
-    backgroundColor: Colors.attendify.surface,
-    borderRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
     marginHorizontal: 20,
-    padding: 28,
     marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
   },
   roleContainer: {
     flexDirection: 'row',
@@ -489,10 +480,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.attendify.surfaceVariant,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(30, 79, 168, 0.2)',
+    borderColor: 'rgba(255,255,255,0.1)',
     marginBottom: 6,
     paddingHorizontal: 16,
     height: 52,
@@ -505,7 +496,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: Colors.attendify.onSurface,
+    color: '#ffffff',
     fontSize: 15,
   },
   eyeIcon: {

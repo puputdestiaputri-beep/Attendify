@@ -107,10 +107,24 @@ CREATE TABLE absensi (
     status ENUM('hadir','terlambat','pulang','alfa','sakit','izin'),
     status_telat ENUM('ya','tidak'),
     keterangan VARCHAR(100),
+    submitted_by_role ENUM('dosen', 'admin', 'system') DEFAULT 'system',
 
     FOREIGN KEY (user_id) REFERENCES pengguna(id_user),
     FOREIGN KEY (kamera_id) REFERENCES kamera(id_kamera),
     FOREIGN KEY (jadwal_id) REFERENCES jadwal_kuliah(id_jadwal)
+);
+
+-- =========================
+-- TABEL Laporan (Reports)
+-- =========================
+CREATE TABLE reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    role VARCHAR(50),
+    message TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES pengguna(id_user)
 );
 
 -- =========================

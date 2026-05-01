@@ -10,7 +10,8 @@ import {
   Cpu, LayoutDashboard, Settings, LogOut,
   ChevronRight, Bell, Search, RefreshCw,
   UserPlus, BookOpen, Database, BarChart3,
-  MonitorSmartphone, Camera, FileText, Calendar
+  MonitorSmartphone, Camera, FileText, Calendar,
+  AlertTriangle
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +19,7 @@ import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -104,10 +106,7 @@ const confirmLogout = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-        style={styles.background}
-      >
+    <AnimatedBackground style={styles.background}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -213,11 +212,17 @@ const confirmLogout = () => {
               color="#F472B6"
               onPress={() => navigation.navigate('DatabaseLogs')}
             />
-
+            <AdminCard 
+              title="Laporan Masalah" 
+              subtitle="Kelola laporan dari dosen & mahasiswa"
+              icon={AlertTriangle} 
+              color="#F59E0B"
+              onPress={() => navigation.navigate('AdminReports')}
+            />
           </View>
 
         </ScrollView>
-      </LinearGradient>
+      </AnimatedBackground>
 
       {/* Logout Modal */}
       <Modal

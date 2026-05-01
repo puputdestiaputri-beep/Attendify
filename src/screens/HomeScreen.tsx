@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { AttendanceChart } from '../components/AttendanceChart';
 import ReportIssueModal from '../components/ReportIssueModal';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 
 const { width } = Dimensions.get('window');
@@ -49,13 +50,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={isDarkMode ? 
-        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
-        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
-      }
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
@@ -200,7 +195,7 @@ export default function HomeScreen() {
         visible={showReportModal} 
         onClose={() => setShowReportModal(false)} 
       />
-    </LinearGradient>
+    </AnimatedBackground>
 
   );
 }

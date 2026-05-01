@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { performLogout, saveAuthState, loadAuthState } from '../services/authService';
+import { performLogout, saveAuthState, loadAuthState, getAuthToken } from '../services/authService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Role = 'mahasiswa' | 'dosen' | 'admin' | null;
@@ -20,6 +20,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   role: Role;
   user: UserData | null;
+  token?: string | null;
   login: (userRole: Role, userData: UserData) => void;
   logout: () => void;
 }
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   role: null,
   user: null,
+  token: null,
   login: () => {},
   logout: () => {},
 });
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<Role>(null);
   const [user, setUser] = useState<UserData | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize auth state from AsyncStorage on mount
@@ -46,10 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('📂 Loading auth state from AsyncStorage...');
         const { isLoggedIn: savedIsLoggedIn, role: savedRole, userData: savedUserData } = await loadAuthState();
+        const savedToken = await getAuthToken();
         
         setIsLoggedIn(savedIsLoggedIn);
         setRole(savedRole as Role);
         setUser(savedUserData);
+        setToken(savedToken);
 
         if (savedIsLoggedIn) {
           console.log('✅ User restored from storage:', savedUserData?.fullName);
@@ -64,10 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
-  const login = (userRole: Role, userData: UserData) => {
+  const login = async (userRole: Role, userData: UserData) => {
     setRole(userRole);
     setUser(userData);
     setIsLoggedIn(true);
+    // Fetch token from storage if not passed
+    const savedToken = await getAuthToken();
+    setToken(savedToken);
+
     // Save to AsyncStorage
     saveAuthState(true, userRole, userData);
     console.log('✅ Login successful:', userData.fullName);
@@ -79,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole(null);
       setUser(null);
       setIsLoggedIn(false);
+      setToken(null);
       console.log('✅ Logged out successfully');
     });
   };
@@ -104,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, role, user, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, role, user, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

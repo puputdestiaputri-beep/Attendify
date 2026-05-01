@@ -40,6 +40,8 @@ import {
   MessageCircle,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 import * as FileSystem from 'expo-file-system';
 import { Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -502,7 +504,7 @@ export default function AdminJadwalScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0a0e27' }}>
+    <AnimatedBackground style={{ flex: 1 }}>
       {selectedJadwal ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -531,12 +533,7 @@ export default function AdminJadwalScreen() {
 
           {/* INFO JADWAL */}
           <AnimatedInfoCard delay={0}>
-            <LinearGradient
-              colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.6)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
+            <BlurView intensity={20} tint="dark" style={styles.card}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={['#3b82f6', '#2563eb']}
@@ -567,17 +564,12 @@ export default function AdminJadwalScreen() {
                   <Text style={styles.infoValue}>{`${selectedJadwal?.jam_mulai || '-'} - ${selectedJadwal?.jam_selesai || '-'}`}</Text>
                 </View>
               </View>
-            </LinearGradient>
+            </BlurView>
           </AnimatedInfoCard>
 
           {/* REKAP ABSENSI */}
           <AnimatedInfoCard delay={100}>
-            <LinearGradient
-              colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.6)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
+            <BlurView intensity={20} tint="dark" style={styles.card}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={['#6366f1', '#4f46e5']}
@@ -642,17 +634,12 @@ export default function AdminJadwalScreen() {
                   />
                 </LinearGradient>
               </View>
-            </LinearGradient>
+            </BlurView>
           </AnimatedInfoCard>
 
           {/* DAFTAR ABSENSI */}
           <AnimatedInfoCard delay={200}>
-            <LinearGradient
-              colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.6)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
+            <BlurView intensity={20} tint="dark" style={styles.card}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={['#ec4899', '#db2777']}
@@ -697,7 +684,7 @@ export default function AdminJadwalScreen() {
                   ))}
                 </>
               )}
-            </LinearGradient>
+            </BlurView>
           </AnimatedInfoCard>
 
           {/* EXPORT BUTTONS */}
@@ -792,12 +779,7 @@ export default function AdminJadwalScreen() {
                       ]}
                       onPress={() => handleSelectJadwal(jadwal)}
                     >
-                      <LinearGradient
-                        colors={['rgba(59, 130, 246, 0.2)', 'rgba(59, 130, 246, 0.05)']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={StyleSheet.absoluteFill}
-                      />
+                      <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
                       <View style={styles.klasCardHeader}>
                         <View>
                           <Text style={styles.klasName}>{jadwal.class_name || '-'}</Text>
@@ -827,7 +809,7 @@ export default function AdminJadwalScreen() {
         type={toast.type}
         onHide={hideToast}
       />
-    </View>
+    </AnimatedBackground>
   );
 }
 

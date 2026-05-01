@@ -15,16 +15,17 @@ import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '@/constants/Config';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
 
 export default function IoTSensorValidationScreen() {
   const navigation = useNavigation<any>();
   const { token } = useAuth();
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [isLive, setIsLive] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [availableUsers, setAvailableUsers] = useState([]);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [validationState, setValidationState] = useState<'idle' | 'starting' | 'waiting' | 'completed' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
@@ -134,10 +135,7 @@ export default function IoTSensorValidationScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-        style={styles.background}
-      >
+    <AnimatedBackground style={styles.background}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <ArrowLeft color="#fff" size={24} />
@@ -190,7 +188,7 @@ export default function IoTSensorValidationScreen() {
           </View>
 
         </ScrollView>
-      </LinearGradient>
+      </AnimatedBackground>
 
       {/* IoT Validation Modal */}
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
@@ -207,7 +205,7 @@ export default function IoTSensorValidationScreen() {
               <View style={styles.modalBody}>
                 <Text style={styles.label}>Pilih Mahasiswa:</Text>
                 <ScrollView style={styles.userList}>
-                  {availableUsers.map(user => (
+                  {availableUsers.map((user: any) => (
                     <TouchableOpacity 
                       key={user.id} 
                       style={[styles.userItem, selectedUser?.id === user.id && styles.userItemSelected]}

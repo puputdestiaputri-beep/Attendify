@@ -9,9 +9,10 @@ import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { Colors } from '../../constants/Colors';
 import { DesignSystem } from '../../constants/DesignSystem';
-import AnimatedButton from '../../components/ui/AnimatedButton';
+import AnimatedButton from '../components/ui/AnimatedButton';
 import AnimatedInput from '../components/ui/AnimatedInput';
 import AnimatedCard from '../components/ui/AnimatedCard';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 import { Dimensions } from 'react-native';
 const { width } = Dimensions.get('window');
@@ -73,12 +74,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
   };
 
   return (
-    <LinearGradient
-      colors={[DesignSystem.colors.neutral, '#0F3A6D', DesignSystem.colors.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -193,7 +189,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
           </AnimatedCard>
         </Animated.View>
       </ScrollView>
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 

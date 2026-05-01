@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 import { ArrowLeft, User, Mail, Briefcase, Camera, IdCard, Phone, BookOpen, GraduationCap, Save, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -93,10 +95,7 @@ export default function ProfileDetailsScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -106,7 +105,10 @@ export default function ProfileDetailsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
-          <View style={styles.header}>
+          <Animated.View 
+            entering={FadeInDown.duration(600).springify()}
+            style={styles.header}
+          >
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.goBack()}
@@ -115,7 +117,7 @@ export default function ProfileDetailsScreen() {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Ubah Profil</Text>
             <View style={{ width: 44 }} />
-          </View>
+          </Animated.View>
 
           {/* Avatar */}
           <View style={styles.avatarSection}>
@@ -318,7 +320,7 @@ export default function ProfileDetailsScreen() {
         type={alertConfig.type}
         onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
       />
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 

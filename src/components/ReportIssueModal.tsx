@@ -83,7 +83,7 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
     <Modal
       visible={visible}
       transparent={true}
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
@@ -92,10 +92,7 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContent}
           >
-            <LinearGradient
-              colors={['#1e293b', '#0f172a']}
-              style={styles.gradientCard}
-            >
+            <View style={styles.gradientCard}>
               <View style={styles.header}>
                 <View style={styles.titleRow}>
                   <AlertTriangle size={20} color="#FBBF24" />
@@ -157,7 +154,7 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
                 type={alertConfig.type}
                 onClose={handleAlertClose}
               />
-            </LinearGradient>
+            </View>
           </KeyboardAvoidingView>
         </BlurView>
       </View>

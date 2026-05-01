@@ -11,6 +11,7 @@ import NotificationScreen from '../screens/NotificationScreen';
 import DosenDashboardScreen from '../screens/DosenDashboardScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import LoginScreen from '../screens/LoginScreen';
+import SplashScreen from '../screens/SplashScreen';
 import CreateAccountScreen from '../screens/CreateAccountScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import PrivacySecurityScreen from '../screens/PrivacySecurityScreen';
@@ -24,6 +25,7 @@ import IoTSensorValidationScreen from '../screens/IoTSensorValidationScreen';
 import DatabaseLogsScreen from '../screens/DatabaseLogsScreen';
 import ManageAttendanceScreen from '../screens/ManageAttendanceScreen';
 import ESP32CameraScreen from '../screens/ESP32CameraScreen';
+import AdminReportsScreen from '../screens/AdminReportsScreen';
 import { Colors } from '@/constants/Colors';
 
 
@@ -203,8 +205,7 @@ function AdminNavigator() {
       <Stack.Screen name="DatabaseLogs" component={DatabaseLogsScreen} />
       <Stack.Screen name="ManageAttendance" component={ManageAttendanceScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
-
-
+      <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
@@ -223,6 +224,10 @@ export default function AppNavigator() {
         key={`auth-${isLoggedIn}`}
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen 
+          name="Splash" 
+          component={SplashScreen}
+        />
         <Stack.Screen 
           name="Login" 
           component={LoginScreen}

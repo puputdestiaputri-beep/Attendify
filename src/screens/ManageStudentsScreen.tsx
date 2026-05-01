@@ -17,6 +17,7 @@ import { API_URL } from '@/constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Student } from './types';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -172,10 +173,7 @@ export default function ManageStudentsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={['#0F172A', '#1E293B', '#334155']}
-        style={styles.background}
-      >
+    <AnimatedBackground style={styles.background}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -393,7 +391,7 @@ export default function ManageStudentsScreen() {
             </BlurView>
           </View>
         </Modal>
-      </LinearGradient>
+      </AnimatedBackground>
     </View>
   );
 }

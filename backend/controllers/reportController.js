@@ -262,7 +262,59 @@ exports.exportPDF = async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
-
 exports.exportAttendance = async (req, res) => {
     return this.exportExcel(req, res);
+};
+
+exports.createReport = async (req, res) => {
+    try {
+        const { user_id, role, message, created_at } = req.body;
+        if (!user_id || !message) {
+            return res.status(400).json({ status: 'error', message: 'user_id and message are required' });
+        }
+        const insertDate = created_at ? new Date(created_at) : new Date();
+        await db.query(
+            'INSERT INTO reports (user_id, role, message, created_at) VALUES (?, ?, ?, ?)',
+            [user_id, role || 'unknown', message, insertDate]
+        );
+        res.json({ status: 'success', message: 'Laporan berhasil dikirim' });
+    } catch (err) {
+        console.error('Create Report Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+exports.getAdminReports = async (req, res) => {
+    try {
+        const [reports] = await db.query(`
+            SELECT r.*, p.nama as user_name 
+            FROM reports r 
+            LEFT JOIN pengguna p ON r.user_id = p.id_user 
+            ORDER BY r.created_at DESC
+        `);
+        res.json({ status: 'success', data: reports });
+    } catch (err) {
+        console.error('Get Admin Reports Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+exports.updateReportStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        
+        if (!status) {
+            return res.status(400).json({ status: 'error', message: 'Status is required' });
+        }
+
+        await db.query(
+            'UPDATE reports SET status = ? WHERE id = ?',
+            [status, id]
+        );
+        res.json({ status: 'success', message: 'Status laporan berhasil diperbarui' });
+    } catch (err) {
+        console.error('Update Report Status Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
 };

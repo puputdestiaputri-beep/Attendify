@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import {
   View, StyleSheet, Text, Animated, ViewStyle
 } from 'react-native';
-import { DesignSystem } from '../../constants/DesignSystem';
+import { DesignSystem } from '@/constants/DesignSystem';
 
 interface SkeletonProps {
   width?: number | string;
@@ -96,7 +96,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 
     case 'dashboard':
       return (
-        <View style={styles.dashboardContainer}>
+        <View style={styles.cardContainer}>
           <View style={styles.cardRow}>
             {[...Array(2)].map((_, i) => (
               <Skeleton key={i} width="48%" height={100} style={{ marginRight: i === 0 ? 8 : 0 }} />

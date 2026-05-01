@@ -3,7 +3,7 @@ import {
   View, StyleSheet, Text, ViewStyle
 } from 'react-native';
 import { AlertCircle, Users, Calendar, FileText, Search, Inbox } from 'lucide-react-native';
-import { DesignSystem } from '../../constants/DesignSystem';
+import { DesignSystem } from '@/constants/DesignSystem';
 import AnimatedButton from './AnimatedButton';
 
 export type EmptyStateType = 'no-data' | 'no-results' | 'no-students' | 'no-attendance' | 'no-notifications';

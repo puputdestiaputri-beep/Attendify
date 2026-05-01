@@ -74,7 +74,7 @@ export {
  *    {isLoading ? (
  *      <SkeletonLoader variant="dashboard" />
  *    ) : (
- *      <View>{/* content */}</View>
+ *      <View>{/* content *\/}</View>
  *    )}
  * 
  * 5. Empty State

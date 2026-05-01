@@ -159,8 +159,9 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: DesignSystem.radius.md,
     borderWidth: 1,
     borderColor: DesignSystem.colors.glassBorder,

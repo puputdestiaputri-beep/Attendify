@@ -10,9 +10,10 @@ import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated'
 import { Colors } from '../../constants/Colors';
 import { DesignSystem } from '../../constants/DesignSystem';
 import { API_URL } from '../../constants/Config';
-import AnimatedButton from '../../components/ui/AnimatedButton';
+import AnimatedButton from '../components/ui/AnimatedButton';
 import AnimatedInput from '../components/ui/AnimatedInput';
 import AnimatedCard from '../components/ui/AnimatedCard';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -148,12 +149,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
 
   return (
-    <LinearGradient
-      colors={[DesignSystem.colors.neutral, '#0F3A6D', '#1E4FA8']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -340,7 +336,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           </Animated.View>
         </View>
       </Modal>
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 

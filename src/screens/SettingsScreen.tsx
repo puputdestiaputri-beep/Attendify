@@ -1,19 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { Bell, Moon, UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle } from 'lucide-react-native';
+import { UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle, Palette, MessageSquare, Send, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, DEFAULT_GRADIENT } from '../context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@/constants/Config';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
   const navigation = useNavigation<any>();
-  const { isDarkMode } = useTheme();
-  const { role } = useAuth();
+  const { isDarkMode, themeColors, setThemeColors } = useTheme();
+  const { role, user } = useAuth();
+
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
+  const [reportMessage, setReportMessage] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const gradients = [
+    { name: 'Default', colors: DEFAULT_GRADIENT },
+    { name: 'Blue', colors: ['#0f172a', '#1e3a8a', '#3b82f6', '#60a5fa', '#3b82f6', '#1e3a8a', '#0f172a'] },
+    { name: 'Purple', colors: ['#1e1b4b', '#4c1d95', '#7c3aed', '#a78bfa', '#7c3aed', '#4c1d95', '#1e1b4b'] },
+    { name: 'Pink', colors: ['#4c0519', '#be123c', '#e11d48', '#fb7185', '#e11d48', '#be123c', '#4c0519'] },
+  ];
+
+  const submitReport = async () => {
+    if (!reportMessage.trim()) {
+      Alert.alert('Error', 'Pesan tidak boleh kosong');
+      return;
+    }
+    
+    setIsSubmittingReport(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const userId = (user as any)?.id || (user as any)?.id_user || 1;
+      const userRole = role || 'unknown';
+
+      const response = await fetch(`${API_URL}/reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          role: userRole,
+          message: reportMessage
+        })
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        Alert.alert('Sukses', 'Laporan berhasil dikirim');
+        setReportMessage('');
+        setIsReportModalVisible(false);
+      } else {
+        Alert.alert('Error', result.message || 'Gagal mengirim laporan');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Terjadi kesalahan jaringan');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   const handleDevFeature = (name: string) => {
     Alert.alert('Info', `Fitur ${name} akan tersedia pada versi pembaruan mendatang.`);
@@ -35,14 +91,8 @@ export default function SettingsScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={isDarkMode ? 
-        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
-        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
-      }
-      style={styles.container}
-    >
-      <View style={styles.header}>
+    <AnimatedBackground style={styles.container}>
+      <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
         <TouchableOpacity 
           onPress={handleBack} 
           style={styles.backButton}
@@ -53,7 +103,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => handleDevFeature('Pusat Bantuan')}>
            <HelpCircle size={24} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
@@ -92,6 +142,59 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.settingsGroup}>
+          <Text style={styles.groupTitle}>Tampilan</Text>
+          <BlurView intensity={20} tint="dark" style={styles.card}>
+            <View style={[styles.settingItem, styles.noBorder, { flexDirection: 'column', alignItems: 'flex-start' }]}>
+              <View style={styles.settingItemLeft}>
+                 <View style={[styles.iconBox, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
+                   <Palette size={20} color="#EC4899" />
+                 </View>
+                 <Text style={styles.settingItemText}>Tema Warna</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16, width: '100%' }}>
+                {gradients.map((grad, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    onPress={() => setThemeColors(grad.colors)}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      marginRight: 12,
+                      borderWidth: 2,
+                      borderColor: themeColors && themeColors[0] === grad.colors[0] ? '#fff' : 'transparent',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <LinearGradient colors={grad.colors as unknown as readonly [string, string, ...string[]]} style={{ flex: 1 }} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </BlurView>
+        </View>
+
+        {role !== 'admin' && (
+          <View style={styles.settingsGroup}>
+            <Text style={styles.groupTitle}>Bantuan</Text>
+            <BlurView intensity={20} tint="dark" style={styles.card}>
+              <TouchableOpacity 
+                 style={[styles.settingItem, styles.noBorder]}
+                 onPress={() => setIsReportModalVisible(true)}
+              >
+                <View style={styles.settingItemLeft}>
+                   <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                     <MessageSquare size={20} color="#F59E0B" />
+                   </View>
+                   <Text style={styles.settingItemText}>Laporkan Masalah</Text>
+                </View>
+                <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        )}
+
+        <View style={styles.settingsGroup}>
           <Text style={styles.groupTitle}>Lainnya</Text>
           <BlurView intensity={20} tint="dark" style={styles.card}>
             <TouchableOpacity 
@@ -114,7 +217,46 @@ export default function SettingsScreen() {
         </View>
 
       </ScrollView>
-    </LinearGradient>
+
+      <Modal visible={isReportModalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <BlurView intensity={40} tint="dark" style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Laporkan Masalah</Text>
+                <TouchableOpacity onPress={() => setIsReportModalVisible(false)}>
+                  <X size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Deskripsikan masalah Anda..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                multiline
+                numberOfLines={5}
+                value={reportMessage}
+                onChangeText={setReportMessage}
+                textAlignVertical="top"
+              />
+              <TouchableOpacity 
+                style={styles.submitBtn} 
+                onPress={submitReport}
+                disabled={isSubmittingReport}
+              >
+                {isSubmittingReport ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Send size={18} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.submitBtnText}>Kirim Laporan</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </AnimatedBackground>
   );
 }
 
@@ -199,5 +341,52 @@ const styles = StyleSheet.create({
     color: '#fff', 
     fontSize: 16, 
     fontWeight: 'bold' 
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  textInput: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 16,
+    color: '#fff',
+    minHeight: 120,
+    marginBottom: 20,
+  },
+  submitBtn: {
+    backgroundColor: Colors.ai.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: 16,
+  },
+  submitBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });

@@ -175,12 +175,12 @@ exports.updateAttendanceStatus = async (req, res) => {
 
         if (existing.length > 0) {
             await db.query(
-                'UPDATE absensi SET status = ?, waktu_datang = CURTIME() WHERE id_absensi = ?',
+                'UPDATE absensi SET status = ?, waktu_datang = CURTIME(), submitted_by_role = "dosen" WHERE id_absensi = ?',
                 [status, existing[0].id_absensi]
             );
         } else {
             await db.query(
-                'INSERT INTO absensi (user_id, jadwal_id, tanggal, waktu_datang, status) VALUES (?, ?, NOW(), CURTIME(), ?)',
+                'INSERT INTO absensi (user_id, jadwal_id, tanggal, waktu_datang, status, submitted_by_role) VALUES (?, ?, NOW(), CURTIME(), ?, "dosen")',
                 [user_id, jadwal_id, status]
             );
         }
@@ -191,3 +191,35 @@ exports.updateAttendanceStatus = async (req, res) => {
     }
 };
 
+exports.getAdminAttendance = async (req, res) => {
+    try {
+        const { date, class_id } = req.query;
+        let query = `
+            SELECT a.*, p.nama as name, p.username as nim, mk.nama_mk as subject, k.nama_kelas as class_name
+            FROM absensi a
+            JOIN pengguna p ON a.user_id = p.id_user
+            JOIN jadwal_kuliah jk ON a.jadwal_id = jk.id_jadwal
+            JOIN mata_kuliah mk ON jk.mata_kuliah_id = mk.id_mk
+            JOIN kelas k ON jk.kelas_id = k.id_kelas
+            WHERE a.submitted_by_role = 'dosen'
+        `;
+        
+        const params = [];
+        if (date) {
+            query += " AND DATE(a.tanggal) = ?";
+            params.push(date);
+        }
+        if (class_id) {
+            query += " AND k.id_kelas = ?";
+            params.push(class_id);
+        }
+        
+        query += " ORDER BY a.tanggal DESC, a.waktu_datang DESC";
+        
+        const [absensi] = await db.query(query, params);
+        res.json({ status: 'success', data: absensi });
+    } catch (err) {
+        console.error('Get Admin Attendance Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};

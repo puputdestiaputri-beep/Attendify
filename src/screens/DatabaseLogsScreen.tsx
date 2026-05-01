@@ -9,7 +9,7 @@ import {
   Database, ChevronLeft, Calendar, 
   Clock, MapPin, User, Shield, 
   AlertCircle, RefreshCw, Trash2,
-  Camera
+  Camera, CheckCircle, XCircle
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
@@ -31,6 +31,8 @@ interface LogEntry {
 export default function DatabaseLogsScreen() {
   const navigation = useNavigation<any>();
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'logs' | 'attendance'>('logs');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,14 +87,38 @@ export default function DatabaseLogsScreen() {
     }
   };
 
+  const fetchAttendance = async () => {
+    try {
+      setIsLoading(true);
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/admin/attendance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        setAttendance(result.data);
+      }
+    } catch (err) {
+      console.error('Fetch attendance error:', err);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    if (activeTab === 'logs') {
+      fetchLogs();
+    } else {
+      fetchAttendance();
+    }
+  }, [activeTab]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchLogs();
-  }, []);
+    if (activeTab === 'logs') fetchLogs();
+    else fetchAttendance();
+  }, [activeTab]);
 
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -182,6 +208,22 @@ export default function DatabaseLogsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Tab Selector */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'logs' && styles.tabActive]}
+            onPress={() => setActiveTab('logs')}
+          >
+            <Text style={[styles.tabText, activeTab === 'logs' && styles.tabTextActive]}>System Logs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'attendance' && styles.tabActive]}
+            onPress={() => setActiveTab('attendance')}
+          >
+            <Text style={[styles.tabText, activeTab === 'attendance' && styles.tabTextActive]}>Absensi Dosen</Text>
+          </TouchableOpacity>
+        </View>
+
         {isLoading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={Colors.ai.primary} />
@@ -197,9 +239,45 @@ export default function DatabaseLogsScreen() {
           </View>
         ) : (
           <FlatList
-            data={logs}
-            renderItem={LogItem}
-            keyExtractor={(item) => item.id_log.toString()}
+            data={activeTab === 'logs' ? logs : attendance}
+            renderItem={({ item }) => {
+              if (activeTab === 'logs') {
+                return <LogItem item={item as LogEntry} />;
+              } else {
+                const dt = formatDateTime(item.tanggal);
+                return (
+                  <View style={styles.logCardWrapper}>
+                    <BlurView intensity={20} tint="dark" style={styles.logCard}>
+                      <View style={styles.logHeader}>
+                        <View style={styles.cameraTag}>
+                          <User size={14} color={Colors.ai.primary} />
+                          <Text style={styles.cameraTagName}>{item.name}</Text>
+                        </View>
+                        <View style={[styles.confidenceBadge, { backgroundColor: item.status === 'hadir' ? '#34D39920' : '#FBBF2420' }]}>
+                          <Text style={[styles.confidenceText, { color: item.status === 'hadir' ? '#34D399' : '#FBBF24' }]}>
+                            {item.status.toUpperCase()}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.detailsGrid}>
+                        <View style={styles.detailItem}>
+                          <Calendar size={14} color="rgba(255,255,255,0.4)" />
+                          <Text style={styles.detailText}>{dt.date}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                          <Clock size={14} color="rgba(255,255,255,0.4)" />
+                          <Text style={styles.detailText}>{item.waktu_datang || '-'}</Text>
+                        </View>
+                        <View style={[styles.detailItem, { width: '100%', marginTop: 8 }]}>
+                          <Text style={styles.detailText}>{item.subject} - {item.class_name}</Text>
+                        </View>
+                      </View>
+                    </BlurView>
+                  </View>
+                );
+              }
+            }}
+            keyExtractor={(item: any) => (item.id_log || item.id_absensi || Math.random()).toString()}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
@@ -212,8 +290,7 @@ export default function DatabaseLogsScreen() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Database size={64} color="rgba(255,255,255,0.1)" />
-                <Text style={styles.emptyText}>No logs recorded yet</Text>
-                <Text style={styles.emptySubtext}>Detections will appear here automatically</Text>
+                <Text style={styles.emptyText}>Tidak ada data</Text>
               </View>
             }
           />
@@ -398,4 +475,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    gap: 10,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  tabActive: {
+    backgroundColor: Colors.ai.primary,
+  },
+  tabText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: 'bold',
+  },
+  tabTextActive: {
+    color: '#fff',
+  }
 });

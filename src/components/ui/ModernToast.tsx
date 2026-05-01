@@ -5,11 +5,11 @@ import {
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { DesignSystem } from '../../constants/DesignSystem';
+import { DesignSystem } from '@/constants/DesignSystem';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-interface ToastConfig {
+export interface ToastConfig {
   type: ToastType;
   title: string;
   message?: string;
@@ -126,7 +126,7 @@ export const Toast: React.FC<ToastProps> = ({
     >
       <BlurView intensity={DesignSystem.blur} style={styles.blur}>
         <LinearGradient
-          colors={getGradient()}
+          colors={getGradient() as unknown as readonly [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[

@@ -18,6 +18,7 @@ import { DesignSystem } from '../../constants/DesignSystem';
 import DashboardCard from '../components/ui/DashboardCard';
 import StudentCard from '../components/ui/StudentCard';
 import ReportIssueModal from '../components/ReportIssueModal';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 
 const { width } = Dimensions.get('window');
@@ -251,10 +252,7 @@ const toggleManualScan = async () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={['#0F172A', '#1E293B', '#334155']}
-        style={styles.background}
-      >
+    <AnimatedBackground style={styles.background}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
@@ -542,7 +540,7 @@ const toggleManualScan = async () => {
         </Modal>
 
         <ReportIssueModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
-      </LinearGradient>
+      </AnimatedBackground>
     </View>
   );
 }

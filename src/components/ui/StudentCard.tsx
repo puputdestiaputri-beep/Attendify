@@ -8,7 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { DesignSystem } from '../../constants/DesignSystem';
+import { DesignSystem } from '@/constants/DesignSystem';
 import { LucideIcon, ChevronRight } from 'lucide-react-native';
 
 interface StudentCardProps {
@@ -107,7 +107,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
       >
         <BlurView intensity={DesignSystem.blur} style={StyleSheet.absoluteFill}>
           <LinearGradient
-            colors={gradient || [DesignSystem.colors.glass, DesignSystem.colors.surfaceVariant]}
+            colors={(gradient || [DesignSystem.colors.glass, DesignSystem.colors.surfaceVariant]) as unknown as readonly [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}

@@ -24,23 +24,28 @@ import {
   MessageSquare,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import { BlurView } from 'expo-blur';
+import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 
 const { width } = Dimensions.get('window');
 
 interface Notification {
-  id: number;
+  id: number | string;
   title: string;
   message: string;
   time: string;
   type: 'info' | 'warning' | 'success' | 'error';
   read: boolean;
+  isReport?: boolean;
 }
 
 export default function NotificationScreen() {
   const navigation = useNavigation<any>();
+  const { role } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,15 +53,46 @@ export default function NotificationScreen() {
   const fetchNotifications = async () => {
     try {
       const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const response = await fetch(`${API_URL}/notifikasi`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const result = await response.json();
-      if (result.status === 'success') {
-        setNotifications(result.data);
+      
+      const requests = [
+        fetch(`${API_URL}/notifikasi`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ];
+
+      if (role === 'admin') {
+        requests.push(
+          fetch(`${API_URL}/admin/reports`, { headers: { 'Authorization': `Bearer ${token}` } })
+        );
       }
+
+      const responses = await Promise.all(requests);
+      const notifResult = await responses[0].json();
+      
+      let allNotifs: Notification[] = [];
+      
+      if (notifResult.status === 'success') {
+        allNotifs = [...notifResult.data];
+      }
+
+      if (role === 'admin' && responses.length > 1) {
+        const reportResult = await responses[1].json();
+        if (reportResult.status === 'success') {
+          const reports = reportResult.data.map((r: any) => ({
+            id: `report_${r.id}`,
+            title: `Laporan: ${r.user_name || 'Pengguna'} (${r.role})`,
+            message: r.message,
+            time: r.created_at,
+            type: 'warning',
+            read: r.status !== 'pending',
+            isReport: true
+          }));
+          allNotifs = [...allNotifs, ...reports];
+        }
+      }
+
+      // Sort by newest first
+      allNotifs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+      setNotifications(allNotifs);
     } catch (err) {
       console.error('Fetch notifications error:', err);
     } finally {
@@ -122,8 +158,15 @@ export default function NotificationScreen() {
     }
   };
 
-  const handleMarkAsRead = async (id?: number) => {
+  const handleMarkAsRead = async (id?: number | string) => {
     try {
+      if (typeof id === 'string' && id.startsWith('report_')) {
+        // Here we could add an endpoint to mark report as read/resolved
+        // For now, we'll just optimistically update the UI
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        return;
+      }
+
       const token = await AsyncStorage.getItem('@attendify_auth_token');
       await fetch(`${API_URL}/notifikasi/read`, {
         method: 'PUT',
@@ -149,13 +192,13 @@ export default function NotificationScreen() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <LinearGradient
-      colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <StatusBar barStyle="light-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View 
+        entering={FadeInDown.duration(600).springify()}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -175,7 +218,7 @@ export default function NotificationScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </Animated.View>
 
       {/* ScrollView Content */}
       <ScrollView
@@ -191,54 +234,55 @@ export default function NotificationScreen() {
           </View>
         ) : (
           notifications.length > 0 ? (
-            notifications.map(item => (
-              <BlurView
-                key={item.id}
-                intensity={20}
-                tint="dark"
-                style={[styles.notificationCard, !item.read && styles.unreadCard]}
-              >
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => handleMarkAsRead(item.id)}
-                  style={styles.notificationContent}
+            notifications.map((item, index) => (
+              <Animated.View key={item.id} entering={SlideInUp.delay(index * 100).springify()}>
+                <BlurView
+                  intensity={20}
+                  tint="dark"
+                  style={[styles.notificationCard, !item.read && styles.unreadCard]}
                 >
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      {
-                        backgroundColor: getTypeColors(item.type).bg,
-                        borderColor: getTypeColors(item.type).border,
-                      },
-                    ]}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => handleMarkAsRead(item.id)}
+                    style={styles.notificationContent}
                   >
-                    {getTypeIcon(item.type)}
-                  </View>
+                    <View
+                      style={[
+                        styles.iconContainer,
+                        {
+                          backgroundColor: getTypeColors(item.type).bg,
+                          borderColor: getTypeColors(item.type).border,
+                        },
+                      ]}
+                    >
+                      {getTypeIcon(item.type)}
+                    </View>
 
-                  <View style={styles.textContent}>
-                    <View style={styles.titleRow}>
-                      <Text
-                        style={[
-                          styles.notifTitle,
-                          !item.read && styles.titleBold,
-                        ]}
-                      >
-                        {item.title}
+                    <View style={styles.textContent}>
+                      <View style={styles.titleRow}>
+                        <Text
+                          style={[
+                            styles.notifTitle,
+                            !item.read && styles.titleBold,
+                          ]}
+                        >
+                          {item.title}
+                        </Text>
+                        {!item.read && <View style={styles.unreadDot} />}
+                      </View>
+
+                      <Text style={styles.message} numberOfLines={3}>
+                        {item.message}
                       </Text>
-                      {!item.read && <View style={styles.unreadDot} />}
-                    </View>
 
-                    <Text style={styles.message} numberOfLines={3}>
-                      {item.message}
-                    </Text>
-
-                    <View style={styles.timeRow}>
-                      <Clock size={12} color="rgba(255, 255, 255, 0.5)" />
-                      <Text style={styles.time}>{formatTime(item.time)}</Text>
+                      <View style={styles.timeRow}>
+                        <Clock size={12} color="rgba(255, 255, 255, 0.5)" />
+                        <Text style={styles.time}>{formatTime(item.time)}</Text>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              </BlurView>
+                  </TouchableOpacity>
+                </BlurView>
+              </Animated.View>
             ))
           ) : (
             <View style={styles.emptyContainer}>
@@ -251,7 +295,7 @@ export default function NotificationScreen() {
           )
         )}
       </ScrollView>
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 

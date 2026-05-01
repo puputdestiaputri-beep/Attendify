@@ -7,6 +7,7 @@ import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationC
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
@@ -38,13 +39,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={isDarkMode ? 
-        [Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd] :
-        ['#f0f4f8', '#e0e7ff', '#f0f4f8']
-      }
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Profile Header */}
@@ -237,7 +232,7 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 
