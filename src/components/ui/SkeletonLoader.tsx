@@ -5,7 +5,7 @@ import {
 import { DesignSystem } from '@/constants/DesignSystem';
 
 interface SkeletonProps {
-  width?: number | string;
+  width?: any;
   height?: number;
   borderRadius?: number;
   style?: ViewStyle;

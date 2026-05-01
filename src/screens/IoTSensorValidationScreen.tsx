@@ -21,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 export default function IoTSensorValidationScreen() {
   const navigation = useNavigation<any>();
-  const { token } = useAuth();
+  const { token } = useAuth() as any;
   const [logs, setLogs] = useState<any[]>([]);
   const [isLive, setIsLive] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
