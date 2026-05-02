@@ -3,7 +3,7 @@ import { View, Image, ActivityIndicator, StyleSheet, Text, Alert } from 'react-n
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ESP32_URL = 'http://10.61.4.131/capture';
-const BACKEND_URL = 'http://localhost:5000/api';
+const BACKEND_URL = 'http://10.61.4.141:5000/api';
 const DEVICE_ID = 'esp32-kelas-a';
 const SEND_INTERVAL = 5000; // 5 seconds
 
@@ -13,12 +13,14 @@ export default function ESP32CameraScreen() {
   const [lastSentTime, setLastSentTime] = useState(0);
   const [recognitionStatus, setRecognitionStatus] = useState<string>('');
 
+  const [imageError, setImageError] = useState(false);
+
   // ── Helper: Fetch image and convert to base64 ────────────
   const fetchImageAsBase64 = async (imageUrl: string): Promise<string | null> => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -38,7 +40,7 @@ export default function ESP32CameraScreen() {
   // ── Helper: Send image to backend for face recognition ────
   const sendToBackend = async (imageUrl: string) => {
     const now = Date.now();
-    
+
     // Rate limiting: prevent spam requests (minimum 5 seconds between requests)
     if (now - lastSentTime < SEND_INTERVAL) {
       return;
@@ -57,7 +59,7 @@ export default function ESP32CameraScreen() {
 
       // Step 2: Get auth token
       const token = await AsyncStorage.getItem('@attendify_auth_token');
-      
+
       // Step 3: Send to backend
       const response = await fetch(`${BACKEND_URL}/iot/recognize`, {
         method: 'POST',
@@ -100,8 +102,9 @@ export default function ESP32CameraScreen() {
     const interval = setInterval(() => {
       const imageUrl = `${ESP32_URL}?${Date.now()}`;
       setImage(imageUrl);
-      setLoading(false);
-      
+      // We don't set loading to false here, we let the Image onLoadEnd do it
+      // but we need to trigger it
+
       // Send image to backend for face recognition
       sendToBackend(imageUrl);
     }, 2000);
@@ -109,8 +112,7 @@ export default function ESP32CameraScreen() {
     // Fetch initial image
     const initialImageUrl = `${ESP32_URL}?${Date.now()}`;
     setImage(initialImageUrl);
-    setLoading(false);
-    
+
     // Send initial image
     sendToBackend(initialImageUrl);
 
@@ -120,19 +122,36 @@ export default function ESP32CameraScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Live ESP32 Camera - Face Recognition</Text>
-      
+
       {image ? (
-        <Image
-          source={{ uri: image }}
-          style={styles.image}
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
-        />
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: image }}
+            style={styles.image}
+            onLoadStart={() => {
+              setLoading(true);
+              setImageError(false);
+            }}
+            onLoadEnd={() => setLoading(false)}
+            onError={() => {
+              setLoading(false);
+              setImageError(true);
+            }}
+          />
+          {imageError && (
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorText}>Camera Offline</Text>
+              <Text style={styles.errorSubText}>Check IP 10.61.4.131</Text>
+            </View>
+          )}
+        </View>
       ) : (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <View style={[styles.image, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
       )}
-      
-      {loading && (
+
+      {loading && !imageError && (
         <ActivityIndicator size="small" color="#0000ff" style={{ marginTop: 10 }} />
       )}
 
@@ -148,26 +167,50 @@ export default function ESP32CameraScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#fff',
     paddingHorizontal: 16,
   },
-  title: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
   },
-  image: { 
-    width: 300, 
-    height: 300, 
-    marginTop: 20, 
-    borderRadius: 10, 
-    borderWidth: 1, 
-    borderColor: '#ccc' 
+  imageContainer: {
+    position: 'relative',
+    marginTop: 20,
+  },
+  image: {
+    width: 300,
+    height: 300,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ccc'
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  errorSubText: {
+    color: '#fff',
+    fontSize: 14,
   },
   statusText: {
     fontSize: 16,
