@@ -27,6 +27,7 @@ CREATE TABLE pengguna (
     status ENUM('Y','N'),
     prodi VARCHAR(100),
     kelas VARCHAR(50),
+    foto_profil LONGTEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (id_wajah) REFERENCES wajah(id_wajah)

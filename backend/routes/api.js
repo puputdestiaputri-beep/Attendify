@@ -25,6 +25,8 @@ router.post('/register', authCtrl.register);
 router.post('/register/admin-dosen', auth, roleCheck('admin'), authCtrl.registerAdminOrDosen);
 router.post('/login', authCtrl.login);
 router.get('/profile', auth, authCtrl.getProfile);
+router.post('/profile/avatar', auth, authCtrl.uploadAvatar);
+router.put('/profile/update', auth, authCtrl.updateProfile);
 
 
 // 2. USER ROUTES

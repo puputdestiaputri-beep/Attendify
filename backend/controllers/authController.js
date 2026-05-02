@@ -108,8 +108,11 @@ exports.login = async (req, res) => {
                     name: user.nama, 
                     email: user.email, 
                     role: user.role,
+                    username: user.username,
                     prodi: user.prodi,
-                    kelas: user.kelas
+                    kelas: user.kelas,
+                    phone: user.nohp || null,
+                    foto_profil: user.foto_profil || null
                 },
                 token
             }
@@ -121,11 +124,60 @@ exports.login = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id_user as id, nama as name, email, role, prodi, kelas, created_at FROM pengguna WHERE id_user = ?', [req.userId]);
+        const [users] = await db.query(
+            'SELECT id_user as id, nama as name, email, role, prodi, kelas, nohp as phone, foto_profil, created_at FROM pengguna WHERE id_user = ?',
+            [req.userId]
+        );
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
         res.json({ status: 'success', data: users[0] });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+// Upload / update avatar (base64)
+exports.uploadAvatar = async (req, res) => {
+    try {
+        const { avatar } = req.body;
+        if (!avatar) {
+            return res.status(400).json({ status: 'error', message: 'Avatar data is required' });
+        }
+
+        // Validate it's a base64 image
+        if (!avatar.startsWith('data:image/')) {
+            return res.status(400).json({ status: 'error', message: 'Invalid image format' });
+        }
+
+        await db.query(
+            'UPDATE pengguna SET foto_profil = ? WHERE id_user = ?',
+            [avatar, req.userId]
+        );
+
+        res.json({ status: 'success', message: 'Avatar updated successfully', data: { foto_profil: avatar } });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+// Update profile (nama, prodi, kelas, phone)
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, prodi, kelas, phone } = req.body;
+
+        await db.query(
+            'UPDATE pengguna SET nama = ?, prodi = ?, kelas = ?, nohp = ? WHERE id_user = ?',
+            [name || null, prodi || null, kelas || null, phone || null, req.userId]
+        );
+
+        // Return updated user
+        const [users] = await db.query(
+            'SELECT id_user as id, nama as name, email, role, prodi, kelas, nohp as phone, foto_profil FROM pengguna WHERE id_user = ?',
+            [req.userId]
+        );
+
+        res.json({ status: 'success', message: 'Profile updated', data: users[0] });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }

@@ -169,10 +169,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             </TouchableOpacity>
           </View>
           
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>🤖</Text>
-          </View>
-          <Text style={styles.brandName}>ATTENDIFY</Text>
+          <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 300, height: 220, marginBottom: -40 }} resizeMode="contain" />
           <Text style={styles.subtitle}>Create Account</Text>
         </View>
 
@@ -424,8 +421,15 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1.5,
+    marginTop: -10,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   cardContainer: {
     paddingHorizontal: 20,

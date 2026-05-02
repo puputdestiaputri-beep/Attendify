@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
 import { Camera, Calendar, Clock, MapPin, Bell, CheckCircle2, AlertTriangle } from 'lucide-react-native';
@@ -54,8 +54,25 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
-        <View style={styles.topHeader}>
-          <View>
+        <View style={styles.headerContainer}>
+          <View style={styles.topRow}>
+            <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 180, height: 110, marginTop: -20, marginBottom: -25, marginLeft: -15 }} resizeMode="contain" />
+            
+            <View style={styles.headerRight}>
+              <TouchableOpacity 
+                style={[styles.notifBtn, { marginRight: 10 }]} 
+                onPress={() => setShowReportModal(true)}
+              >
+                <AlertTriangle color="#FBBF24" size={22} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.notifBtn} onPress={handleNotification}>
+                <Bell color="#fff" size={22} />
+                <View style={styles.notifDot} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.greetingBox}>
             <Text style={[styles.greeting, { color: isDarkMode ? '#fff' : '#1f2937' }]}>
               Halo, {userName} 👋
             </Text>
@@ -63,20 +80,6 @@ export default function HomeScreen() {
               Mahasiswa {userProdi}
             </Text>
           </View>
-
-          <View style={styles.headerRight}>
-            <TouchableOpacity 
-              style={[styles.notifBtn, { marginRight: 10 }]} 
-              onPress={() => setShowReportModal(true)}
-            >
-              <AlertTriangle color="#FBBF24" size={24} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.notifBtn} onPress={handleNotification}>
-              <Bell color="#fff" size={24} />
-              <View style={styles.notifDot} />
-            </TouchableOpacity>
-          </View>
-
         </View>
 
         {/* Status */}
@@ -209,15 +212,22 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
 
-  topHeader: {
+  headerContainer: {
+    marginBottom: 32,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 10,
+  },
+  greetingBox: {
+    marginTop: 0,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 0,
   },
 
 

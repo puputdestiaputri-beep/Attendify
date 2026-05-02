@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -11,8 +11,44 @@ import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
-  const { logout, user, role } = useAuth();
+  const { logout, user, role, login } = useAuth();
   const { isDarkMode, setIsDarkMode } = useTheme();
+
+  // Refresh profile data from server on mount
+  useEffect(() => {
+    const refreshProfile = async () => {
+      try {
+        const token = await getAuthToken();
+        if (!token) return;
+
+        const response = await fetch(`${API_URL}/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success' && role) {
+          const userData = result.data;
+          // Sync with AuthContext
+          login(role, {
+            fullName: userData.name,
+            email: userData.email,
+            nim: userData.username || user?.nim,
+            prodi: userData.prodi,
+            kelas: userData.kelas,
+            phone: userData.phone,
+            avatar: userData.foto_profil || undefined,
+          });
+          console.log('🔄 Profile synced from server');
+        }
+      } catch (error) {
+        console.error('❌ Failed to refresh profile:', error);
+      }
+    };
+
+    refreshProfile();
+  }, []);
 
   const userName = user?.fullName || 'User';
   const roleLabel = role === 'dosen' ? 'Dosen' : role === 'admin' ? 'Administrator' : 'Mahasiswa';

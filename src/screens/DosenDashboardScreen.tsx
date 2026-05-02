@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, Dimensions, StatusBar, Modal
+  TouchableOpacity, Animated, Alert, Dimensions, StatusBar, Modal, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -261,10 +261,8 @@ const toggleManualScan = async () => {
           {/* Top Header */}
           <View style={styles.topHeader}>
             <View style={styles.headerRow}>
-              <View>
-                <Text style={styles.headerTitle}>Dashboard Dosen</Text>
-                <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
-              </View>
+              <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 180, height: 110, marginTop: -20, marginBottom: -25, marginLeft: -15 }} resizeMode="contain" />
+              
               <TouchableOpacity 
                 style={styles.reportBtn}
                 onPress={() => setShowReportModal(true)}
@@ -275,41 +273,13 @@ const toggleManualScan = async () => {
             </View>
           </View>
 
-          {/* Manual Scan Control Card */}
-          <BlurView intensity={25} tint="dark" style={styles.manualScanCard}>
-            <View style={styles.manualScanHeader}>
-              <ShieldCheck size={24} color="#10B981" />
-              <Text style={styles.manualScanTitle}>Scan Manual Wajah</Text>
+            <View style={styles.greetingBox}>
+              <Text style={styles.headerTitle}>Dashboard Dosen</Text>
+              <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
             </View>
-            <Text style={styles.manualScanDesc}>
-              Izinkan mahasiswa scan wajah secara manual (5 menit)
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.manualScanToggle,
-                manualScanEnabled && styles.manualScanToggleActive
-              ]}
-              onPress={toggleManualScan}
-              disabled={isLoading}
-            >
-              <LinearGradient
-                colors={manualScanEnabled ? ['#10B981', '#059669'] : ['#6B7280', '#475569']}
-                style={styles.manualScanGradient}
-              >
-                <Text style={styles.manualScanToggleText}>
-                  {manualScanEnabled ? `AKTIF ${formatTimer(manualScanTimer)}` : 'NYALAKAN'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            {manualScanEnabled && (
-              <View style={styles.manualScanFooter}>
-                <Zap size={16} color="#10B981" />
-                <Text style={styles.manualScanFooterText}>Mahasiswa dapat scan sekarang</Text>
-              </View>
-            )}
-          </BlurView>
+          </View>
 
-          {/* Active Class Banner */}
+          {/* ── Active Class Banner ── */}
           <BlurView intensity={30} tint="dark" style={styles.courseBanner}>
             <View style={styles.courseHeader}>
               <View style={styles.statusRow}>
@@ -558,11 +528,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  greetingBox: {
+    marginTop: 0,
   },
   reportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 0,
     backgroundColor: 'rgba(251, 191, 36, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 8,

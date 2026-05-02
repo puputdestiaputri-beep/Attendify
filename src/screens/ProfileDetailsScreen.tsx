@@ -22,6 +22,9 @@ import { useAuth } from '../context/AuthContext';
 import { Colors } from '../../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from '../components/CustomAlert';
+import { API_URL } from '../../constants/Config';
+import { getAuthToken } from '../services/authService';
+import * as FileSystem from 'expo-file-system';
 
 export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
@@ -62,11 +65,12 @@ export default function ProfileDetailsScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.5, // Kurangi kualitas agar ukuran base64 lebih kecil
     });
 
     if (!result.canceled) {
-      setAvatar(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setAvatar(uri); // tampilkan preview lokal
       setChanged(true);
     }
   };
@@ -74,20 +78,70 @@ export default function ProfileDetailsScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updatedUser = user ? 
-        { ...user, fullName: name, email, avatar, prodi, kelas, phone, nim: idNumber } : 
-        { fullName: name, email, avatar, prodi, kelas, phone, nim: idNumber };
-      
-      if (email && avatar) {
-        await AsyncStorage.setItem(`@avatar_${email}`, avatar);
+      const token = await getAuthToken();
+      let finalAvatar = avatar;
+
+      // Upload avatar ke server jika berubah dan merupakan URI lokal (bukan URL http atau data base64)
+      if (avatar && !avatar.startsWith('http') && !avatar.startsWith('data:')) {
+        try {
+          // Konversi URI lokal ke base64
+          const base64 = await FileSystem.readAsStringAsync(avatar, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const mimeType = 'image/jpeg';
+          const base64Data = `data:${mimeType};base64,${base64}`;
+
+          // Upload ke server
+          const uploadRes = await fetch(`${API_URL}/profile/avatar`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ avatar: base64Data }),
+          });
+
+          const uploadResult = await uploadRes.json();
+          if (uploadResult.status === 'success') {
+            finalAvatar = uploadResult.data.foto_profil;
+            console.log('✅ Avatar uploaded to server');
+          } else {
+            throw new Error(uploadResult.message);
+          }
+        } catch (uploadErr) {
+          console.error('Avatar upload error:', uploadErr);
+          showAlert('Peringatan', 'Gagal menyimpan foto ke server, tapi data lain berhasil disimpan.', 'error');
+        }
       }
 
-      if (role) {
-        login(role, updatedUser);
-        showAlert('Berhasil', 'Perubahan profil berhasil disimpan.', 'success');
-        setChanged(false);
+      // Update profile data
+      const profileRes = await fetch(`${API_URL}/profile/update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, prodi, kelas, phone }),
+      });
+
+      const profileResult = await profileRes.json();
+
+      if (profileResult.status === 'success' || !token) {
+        const updatedUser = user
+          ? { ...user, fullName: name, email, avatar: finalAvatar, prodi, kelas, phone, nim: idNumber }
+          : { fullName: name, email, avatar: finalAvatar, prodi, kelas, phone, nim: idNumber };
+
+        if (role) {
+          login(role, updatedUser);
+          showAlert('Berhasil', 'Perubahan profil berhasil disimpan.', 'success');
+          setChanged(false);
+          setAvatar(finalAvatar);
+        }
+      } else {
+        showAlert('Gagal', profileResult.message || 'Gagal update profil.', 'error');
       }
-    } catch (e) {
+    } catch (e: any) {
+      console.error('Save error:', e);
       showAlert('Gagal', 'Terjadi kesalahan saat menyimpan.', 'error');
     } finally {
       setSaving(false);

@@ -111,9 +111,12 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         
         // Save token for future API calls
         await saveAuthToken(token);
-        
-        // Ensure role matches what user selected, or use role from backend
-        // For admin, we should trust the backend role
+
+        // Gunakan foto_profil dari server (sudah tersimpan di database)
+        const serverAvatar = userData.foto_profil || null;
+        if (serverAvatar) {
+          console.log('🖼️ Avatar loaded from server for:', userData.email);
+        }
         
         login(userData.role, {
           fullName: userData.name,
@@ -121,6 +124,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           nim: userData.username || (role === 'mahasiswa' ? identifier : undefined),
           prodi: userData.prodi,
           kelas: userData.kelas,
+          phone: userData.phone,
+          avatar: serverAvatar || undefined,
         });
 
         // Handle Remember Me
@@ -160,24 +165,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header - Animated */}
-        <Animated.View 
-          entering={FadeInDown.duration(600).springify()}
-          style={styles.headerSection}
-        >
-          <View style={styles.logoContainer}>
-            <LinearGradient
-              colors={[DesignSystem.colors.secondary, DesignSystem.colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.logoBg}
-            >
-              <Text style={styles.logoText}>📱</Text>
-            </LinearGradient>
-          </View>
-          <Text style={styles.brandName}>ATTENDIFY</Text>
-          <Text style={styles.subtitle}>Sistem Kehadiran Pintar</Text>
-        </Animated.View>
+        {/* Logo and Header */}
+        <View style={styles.headerSection}>
+          <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 300, height: 220, marginBottom: -40 }} resizeMode="contain" />
+          <Text style={styles.subtitle}>Welcome Back!</Text>
+        </View>
 
         {/* Main Card - Glassmorphism */}
         <Animated.View 
@@ -381,9 +373,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1.5,
+    marginTop: -10,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   cardWrapper: {
     paddingHorizontal: 20,

@@ -113,26 +113,28 @@ const confirmLogout = () => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View>
+            <View style={styles.topRow}>
+              <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 180, height: 110, marginTop: -20, marginBottom: -25, marginLeft: -15 }} resizeMode="contain" />
+              
+              <View style={styles.headerRight}>
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={() => navigation.navigate('Notification')}
+                >
+                  <Bell size={22} color="#fff" />
+                  {unreadCount > 0 && (
+                    <View style={styles.badge} pointerEvents="none">
+                      <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.greetingBox}>
               <Text style={styles.welcomeText}>Hello, Admin Panel</Text>
               <Text style={styles.nameText}>{user?.fullName || 'System Master'}</Text>
             </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={() => navigation.navigate('Notification')}
-              >
-                <Bell size={22} color="#fff" />
-                {unreadCount > 0 && (
-                  <View style={styles.badge} pointerEvents="none">
-                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                  </View>
-                )}
-
-              </TouchableOpacity>
-            </View>
-
-
           </View>
 
           {/* IoT Status Banner */}
@@ -265,10 +267,16 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 60,
     paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 10,
+  },
+  greetingBox: {
+    marginTop: 0,
   },
   welcomeText: {
     color: 'rgba(255,255,255,0.6)',
@@ -283,6 +291,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 0,
   },
   iconButton: {
     width: 44,

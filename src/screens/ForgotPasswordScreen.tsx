@@ -80,32 +80,11 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <Animated.View 
-          entering={FadeInDown.duration(600).springify()}
-          style={styles.headerSection}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <ArrowLeft color="#FFF" size={22} />
-          </TouchableOpacity>
-          
-          <View style={styles.logoContainer}>
-            <LinearGradient
-              colors={[DesignSystem.colors.secondary, DesignSystem.colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.logoBg}
-            >
-              <Lock size={40} color="#FFF" />
-            </LinearGradient>
-          </View>
-          <Text style={styles.brandName}>RESET PASSWORD</Text>
-          <Text style={styles.subtitle}>Pulihkan akses akun Anda</Text>
-        </Animated.View>
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 300, height: 220, marginBottom: -40 }} resizeMode="contain" />
+          <Text style={styles.subtitle}>Reset Password</Text>
+        </View>
 
         {/* Main Card */}
         <Animated.View 
@@ -237,10 +216,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '500',
-    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1.5,
+    marginTop: -10,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   cardWrapper: {
     paddingHorizontal: 20,
