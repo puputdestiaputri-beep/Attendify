@@ -49,8 +49,11 @@ import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+
+let RNHTMLtoPDF: any = null;
+if (Platform.OS !== 'web') {
+  RNHTMLtoPDF = require('react-native-html-to-pdf');
+}
 
 const { width, height } = Dimensions.get('window');
 
@@ -494,43 +497,79 @@ export default function AdminJadwalScreen() {
     }
     setLoadingPDF(true);
     try {
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      doc.text(`Laporan Absensi ${selectedKelas ? `Kelas ${selectedKelas}` : ''}`, 14, 15);
-      
-      const tableData = filteredAbsensi.map((item: any) => [
-        item.name,
-        item.nim || '-',
-        item.nama_mk || selectedJadwal?.subject || '-',
-        item.nama_kelas || item.kelas || selectedKelas,
-        item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-',
-        item.waktu_datang || '-',
-        (item.status || '').toUpperCase()
-      ]);
+      let htmlRows = filteredAbsensi.map((item: any) => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.nim || '-'}</td>
+          <td>${item.nama_mk || selectedJadwal?.subject || '-'}</td>
+          <td>${item.nama_kelas || item.kelas || selectedKelas}</td>
+          <td>${item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
+          <td>${item.waktu_datang || '-'}</td>
+          <td>${(item.status || '').toUpperCase()}</td>
+        </tr>
+      `).join('');
 
-      autoTable(doc, {
-        head: [['Nama', 'NIM', 'Mata Kuliah', 'Kelas', 'Tanggal', 'Waktu', 'Status']],
-        body: tableData,
-        startY: 20,
-      });
-
-      const filename = selectedKelas ? `absensi_kelas_${selectedKelas}.pdf` : 'absensi.pdf';
+      let htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: sans-serif; padding: 20px; }
+              h1 { text-align: center; color: #333; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; color: #333; }
+            </style>
+          </head>
+          <body>
+            <h1>Laporan Absensi ${selectedKelas ? `Kelas ${selectedKelas}` : ''}</h1>
+            <table>
+              <tr>
+                <th>Nama</th>
+                <th>NIM</th>
+                <th>Mata Kuliah</th>
+                <th>Kelas</th>
+                <th>Tanggal</th>
+                <th>Waktu</th>
+                <th>Status</th>
+              </tr>
+              ${htmlRows}
+            </table>
+          </body>
+        </html>
+      `;
 
       if (Platform.OS === 'web') {
-        doc.save(filename);
-        showToast('Berhasil export PDF', 'success');
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        iframe.contentDocument?.write(htmlContent);
+        iframe.contentDocument?.close();
+        
+        // Wait for iframe content to load then print
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          showToast('Berhasil membuka menu cetak PDF', 'success');
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 2000);
+        }, 500);
       } else {
-        const pdfBase64 = doc.output('datauristring').split(',')[1];
-        // @ts-ignore
-        const fileUri = FileSystem.documentDirectory + filename;
-        await FileSystem.writeAsStringAsync(fileUri, pdfBase64, {
-          // @ts-ignore
-          encoding: FileSystem.EncodingType.Base64
-        });
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Bagikan PDF Absensi'
-        });
-        showToast('Berhasil export PDF', 'success');
+        let options = {
+          html: htmlContent,
+          fileName: selectedKelas ? `absensi_kelas_${selectedKelas}` : 'absensi',
+          directory: 'Documents',
+        };
+
+        let file = await RNHTMLtoPDF.convert(options);
+        
+        if (file.filePath) {
+          await Sharing.shareAsync(file.filePath, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Bagikan PDF Absensi'
+          });
+          showToast('Berhasil export PDF', 'success');
+        }
       }
     } catch (err: any) {
       console.error('PDF Error:', err);
