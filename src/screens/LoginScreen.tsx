@@ -54,20 +54,25 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     loadRemembered();
   }, []);
 
-  // Custom Alert State
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
 
   const showAlert = (title: string, message: string) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertVisible(true);
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      // Use the custom modal on native platforms
+      setAlertTitle(title);
+      setAlertMessage(message);
+      setAlertVisible(true);
+    }
   };
 
   const hideAlert = () => {
     setAlertVisible(false);
   };
+
 
   const handleLogin = async () => {
     if (!identifier.trim()) {

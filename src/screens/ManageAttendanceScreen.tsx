@@ -2,15 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, StatusBar, ActivityIndicator,
-  RefreshControl, Dimensions, Alert, ScrollView, Modal
+  RefreshControl, Dimensions, Alert, ScrollView, Modal, Linking
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   FileText, ChevronLeft, Calendar, 
   Search, Download, FileSpreadsheet,
   Users, BookOpen, Filter, CheckCircle2,
-  Clock, XCircle, Grid, RefreshCw, Edit2
+  Clock, XCircle, Grid, RefreshCw, Edit2, Send
 } from 'lucide-react-native';
+
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as XLSX from 'xlsx';
+import { Platform } from 'react-native';
+
+let RNHTMLtoPDF: any = null;
+if (Platform.OS !== 'web') {
+  RNHTMLtoPDF = require('react-native-html-to-pdf');
+}
 
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
@@ -49,6 +59,7 @@ export default function ManageAttendanceScreen() {
   const [selectedRecord, setSelectedRecord] = useState<AttendanceEntry | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   const fetchData = async () => {
     try {
@@ -93,22 +104,150 @@ export default function ManageAttendanceScreen() {
     fetchData();
   }, [selectedClassId]);
 
-  const handleExport = async (type: 'excel' | 'pdf') => {
+  const handleExportExcel = async () => {
+    if (attendance.length === 0) {
+      Alert.alert('Kosong', 'Tidak ada data absensi untuk diekspor.');
+      return;
+    }
     try {
-      const token = await AsyncStorage.getItem('@attendify_auth_token');
-      let url = `${API_URL}/reports/${type}?token=${token}`;
-      if (selectedClassId) url += `&class_id=${selectedClassId}`;
+      setIsExporting(true);
       
-      Alert.alert(
-        'Download Laporan',
-        `Menyiapkan file ${type.toUpperCase()} untuk ${selectedClassId ? 'kelas terpilih' : 'semua kelas'}...`,
-        [{ text: 'OK' }]
-      );
+      const dataToExport = attendance.map(item => ({
+        'Nama Mahasiswa': item.name,
+        'NIM': item.nim,
+        'Mata Kuliah': item.nama_mk,
+        'Kelas': item.nama_kelas,
+        'Tanggal': item.tanggal,
+        'Waktu Datang': item.waktu_datang || '-',
+        'Status': item.status.toUpperCase()
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Absensi");
       
-      console.log(`Downloading ${type} from ${url}`);
-      // In a real browser/emulator, we'd open the URL
-    } catch (err) {
-      Alert.alert('Error', `Gagal mengekspor ${type}`);
+      const wbout = XLSX.write(wb, { type: 'base64', bookType: "xlsx" });
+      // @ts-ignore
+      const fileUri = FileSystem.documentDirectory + "absensi.xlsx";
+      
+      await FileSystem.writeAsStringAsync(fileUri, wbout, {
+        // @ts-ignore
+        encoding: FileSystem.EncodingType.Base64
+      });
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        dialogTitle: 'Bagikan Excel Absensi'
+      });
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Gagal mengekspor file Excel.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Info', 'Fitur export PDF tidak tersedia di versi web. Harap gunakan aplikasi Android/iOS.');
+      return;
+    }
+    if (attendance.length === 0) {
+      Alert.alert('Kosong', 'Tidak ada data absensi untuk diekspor.');
+      return;
+    }
+    try {
+      setIsExporting(true);
+      
+      let htmlRows = attendance.map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.nim}</td>
+          <td>${item.nama_mk}</td>
+          <td>${item.nama_kelas}</td>
+          <td>${item.tanggal}</td>
+          <td>${item.waktu_datang || '-'}</td>
+          <td>${item.status.toUpperCase()}</td>
+        </tr>
+      `).join('');
+
+      let htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: sans-serif; padding: 20px; }
+              h1 { text-align: center; color: #333; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; color: #333; }
+            </style>
+          </head>
+          <body>
+            <h1>Laporan Absensi</h1>
+            <table>
+              <tr>
+                <th>Nama</th>
+                <th>NIM</th>
+                <th>Mata Kuliah</th>
+                <th>Kelas</th>
+                <th>Tanggal</th>
+                <th>Waktu</th>
+                <th>Status</th>
+              </tr>
+              ${htmlRows}
+            </table>
+          </body>
+        </html>
+      `;
+
+      let options = {
+        html: htmlContent,
+        fileName: 'absensi',
+        directory: 'Documents',
+      };
+
+      let file = await RNHTMLtoPDF.convert(options);
+      
+      if (file.filePath) {
+        await Sharing.shareAsync(file.filePath, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Bagikan PDF Absensi'
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Gagal mengekspor file PDF.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleSendWhatsApp = async (roleTarget: 'dosen' | 'kaprodi' | 'dekan') => {
+    let phoneNumber = '';
+    if (roleTarget === 'dosen') phoneNumber = '6282124247810';
+    else if (roleTarget === 'kaprodi') phoneNumber = '6285775607738';
+    else if (roleTarget === 'dekan') phoneNumber = '6285810598235';
+
+    const message = `Assalamu’alaikum,
+Berikut kami kirimkan laporan absensi mahasiswa hari ini.
+
+Mohon untuk ditinjau.
+
+Terima kasih.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'WhatsApp tidak terpasang atau URL tidak didukung.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Gagal membuka WhatsApp.');
     }
   };
 
@@ -228,15 +367,34 @@ export default function ManageAttendanceScreen() {
         </View>
 
         {/* Quick Export Bar */}
-        <View style={styles.exportBar}>
-          <TouchableOpacity style={styles.exportBtn} onPress={() => handleExport('excel')}>
-            <FileSpreadsheet size={18} color="#34D399" />
-            <Text style={styles.exportBtnText}>Excel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.exportBtn, { borderColor: 'rgba(248,113,113,0.3)' }]} onPress={() => handleExport('pdf')}>
-            <FileText size={18} color="#F87171" />
-            <Text style={styles.exportBtnText}>PDF</Text>
-          </TouchableOpacity>
+        <View style={styles.exportSection}>
+          <Text style={styles.exportSectionTitle}>Export & Share Reports</Text>
+          <View style={styles.exportRow}>
+            <TouchableOpacity style={styles.exportBtn} onPress={handleExportExcel} disabled={isExporting}>
+              {isExporting ? <ActivityIndicator size="small" color="#34D399" /> : <FileSpreadsheet size={18} color="#34D399" />}
+              <Text style={styles.exportBtnText}>Excel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.exportBtn, { borderColor: 'rgba(248,113,113,0.3)' }]} onPress={handleExportPDF} disabled={isExporting}>
+              {isExporting ? <ActivityIndicator size="small" color="#F87171" /> : <FileText size={18} color="#F87171" />}
+              <Text style={styles.exportBtnText}>PDF</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.exportSectionSubtitle}>Bagikan Laporan via WhatsApp</Text>
+          <View style={styles.waButtonsContainer}>
+            <TouchableOpacity style={styles.waBtn} onPress={() => handleSendWhatsApp('dosen')}>
+              <Send size={14} color="#25D366" />
+              <Text style={styles.waBtnText}>Kirim ke Dosen</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.waBtn} onPress={() => handleSendWhatsApp('kaprodi')}>
+              <Send size={14} color="#25D366" />
+              <Text style={styles.waBtnText}>Kirim ke Kaprodi</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.waBtn} onPress={() => handleSendWhatsApp('dekan')}>
+              <Send size={14} color="#25D366" />
+              <Text style={styles.waBtnText}>Kirim ke Dekan</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isLoading ? (
@@ -375,11 +533,25 @@ const styles = StyleSheet.create({
   classChipTextActive: {
     color: '#fff',
   },
-  exportBar: {
-    flexDirection: 'row',
+  exportSection: {
     paddingHorizontal: 20,
-    gap: 12,
     marginBottom: 20,
+  },
+  exportSectionTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  exportSectionSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  exportRow: {
+    flexDirection: 'row',
+    gap: 12,
   },
   exportBtn: {
     flex: 1,
@@ -389,7 +561,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(255,255,255,0.05)',
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(52,211,153,0.3)',
   },
@@ -397,6 +569,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  waButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  waBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(37,211,102,0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(37,211,102,0.3)',
+  },
+  waBtnText: {
+    color: '#25D366',
+    fontWeight: '600',
+    fontSize: 12,
   },
   listContent: {
     padding: 20,
