@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Animated, Alert, Dimensions, StatusBar, Modal, Image
+  TouchableOpacity, Alert, Dimensions, StatusBar, Modal, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import { API_URL } from '@env';
+import { API_URL } from '../../constants/Config';
 import {
   CheckCircle2, XCircle, Clock,
   Users, RefreshCw, Radio,
@@ -261,8 +261,11 @@ const toggleManualScan = async () => {
           {/* Top Header */}
           <View style={styles.topHeader}>
             <View style={styles.headerRow}>
-              <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 180, height: 110, marginTop: -20, marginBottom: -25, marginLeft: -15 }} resizeMode="contain" />
-              
+              <View style={styles.greetingBox}>
+                <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
+                <Text style={styles.headerTitle}>Dosen Attendify</Text>
+              </View>
+
               <TouchableOpacity 
                 style={styles.reportBtn}
                 onPress={() => setShowReportModal(true)}
@@ -273,11 +276,6 @@ const toggleManualScan = async () => {
             </View>
           </View>
 
-            <View style={styles.greetingBox}>
-              <Text style={styles.headerTitle}>Dashboard Dosen</Text>
-              <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
-            </View>
-          </View>
 
           {/* ── Active Class Banner ── */}
           <BlurView intensity={30} tint="dark" style={styles.courseBanner}>
@@ -288,7 +286,7 @@ const toggleManualScan = async () => {
                     ...styles.liveDot,
                     opacity: isSubmitted ? 0.4 : pulseAnim.value,
                     backgroundColor: isSubmitted ? 'rgba(255,255,255,0.4)' : '#10B981',
-                  }), [isSubmitted, pulseAnim])}
+                  }))}
                 />
                 <Text style={[styles.liveLabel, isSubmitted && { color: 'rgba(255,255,255,0.4)' }]}>
                   {isSubmitted ? 'SESI BERAKHIR' : 'SESI AKTIF'}
@@ -508,8 +506,6 @@ const toggleManualScan = async () => {
             </BlurView>
           </View>
         </Modal>
-
-        <ReportIssueModal visible={showReportModal} onClose={() => setShowReportModal(false)} />
       </AnimatedBackground>
     </View>
   );
@@ -532,6 +528,7 @@ const styles = StyleSheet.create({
   },
   greetingBox: {
     marginTop: 0,
+    flex: 1,
   },
   reportBtn: {
     flexDirection: 'row',

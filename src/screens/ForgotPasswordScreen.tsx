@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity,
-  StyleSheet, ScrollView, Alert
+  StyleSheet, ScrollView, Alert, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Mail, Send, ArrowLeft, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react-native';
@@ -181,6 +181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   headerSection: {
+    alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 30,
     paddingHorizontal: 20,
@@ -222,6 +223,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginTop: -10,
     marginBottom: 4,
+    textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,

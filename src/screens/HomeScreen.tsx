@@ -56,8 +56,15 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.headerContainer}>
           <View style={styles.topRow}>
-            <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 180, height: 110, marginTop: -20, marginBottom: -25, marginLeft: -15 }} resizeMode="contain" />
-            
+            <View style={styles.greetingBox}>
+              <Text style={[styles.subGreeting, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(31,41,55,0.8)' }]}>
+                Mahasiswa {userProdi}
+              </Text>
+              <Text style={[styles.greeting, { color: isDarkMode ? '#fff' : '#1f2937' }]}>
+                Halo, {userName} 👋
+              </Text>
+            </View>
+
             <View style={styles.headerRight}>
               <TouchableOpacity 
                 style={[styles.notifBtn, { marginRight: 10 }]} 
@@ -70,15 +77,6 @@ export default function HomeScreen() {
                 <View style={styles.notifDot} />
               </TouchableOpacity>
             </View>
-          </View>
-
-          <View style={styles.greetingBox}>
-            <Text style={[styles.greeting, { color: isDarkMode ? '#fff' : '#1f2937' }]}>
-              Halo, {userName} 👋
-            </Text>
-            <Text style={[styles.subGreeting, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(31,41,55,0.8)' }]}>
-              Mahasiswa {userProdi}
-            </Text>
           </View>
         </View>
 
@@ -223,6 +221,7 @@ const styles = StyleSheet.create({
   },
   greetingBox: {
     marginTop: 0,
+    flex: 1,
   },
   headerRight: {
     flexDirection: 'row',

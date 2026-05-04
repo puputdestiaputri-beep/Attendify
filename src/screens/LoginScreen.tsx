@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity,
-  StyleSheet, Platform, Dimensions, ScrollView, Modal
+  StyleSheet, Platform, Dimensions, ScrollView, Modal, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Mail, Users, User, MessageCircle, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react-native';

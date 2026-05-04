@@ -1,0 +1,4 @@
+﻿App.tsx(2,42): error TS7016: Could not find a declaration file for module 'text-encoding'. 'C:/laragon/www/Attendify/node_modules/text-encoding/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/text-encoding` if it exists or add a new declaration (.d.ts) file containing `declare module 'text-encoding';`
+src/screens/ProfileDetailsScreen.tsx(89,34): error TS2339: Property 'EncodingType' does not exist on type 'typeof import("C:/laragon/www/Attendify/node_modules/expo-file-system/build/index")'.
+src/screens/SplashScreen.tsx(15,23): error TS2307: Cannot find module 'expo-av' or its corresponding type declarations.

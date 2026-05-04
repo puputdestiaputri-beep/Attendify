@@ -7,6 +7,8 @@ import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationC
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { getAuthToken } from '../services/authService';
+import { API_URL } from '../../constants/Config';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 export default function ProfileScreen() {

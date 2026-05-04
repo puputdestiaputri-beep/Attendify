@@ -1,0 +1,1 @@
+﻿src/screens/ProfileDetailsScreen.tsx(28,10): error TS2305: Module '"expo-file-system"' has no exported member 'EncodingType'.

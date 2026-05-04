@@ -86,7 +86,7 @@ export default function ProfileDetailsScreen() {
         try {
           // Konversi URI lokal ke base64
           const base64 = await FileSystem.readAsStringAsync(avatar, {
-            encoding: FileSystem.EncodingType.Base64,
+            encoding: 'base64',
           });
           const mimeType = 'image/jpeg';
           const base64Data = `data:${mimeType};base64,${base64}`;

@@ -185,10 +185,10 @@ export default function SplashScreen({ navigation }: any) {
 
   const playSplashSound = async () => {
     try {
-      const { sound: audioSound } = await Audio.Sound.createAsync(require('../assets/splash.mp3'));
-      setSound(audioSound);
-      await audioSound.setVolumeAsync(0.4);
-      await audioSound.playAsync();
+      // const { sound: audioSound } = await Audio.Sound.createAsync(require('../assets/splash.mp3'));
+      // setSound(audioSound);
+      // await audioSound.setVolumeAsync(0.4);
+      // await audioSound.playAsync();
     } catch (error) {
       // Ignore gracefully if sound is missing
     }
@@ -364,7 +364,7 @@ export default function SplashScreen({ navigation }: any) {
           <Animated.View style={logoStyle}>
             <Animated.View style={[styles.glow, glowStyle]} />
             <Image
-              source={require('../assets/images/logo attendify.png')}
+              source={require('../assets/images/logo_attendify.png')}
               style={styles.logo}
               resizeMode="contain"
             />

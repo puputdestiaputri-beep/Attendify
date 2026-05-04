@@ -114,8 +114,11 @@ const confirmLogout = () => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.topRow}>
-              <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 180, height: 110, marginTop: -20, marginBottom: -25, marginLeft: -15 }} resizeMode="contain" />
-              
+              <View style={styles.greetingBox}>
+                <Text style={styles.welcomeText}>Hello, Admin Panel</Text>
+                <Text style={styles.nameText}>Admin Attendify</Text>
+              </View>
+
               <View style={styles.headerRight}>
                 <TouchableOpacity 
                   style={styles.iconButton}
@@ -129,11 +132,6 @@ const confirmLogout = () => {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
-
-            <View style={styles.greetingBox}>
-              <Text style={styles.welcomeText}>Hello, Admin Panel</Text>
-              <Text style={styles.nameText}>{user?.fullName || 'System Master'}</Text>
             </View>
           </View>
 
@@ -277,6 +275,7 @@ const styles = StyleSheet.create({
   },
   greetingBox: {
     marginTop: 0,
+    flex: 1,
   },
   welcomeText: {
     color: 'rgba(255,255,255,0.6)',
