@@ -8,6 +8,7 @@ import { UserPlus, Mail, Lock, User, Phone, Book, ArrowLeft, Check, Loader, Grad
 import { Colors } from '../../constants/Colors';
 import { API_URL } from '../../constants/Config';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +21,7 @@ interface CreateAccountScreenProps {
 
 export default function CreateAccountScreen({ navigation }: CreateAccountScreenProps) {
   const { login } = useAuth();
+  const { tokens, isLightTheme } = useTheme();
   const role = 'mahasiswa';
   const [formData, setFormData] = useState({
     fullName: '',
@@ -162,38 +164,38 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
         <View style={styles.headerSection}>
           <View style={styles.topRow}>
             <TouchableOpacity
-              style={styles.backButton}
+              style={[styles.backButton, { backgroundColor: isLightTheme ? 'rgba(0,0,0,0.05)' : 'rgba(255, 255, 255, 0.2)', borderColor: tokens.borderColor }]}
               onPress={() => navigation.goBack()}
             >
-              <ArrowLeft color="#fff" size={24} />
+              <ArrowLeft color={tokens.textColor} size={24} />
             </TouchableOpacity>
           </View>
           
           <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 300, height: 220, marginBottom: -40 }} resizeMode="contain" />
-          <Text style={styles.subtitle}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: tokens.textColor }]}>Create Account</Text>
         </View>
 
         {/* Main Card Container */}
-        <AnimatedCard variant="glass" style={styles.cardContainer}>
+        <AnimatedCard variant={isLightTheme ? "surface" : "glass"} style={[styles.cardContainer, { borderColor: tokens.borderColor }]}>
           {/* Role Selector */}
           {/* Public Registration is only for Mahasiswa - Role Selector Removed */}
 
           {/* Error Message */}
           {errors.general && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>❌ {errors.general}</Text>
+            <View style={[styles.errorBox, { backgroundColor: isLightTheme ? '#ffe5e5' : 'rgba(239, 68, 68, 0.1)', borderColor: isLightTheme ? '#ffcccc' : 'rgba(239, 68, 68, 0.2)' }]}>
+              <Text style={[styles.errorText, { color: '#ef4444' }]}>❌ {errors.general}</Text>
             </View>
           )}
 
           {/* Input Fields */}
           <View style={styles.inputWrapper}>
             {/* Full Name */}
-            <View style={[styles.inputContainer, errors.fullName && styles.inputContainerError]}>
-              <User size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.fullName && styles.inputContainerError]}>
+              <User size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.textColor }]}
                 placeholder="Nama Lengkap"
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.labelColor}
                 value={formData.fullName}
                 onChangeText={(text) => updateFormData('fullName', text)}
                 editable={!isLoading}
@@ -202,12 +204,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {errors.fullName && <Text style={styles.errorMsg}>{errors.fullName}</Text>}
 
             {/* NIM/NIP */}
-            <View style={[styles.inputContainer, errors.identifier && styles.inputContainerError]}>
-              <IdCard size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.identifier && styles.inputContainerError]}>
+              <IdCard size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.textColor }]}
                 placeholder={role === 'mahasiswa' ? 'NIM' : role === 'dosen' ? 'NIP' : 'Username'}
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.labelColor}
                 value={formData.identifier}
                 onChangeText={(text) => updateFormData('identifier', text)}
                 editable={!isLoading}
@@ -216,12 +218,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {errors.identifier && <Text style={styles.errorMsg}>{errors.identifier}</Text>}
 
             {/* Email */}
-            <View style={[styles.inputContainer, errors.email && styles.inputContainerError]}>
-              <Mail size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.email && styles.inputContainerError]}>
+              <Mail size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.textColor }]}
                 placeholder="Email"
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.labelColor}
                 value={formData.email}
                 onChangeText={(text) => updateFormData('email', text)}
                 keyboardType="email-address"
@@ -232,12 +234,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {errors.email && <Text style={styles.errorMsg}>{errors.email}</Text>}
 
             {/* Phone (Optional) */}
-            <View style={[styles.inputContainer, errors.phone && styles.inputContainerError]}>
-              <Phone size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.phone && styles.inputContainerError]}>
+              <Phone size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.textColor }]}
                 placeholder="Nomor Telepon (Opsional)"
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.labelColor}
                 value={formData.phone}
                 onChangeText={(text) => updateFormData('phone', text)}
                 keyboardType="phone-pad"
@@ -249,12 +251,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {/* Program Studi (Mahasiswa only, Optional) */}
             {role === 'mahasiswa' && (
               <>
-                <View style={[styles.inputContainer, errors.prodi && styles.inputContainerError]}>
-                  <GraduationCap size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+                <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.prodi && styles.inputContainerError]}>
+                  <GraduationCap size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: tokens.textColor }]}
                     placeholder="Program Studi (Opsional)"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor={tokens.labelColor}
                     value={formData.prodi}
                     onChangeText={(text) => updateFormData('prodi', text)}
                     editable={!isLoading}
@@ -267,12 +269,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             {/* Kelas (Mahasiswa only, Optional) */}
             {role === 'mahasiswa' && (
               <>
-                <View style={[styles.inputContainer, errors.kelas && styles.inputContainerError]}>
-                  <Users size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+                <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.kelas && styles.inputContainerError]}>
+                  <Users size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: tokens.textColor }]}
                     placeholder="Kelas (Opsional)"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor={tokens.labelColor}
                     value={formData.kelas}
                     onChangeText={(text) => updateFormData('kelas', text)}
                     editable={!isLoading}
@@ -283,12 +285,12 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             )}
 
             {/* Password */}
-            <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
-              <Lock size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.password && styles.inputContainerError]}>
+              <Lock size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.textColor }]}
                 placeholder="Password"
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.labelColor}
                 value={formData.password}
                 onChangeText={(text) => updateFormData('password', text)}
                 secureTextEntry={!showPassword}
@@ -296,21 +298,21 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                 {showPassword ? (
-                  <Eye size={20} color="rgba(255,255,255,0.5)" />
+                  <Eye size={20} color={tokens.labelColor} />
                 ) : (
-                  <EyeOff size={20} color="rgba(255,255,255,0.5)" />
+                  <EyeOff size={20} color={tokens.labelColor} />
                 )}
               </TouchableOpacity>
             </View>
             {errors.password && <Text style={styles.errorMsg}>{errors.password}</Text>}
 
             {/* Confirm Password */}
-            <View style={[styles.inputContainer, errors.confirmPassword && styles.inputContainerError]}>
-              <Lock size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }, errors.confirmPassword && styles.inputContainerError]}>
+              <Lock size={20} color={isLightTheme ? '#1E4FA8' : '#60a5fa'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.textColor }]}
                 placeholder="Konfirmasi Password"
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.labelColor}
                 value={formData.confirmPassword}
                 onChangeText={(text) => updateFormData('confirmPassword', text)}
                 secureTextEntry={!showConfirmPassword}
@@ -318,9 +320,9 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
                 {showConfirmPassword ? (
-                  <Eye size={20} color="rgba(255,255,255,0.5)" />
+                  <Eye size={20} color={tokens.labelColor} />
                 ) : (
-                  <EyeOff size={20} color="rgba(255,255,255,0.5)" />
+                  <EyeOff size={20} color={tokens.labelColor} />
                 )}
               </TouchableOpacity>
             </View>
@@ -334,7 +336,7 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
             disabled={isLoading}
           >
             <LinearGradient
-              colors={[Colors.attendify.primary, Colors.attendify.secondary]}
+              colors={isLightTheme ? ['#1E4FA8', '#2D6CDF'] : [Colors.attendify.primary, Colors.attendify.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
@@ -351,18 +353,19 @@ export default function CreateAccountScreen({ navigation }: CreateAccountScreenP
           </TouchableOpacity>
 
           {/* Terms & Conditions */}
-          <Text style={styles.termsText}>
+          <Text style={[styles.termsText, { color: tokens.subTextColor }]}>
             By creating an account, you agree to our{' '}
-            <Text style={styles.termsLink}>Terms & Conditions</Text>
+            <Text style={[styles.termsLink, { color: isLightTheme ? '#1E4FA8' : '#60a5fa' }]}>Terms & Conditions</Text>
           </Text>
 
           {/* Sign In Link */}
           <View style={styles.signInContainer}>
-            <Text style={styles.signInText}>Already have an account? </Text>
+            <Text style={[styles.signInText, { color: tokens.subTextColor }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.goBack()} disabled={isLoading}>
-              <Text style={styles.signInLink}>Sign In</Text>
+              <Text style={[styles.signInLink, { color: isLightTheme ? '#1E4FA8' : '#60a5fa' }]}>Sign In</Text>
             </TouchableOpacity>
           </View>
+
         </AnimatedCard>
       </ScrollView>
     </AnimatedBackground>
@@ -392,12 +395,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   logoContainer: {
     width: 80,
@@ -436,6 +437,9 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     marginHorizontal: 20,
     marginVertical: 20,
+    borderWidth: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
   },
   roleContainer: {
     flexDirection: 'row',
@@ -466,15 +470,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   errorBox: {
-    backgroundColor: '#ffe5e5',
     borderRadius: 12,
     padding: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ffcccc',
   },
   errorText: {
-    color: Colors.attendify.error,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -484,23 +485,20 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.1)',
     marginBottom: 6,
     paddingHorizontal: 16,
     height: 52,
   },
   inputContainerError: {
-    borderColor: Colors.attendify.error,
+    borderColor: '#ef4444',
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    color: '#ffffff',
     fontSize: 15,
   },
   eyeIcon: {
@@ -510,7 +508,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   errorMsg: {
-    color: Colors.attendify.error,
+    color: '#ef4444',
     fontSize: 12,
     marginBottom: 12,
     marginLeft: 16,

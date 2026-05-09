@@ -6,6 +6,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { DesignSystem } from '../../../constants/DesignSystem';
 import { LucideIcon } from 'lucide-react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 interface AnimatedInputProps extends TextInputProps {
   icon?: LucideIcon;
@@ -18,7 +19,7 @@ interface AnimatedInputProps extends TextInputProps {
 
 export const AnimatedInput: React.FC<AnimatedInputProps> = ({
   icon: Icon,
-  iconColor = DesignSystem.colors.primary,
+  iconColor,
   label,
   error,
   containerStyle,
@@ -26,6 +27,7 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
   placeholder,
   ...props
 }) => {
+  const { tokens, isLightTheme } = useTheme();
   const glowAnim = useRef(new Animated.Value(0)).current;
   const [isFocused, setIsFocused] = React.useState(false);
   const [hasValue, setHasValue] = React.useState(false);
@@ -61,10 +63,12 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
   const borderColorAnimation = glowAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [
-      DesignSystem.colors.glassBorder,
-      DesignSystem.colors.primary,
+      tokens.borderColor,
+      isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary,
     ],
   });
+
+  const effectiveIconColor = iconColor || (isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -90,6 +94,7 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
           <View
             style={[
               styles.inputContainer,
+              { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor },
               error ? styles.errorBorder : styles.defaultBorder,
               isFocused && styles.focusedBorder,
             ]}
@@ -97,17 +102,17 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
             {Icon && (
               <Icon
                 size={20}
-                color={isFocused ? DesignSystem.colors.primary : iconColor}
+                color={isFocused ? (isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary) : effectiveIconColor}
                 style={styles.icon}
               />
             )}
             <TextInput
               {...props}
               placeholder={label && floatingLabel ? '' : placeholder}
-              placeholderTextColor="rgba(255,255,255,0.5)"
+              placeholderTextColor={tokens.labelColor}
               style={[
                 styles.input,
-                { paddingLeft: Icon ? 40 : 16 },
+                { paddingLeft: Icon ? 40 : 16, color: tokens.textColor },
               ]}
               onFocus={handleFocus}
               onBlur={handleBlur}
@@ -161,10 +166,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: DesignSystem.radius.md,
     borderWidth: 1,
-    borderColor: DesignSystem.colors.glassBorder,
   },
   defaultBorder: {
     borderColor: DesignSystem.colors.glassBorder,

@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,7 @@ const { width } = Dimensions.get('window');
 export default function AdminDashboardScreen() {
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
+  const { tokens, isLightTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   // Use centralized API_URL from Config.ts
@@ -74,32 +76,32 @@ const confirmLogout = () => {
   logout();
 };
 
-  const AdminCard = ({ title, icon: Icon, color, onPress, subtitle }: any) => (
+  const AdminCard = ({ title, subtitle, icon: Icon, color, onPress }: any) => (
     <TouchableOpacity 
+      activeOpacity={0.7} 
       onPress={onPress}
-      activeOpacity={0.7}
-      style={styles.cardWrapper}
+      style={[styles.cardWrapper, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.03)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]}
     >
-      <BlurView intensity={20} tint="dark" style={styles.menuCard}>
-        <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
+      <View style={styles.menuCard}>
+        <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
           <Icon size={24} color={color} />
         </View>
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.cardSubtitle}>{subtitle}</Text>
+          <Text style={[styles.cardTitle, { color: tokens.textColor }]}>{title}</Text>
+          <Text style={[styles.cardSubtitle, { color: tokens.subTextColor }]}>{subtitle}</Text>
         </View>
-        <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
-      </BlurView>
+        <ChevronRight size={20} color={tokens.subTextColor} />
+      </View>
     </TouchableOpacity>
   );
 
   const StatItem = ({ label, value, icon: Icon, color }: any) => (
-    <BlurView intensity={20} tint="dark" style={styles.statCard}>
+    <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.statCard, { borderColor: tokens.borderColor }]}>
       <View style={[styles.statIconBox, { backgroundColor: `${color}15` }]}>
         <Icon size={18} color={color} />
       </View>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: tokens.subTextColor }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: tokens.textColor }]}>{value}</Text>
     </BlurView>
   );
 
@@ -115,16 +117,16 @@ const confirmLogout = () => {
           <View style={styles.header}>
             <View style={styles.topRow}>
               <View style={styles.greetingBox}>
-                <Text style={styles.welcomeText}>Hello, Admin Panel</Text>
-                <Text style={styles.nameText}>Admin Attendify</Text>
+                <Text style={[styles.welcomeText, { color: tokens.subTextColor }]}>Hello, Admin Panel</Text>
+                <Text style={[styles.nameText, { color: tokens.textColor }]}>Admin Attendify</Text>
               </View>
 
               <View style={styles.headerRight}>
                 <TouchableOpacity 
-                  style={styles.iconButton}
+                  style={[styles.iconButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
                   onPress={() => navigation.navigate('Notification')}
                 >
-                  <Bell size={22} color="#fff" />
+                  <Bell size={22} color={isLightTheme ? '#374151' : '#fff'} />
                   {unreadCount > 0 && (
                     <View style={styles.badge} pointerEvents="none">
                       <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -136,25 +138,25 @@ const confirmLogout = () => {
           </View>
 
           {/* IoT Status Banner */}
-          <BlurView intensity={30} tint="dark" style={styles.statusBanner}>
+          <BlurView intensity={30} tint={isLightTheme ? 'light' : 'dark'} style={[styles.statusBanner, { borderColor: tokens.borderColor }]}>
             <View style={styles.statusHeader}>
               <View style={styles.liveIndicator}>
                 <Animated.View style={[styles.pulseDot, { opacity: pulseAnim }]} />
                 <Text style={styles.liveText}>SYSTEM ONLINE</Text>
               </View>
-              <Text style={styles.uptimeText}>Uptime: 14d 2h 45m</Text>
+              <Text style={[styles.uptimeText, { color: tokens.subTextColor }]}>Uptime: 14d 2h 45m</Text>
             </View>
             <View style={styles.deviceRow}>
               <View style={styles.deviceItem}>
                 <Cpu size={20} color={Colors.ai.primary} />
-                <Text style={styles.deviceLabel}>ESP32 Server</Text>
-                <Text style={styles.deviceStatus}>Active</Text>
+                <Text style={[styles.deviceLabel, { color: tokens.textColor }]}>ESP32 Server</Text>
+                <Text style={[styles.deviceStatus, { color: tokens.subTextColor }]}>Active</Text>
               </View>
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: tokens.borderColor }]} />
               <View style={styles.deviceItem}>
                 <Camera size={20} color={Colors.ai.primary} />
-                <Text style={styles.deviceLabel}>Face Sensor</Text>
-                <Text style={styles.deviceStatus}>Calibrating</Text>
+                <Text style={[styles.deviceLabel, { color: tokens.textColor }]}>Face Sensor</Text>
+                <Text style={[styles.deviceStatus, { color: tokens.subTextColor }]}>Calibrating</Text>
               </View>
             </View>
           </BlurView>
@@ -182,7 +184,7 @@ const confirmLogout = () => {
           </View>
 
           {/* Management Menu */}
-          <Text style={styles.sectionTitle}>System Management</Text>
+          <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>System Management</Text>
           <View style={styles.menuContainer}>
             <AdminCard 
               title="Data Siswa" 
@@ -224,39 +226,50 @@ const confirmLogout = () => {
         </ScrollView>
       </AnimatedBackground>
 
-      {/* Logout Modal */}
-      <Modal
-        visible={showLogoutModal}
-        transparent={true}
-        animationType="fade"
-      >
-        <View style={styles.modalOverlay}>
-          <BlurView intensity={50} tint="dark" style={styles.modalContent}>
-            <View style={styles.modalIconBox}>
-              <LogOut size={32} color="#F87171" />
-            </View>
-            <Text style={styles.modalTitle}>Confirm Logout</Text>
-            <Text style={styles.modalSubtitle}>Are you sure you want to exit the admin panel?</Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.cancelBtn} 
-                onPress={() => setShowLogoutModal(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.confirmBtn} 
-                onPress={confirmLogout}
-              >
-                <Text style={styles.confirmBtnText}>Logout</Text>
-              </TouchableOpacity>
-            </View>
-          </BlurView>
-        </View>
-      </Modal>
+      <LogoutModal 
+        visible={showLogoutModal} 
+        onClose={() => setShowLogoutModal(false)} 
+        onConfirm={confirmLogout}
+        tokens={tokens}
+        isLightTheme={isLightTheme}
+      />
     </View>
   );
 }
+
+// Separate component for clarity if needed, or keep inline
+const LogoutModal = ({ visible, onClose, onConfirm, tokens, isLightTheme }: any) => (
+  <Modal
+    visible={visible}
+    transparent={true}
+    animationType="fade"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalOverlay}>
+      <BlurView intensity={50} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+        <View style={styles.modalIconBox}>
+          <LogOut size={32} color="#F87171" />
+        </View>
+        <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Confirm Logout</Text>
+        <Text style={[styles.modalSubtitle, { color: tokens.subTextColor }]}>Are you sure you want to exit the admin panel?</Text>
+        <View style={styles.modalButtons}>
+          <TouchableOpacity 
+            style={[styles.cancelBtn, { backgroundColor: tokens.iconButtonBg }]} 
+            onPress={onClose}
+          >
+            <Text style={[styles.cancelBtnText, { color: tokens.textColor }]}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.confirmBtn} 
+            onPress={onConfirm}
+          >
+            <Text style={styles.confirmBtnText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
+    </View>
+  </Modal>
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -274,33 +287,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   greetingBox: {
-    marginTop: 0,
     flex: 1,
   },
   welcomeText: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     fontWeight: '500',
   },
   nameText: {
-    color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
   },
   headerRight: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 0,
   },
   iconButton: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     position: 'relative',
     zIndex: 10,
   },
@@ -340,7 +347,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
     marginBottom: 24,
   },
@@ -368,7 +374,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   uptimeText: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 11,
   },
   deviceRow: {
@@ -381,18 +386,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   deviceLabel: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
   deviceStatus: {
-    color: 'rgba(255,255,255,0.5)',
     fontSize: 11,
   },
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -406,7 +408,6 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
   },
   statIconBox: {
@@ -419,7 +420,6 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
     fontWeight: '500',
     marginBottom: 2,
   },
@@ -430,7 +430,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     marginHorizontal: 24,
     marginBottom: 16,
   },
@@ -442,7 +441,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   menuCard: {
     flexDirection: 'row',
@@ -461,12 +459,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   cardSubtitle: {
-    color: 'rgba(255,255,255,0.5)',
     fontSize: 12,
     marginTop: 2,
   },
@@ -482,7 +478,6 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
   },
   modalIconBox: {
@@ -497,13 +492,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(248,113,113,0.3)',
   },
   modalTitle: {
-    color: '#fff',
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 12,
   },
   modalSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     fontSize: 15,
     lineHeight: 22,

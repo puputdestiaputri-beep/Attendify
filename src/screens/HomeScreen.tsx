@@ -19,7 +19,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   console.log('HomeScreen User Data:', JSON.stringify(user));
-  const { isDarkMode } = useTheme();
+  const { tokens, isLightTheme } = useTheme();
   const [showReportModal, setShowReportModal] = useState(false);
 
 
@@ -57,23 +57,23 @@ export default function HomeScreen() {
         <View style={styles.headerContainer}>
           <View style={styles.topRow}>
             <View style={styles.greetingBox}>
-              <Text style={[styles.subGreeting, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(31,41,55,0.8)' }]}>
+              <Text style={[styles.subGreeting, { color: tokens.subTextColor }]}>
                 Mahasiswa {userProdi}
               </Text>
-              <Text style={[styles.greeting, { color: isDarkMode ? '#fff' : '#1f2937' }]}>
+              <Text style={[styles.greeting, { color: tokens.textColor }]}>
                 Halo, {userName} 👋
               </Text>
             </View>
 
             <View style={styles.headerRight}>
               <TouchableOpacity 
-                style={[styles.notifBtn, { marginRight: 10 }]} 
+                style={[styles.notifBtn, { marginRight: 10, backgroundColor: tokens.iconButtonBg }]} 
                 onPress={() => setShowReportModal(true)}
               >
                 <AlertTriangle color="#FBBF24" size={22} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.notifBtn} onPress={handleNotification}>
-                <Bell color="#fff" size={22} />
+              <TouchableOpacity style={[styles.notifBtn, { backgroundColor: tokens.iconButtonBg }]} onPress={handleNotification}>
+                <Bell color={isLightTheme ? '#374151' : '#fff'} size={22} />
                 <View style={styles.notifDot} />
               </TouchableOpacity>
             </View>
@@ -81,330 +81,232 @@ export default function HomeScreen() {
         </View>
 
         {/* Status */}
-        <BlurView intensity={20} tint="dark" style={styles.statusCard}>
+        <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.statusCard, { borderWidth: 1, borderColor: tokens.borderColor }]}>
           <View style={styles.statusInfo}>
-            <Text style={styles.statusLabel}>Status Hari Ini</Text>
+            <Text style={[styles.statusLabel, { color: tokens.textColor }]}>Status Hari Ini</Text>
             <View style={styles.statusBadge}>
               <View style={styles.pulseDot} />
               <Text style={styles.statusBadgeText}>Belum Absen</Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: tokens.borderColor }]} />
 
           <View style={styles.statusDetails}>
             <View style={styles.detailItem}>
               <CheckCircle2 color="#4ADE80" size={16} />
-              <Text style={styles.detailText}>Tepat Waktu</Text>
+              <Text style={[styles.detailText, { color: tokens.subTextColor }]}>Tepat Waktu</Text>
             </View>
-            <Text style={styles.detailValue}>0%</Text>
+            <Text style={[styles.detailValue, { color: tokens.textColor }]}>0%</Text>
           </View>
         </BlurView>
 
-        {/* Banner */}
-        <View style={styles.scheduleBanner}>
-          <LinearGradient
-            colors={['rgba(59,130,246,0.5)', 'rgba(147,51,234,0.5)']}
-            style={styles.bannerGradient}
+        {/* Main Menu */}
+        <View style={styles.menuContainer}>
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]} 
+            onPress={handleScan}
           >
-            <View style={styles.bannerHeader}>
-              <Text style={styles.bannerTitle}>Mata Kuliah Sekarang</Text>
-              <View style={styles.liveBadge}>
-                <Text style={styles.liveText}>ONGOING</Text>
-              </View>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
+              <Camera color="#60A5FA" size={26} />
             </View>
+            <Text style={[styles.menuLabel, { color: tokens.textColor }]}>Scan QR</Text>
+          </TouchableOpacity>
 
-            <Text style={styles.courseName}>Kecerdasan Buatan</Text>
-
-            <View style={styles.courseDetails}>
-              <View style={styles.courseDetailItem}>
-                <Clock color="rgba(255,255,255,0.7)" size={14} />
-                <Text style={styles.courseDetailText}>13:00 - 15:30</Text>
-              </View>
-
-              <View style={styles.courseDetailItem}>
-                <MapPin color="rgba(255,255,255,0.7)" size={14} />
-                <Text style={styles.courseDetailText}>Ruang 402</Text>
-              </View>
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]} 
+            onPress={handleJadwal}
+          >
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(167, 139, 250, 0.15)' }]}>
+              <Calendar color="#A78BFA" size={26} />
             </View>
-          </LinearGradient>
+            <Text style={[styles.menuLabel, { color: tokens.textColor }]}>Jadwal</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]} 
+            onPress={handleESP32Camera}
+          >
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(244, 114, 182, 0.15)' }]}>
+              <Clock color="#F472B6" size={26} />
+            </View>
+            <Text style={[styles.menuLabel, { color: tokens.textColor }]}>ESP32 Cam</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Attendance Chart */}
-        <BlurView intensity={20} tint="dark" style={styles.chartCard}>
-          <AttendanceChart
-            data={attendanceData}
-            title="Grafik Absensi Semua Mata Kuliah"
-            showLegend={true}
-          />
-        </BlurView>
+        {/* Attendance Statistics */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>Statistik Absensi</Text>
+        </View>
 
-        {/* Menu */}
-        <Text style={styles.sectionTitle}>Menu Utama</Text>
-
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={styles.actionScroll}
-          snapToInterval={width * 0.45 + 15}
-          decelerationRate="fast"
-          snapToAlignment="start"
+        <BlurView 
+          intensity={20} 
+          tint={isLightTheme ? 'light' : 'dark'} 
+          style={[styles.chartWrapper, { borderColor: tokens.borderColor, backgroundColor: tokens.cardBg }]}
         >
-          <TouchableOpacity style={styles.actionBtn} onPress={handleScan}>
-            <LinearGradient colors={['#6366F1', '#4F46E5']} style={styles.actionGradient}>
-              <View style={styles.iconCircle}>
-                <Camera color="#fff" size={28} />
-              </View>
-              <Text style={styles.actionBtnText}>Scan Wajah</Text>
-              <Text style={styles.actionBtnSub}>Absensi Cepat</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn} onPress={handleJadwal}>
-            <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.actionGradient}>
-              <View style={styles.iconCircle}>
-                <Calendar color="#fff" size={28} />
-              </View>
-              <Text style={styles.actionBtnText}>Lihat Jadwal</Text>
-              <Text style={styles.actionBtnSub}>Agenda Kuliah</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionBtn, { marginRight: 0 }]} onPress={handleESP32Camera}>
-            <LinearGradient colors={['#10B981', '#06B6D4']} style={styles.actionGradient}>
-              <View style={styles.iconCircle}>
-                <Camera color="#fff" size={28} />
-              </View>
-              <Text style={styles.actionBtnText}>ESP32 Camera</Text>
-              <Text style={styles.actionBtnSub}>Live IoT</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Tips */}
-        <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>💡 Tips Hari Ini</Text>
-          <Text style={styles.tipContent}>
-            Jangan lupa scan wajah minimal 15 menit sebelum kuliah dimulai.
-          </Text>
-        </View>
-
+          <AttendanceChart data={attendanceData} />
+        </BlurView>
       </ScrollView>
-
 
       <ReportIssueModal 
         visible={showReportModal} 
         onClose={() => setShowReportModal(false)} 
       />
     </AnimatedBackground>
-
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   scrollContent: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
-
   headerContainer: {
-    marginBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
   greetingBox: {
-    marginTop: 0,
     flex: 1,
+  },
+  subGreeting: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  greeting: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 0,
   },
-
-
-  greeting: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-
-  subGreeting: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-  },
-
   notifBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-
   notifDot: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
   },
-
   statusCard: {
-    borderRadius: 20,
+    marginHorizontal: 20,
+    borderRadius: 24,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 24,
+    overflow: 'hidden',
   },
-
   statusInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-
-  statusLabel: { color: '#fff' },
-
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
   },
-
-  statusBadgeText: { color: '#FDE047' },
-
   pulseDot: {
-    width: 6,
-    height: 6,
-    backgroundColor: '#FDE047',
-    marginRight: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
   },
-
+  statusBadgeText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 10,
+    width: '100%',
+    marginBottom: 16,
   },
-
   statusDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-
-  detailText: { color: '#ccc' },
-  detailValue: { color: '#fff' },
-
-  scheduleBanner: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 20,
+  detailText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
-
-  chartCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-
-  bannerGradient: { padding: 20 },
-
-  bannerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-
-  bannerTitle: { color: '#fff' },
-
-  liveBadge: {
-    backgroundColor: '#EF4444',
-    padding: 4,
-    borderRadius: 6,
-  },
-
-  liveText: { color: '#fff', fontSize: 10 },
-
-  courseName: {
-    color: '#fff',
+  detailValue: {
     fontSize: 18,
     fontWeight: 'bold',
   },
-
-  courseDetails: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-
-  courseDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-
-  courseDetailText: { color: '#ddd' },
-
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    marginBottom: 10,
-  },
-
-  actionScroll: {
-    paddingRight: 20, // Extra space at the end
-  },
-
-  actionRow: {
+  menuContainer: {
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 24,
   },
-
-  actionBtn: {
-    width: width * 0.45,
+  menuItem: {
+    width: (width - 60) / 3,
+    alignItems: 'center',
+    padding: 16,
     borderRadius: 20,
-    overflow: 'hidden',
-    marginRight: 15,
+    borderWidth: 1,
   },
-
-  actionGradient: {
-    padding: 20,
-  },
-
-  iconCircle: {
+  iconBox: {
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10,
   },
-
-  actionBtnText: { color: '#fff', marginTop: 10 },
-  actionBtnSub: { color: '#ccc', fontSize: 12 },
-
-  tipCard: {
-    marginTop: 20,
+  menuLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  sectionHeader: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  chartWrapper: {
+    marginHorizontal: 20,
     padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 30,
+    overflow: 'hidden',
   },
-
-  tipTitle: { color: '#fff', fontWeight: 'bold' },
-  tipContent: { color: '#ccc', marginTop: 5 },
 });

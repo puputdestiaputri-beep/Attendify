@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, StyleSheet, ViewStyle, Pressable,
+  View, StyleSheet, ViewStyle, Pressable, StyleProp
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -12,7 +12,7 @@ import { DesignSystem } from '../../../constants/DesignSystem';
 
 interface AnimatedCardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   variant?: 'glass' | 'gradient' | 'surface';
   gradient?: [string, string, string?];

@@ -11,6 +11,7 @@ import { Colors } from '@/constants/Colors';
 import { API_URL } from '@/constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from './CustomAlert';
+import { useTheme } from '../context/ThemeContext';
 
 interface ReportIssueModalProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface ReportIssueModalProps {
 }
 
 export default function ReportIssueModal({ visible, onClose, adminId = 1 }: ReportIssueModalProps) {
+  const { tokens, isLightTheme } = useTheme();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -87,37 +89,37 @@ export default function ReportIssueModal({ visible, onClose, adminId = 1 }: Repo
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <BlurView intensity={30} tint="dark" style={styles.blurContainer}>
+        <BlurView intensity={30} tint={isLightTheme ? 'light' : 'dark'} style={styles.blurContainer}>
           <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContent}
           >
-            <View style={styles.gradientCard}>
+            <View style={[styles.gradientCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.header}>
                 <View style={styles.titleRow}>
                   <AlertTriangle size={20} color="#FBBF24" />
-                  <Text style={styles.title}>Laporkan Masalah</Text>
+                  <Text style={[styles.title, { color: tokens.textColor }]}>Laporkan Masalah</Text>
                 </View>
                 <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                  <X size={20} color="rgba(255,255,255,0.5)" />
+                  <X size={20} color={tokens.subTextColor} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.form}>
-                <Text style={styles.label}>Judul Laporan</Text>
+                <Text style={[styles.label, { color: tokens.subTextColor }]}>Judul Laporan</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: tokens.inputBg, color: tokens.textColor, borderColor: tokens.borderColor }]}
                   placeholder="Contoh: Kamera Rusak, Jadwal Salah"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={tokens.labelColor}
                   value={title}
                   onChangeText={setTitle}
                 />
 
-                <Text style={styles.label}>Pesan / Detail</Text>
+                <Text style={[styles.label, { color: tokens.subTextColor }]}>Pesan / Detail</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { backgroundColor: tokens.inputBg, color: tokens.textColor, borderColor: tokens.borderColor }]}
                   placeholder="Jelaskan masalah yang Anda alami..."
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={tokens.labelColor}
                   multiline={true}
                   numberOfLines={4}
                   value={message}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { MapPin, Clock, Calendar, ChevronRight, BookOpen, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { MapPin, Clock, Calendar, BookOpen, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
@@ -61,15 +61,15 @@ interface ScheduleItem {
 
 export default function JadwalScreen() {
   const navigation = useNavigation();
-  const { isDarkMode } = useTheme();
+  const { tokens, isLightTheme } = useTheme();
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'Finished': return { bg: 'rgba(156, 163, 175, 0.15)', text: '#9CA3AF', border: 'rgba(156, 163, 175, 0.3)' };
-      case 'Ongoing': return { bg: 'rgba(34, 197, 94, 0.15)', text: '#4ADE80', border: 'rgba(34, 197, 94, 0.3)' };
-      case 'Upcoming': return { bg: 'rgba(234, 179, 8, 0.15)', text: '#FDE047', border: 'rgba(234, 179, 8, 0.3)' };
-      default: return { bg: 'rgba(255, 255, 255, 0.1)', text: '#FFFFFF', border: 'rgba(255, 255, 255, 0.2)' };
+      case 'Ongoing':  return { bg: 'rgba(34, 197, 94, 0.15)',  text: '#16a34a', border: 'rgba(34, 197, 94, 0.4)' };
+      case 'Upcoming': return { bg: 'rgba(234, 179, 8, 0.15)',  text: '#d97706', border: 'rgba(234, 179, 8, 0.4)' };
+      default:         return { bg: tokens.cardBg, text: tokens.textColor, border: tokens.borderColor };
     }
   };
 
@@ -79,14 +79,15 @@ export default function JadwalScreen() {
 
   return (
     <AnimatedBackground style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Calendar color="#fff" size={24} />
-          </TouchableOpacity>
+          <View style={[styles.iconBtn, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}>
+            <Calendar color={tokens.textColor} size={22} />
+          </View>
           <View>
-            <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#1f2937' }]}>Jadwal Kuliah</Text>
-            <Text style={[styles.subtitle, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(31,41,55,0.8)' }]}>
+            <Text style={[styles.title, { color: tokens.textColor }]}>Jadwal Kuliah</Text>
+            <Text style={[styles.subtitle, { color: tokens.subTextColor }]}>
               Senin, 13 April 2026
             </Text>
           </View>
@@ -103,16 +104,24 @@ export default function JadwalScreen() {
 
           return (
             <View key={item.id}>
-              <BlurView intensity={20} tint="dark" style={styles.card}>
+              <BlurView
+                intensity={20}
+                tint={isLightTheme ? 'light' : 'dark'}
+                style={[styles.card, { borderColor: tokens.borderColor }]}
+              >
+                {/* Left indicator bar */}
                 <View style={styles.cardIndicator} />
                 
                 <View style={styles.cardMain}>
+                  {/* Header Row */}
                   <View style={styles.cardHeader}>
                     <View style={styles.subjectRow}>
-                      <View style={styles.iconContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: isLightTheme ? 'rgba(59,130,246,0.12)' : 'rgba(45,108,223,0.15)' }]}>
                         <BookOpen color={Colors.ai.primary} size={20} />
                       </View>
-                      <Text style={styles.subject} numberOfLines={1}>{item.subject}</Text>
+                      <Text style={[styles.subject, { color: tokens.textColor }]} numberOfLines={1}>
+                        {item.subject}
+                      </Text>
                     </View>
                     <View style={[styles.badge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
                       <View style={[styles.dot, { backgroundColor: statusStyle.text }]} />
@@ -120,30 +129,32 @@ export default function JadwalScreen() {
                     </View>
                   </View>
 
-                  <Text style={styles.lecturer}>{item.lecturer}</Text>
+                  {/* Lecturer */}
+                  <Text style={[styles.lecturer, { color: tokens.subTextColor }]}>{item.lecturer}</Text>
                   
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: tokens.borderColor }]} />
                   
+                  {/* Footer */}
                   <View style={styles.cardFooter}>
                     <View style={styles.infoCol}>
                       <View style={styles.infoRow}>
-                        <Clock size={14} color="rgba(255,255,255,0.5)" />
-                        <Text style={styles.infoText}>{item.time}</Text>
+                        <Clock size={14} color={tokens.subTextColor} />
+                        <Text style={[styles.infoText, { color: tokens.subTextColor }]}>{item.time}</Text>
                       </View>
                       <View style={styles.infoRow}>
-                        <MapPin size={14} color="rgba(255,255,255,0.5)" />
-                        <Text style={styles.infoText}>{item.room}</Text>
+                        <MapPin size={14} color={tokens.subTextColor} />
+                        <Text style={[styles.infoText, { color: tokens.subTextColor }]}>{item.room}</Text>
                       </View>
                     </View>
                     
                     <TouchableOpacity 
-                      style={styles.detailBtn}
+                      style={[styles.detailBtn, { backgroundColor: tokens.cardBg, borderWidth: 1, borderColor: tokens.borderColor }]}
                       onPress={() => toggleExpand(item.id)}
                     >
                       {isExpanded ? (
-                        <ChevronUp color="rgba(255,255,255,0.4)" size={20} />
+                        <ChevronUp color={tokens.subTextColor} size={20} />
                       ) : (
-                        <ChevronDown color="rgba(255,255,255,0.4)" size={20} />
+                        <ChevronDown color={tokens.subTextColor} size={20} />
                       )}
                     </TouchableOpacity>
                   </View>
@@ -151,16 +162,18 @@ export default function JadwalScreen() {
               </BlurView>
 
               {isExpanded && (
-                <BlurView intensity={20} tint="dark" style={styles.expandedCard}>
+                <BlurView
+                  intensity={20}
+                  tint={isLightTheme ? 'light' : 'dark'}
+                  style={[styles.expandedCard, { borderColor: tokens.borderColor }]}
+                >
                   <AttendanceChart
-                    data={[
-                      {
-                        subject: item.subject,
-                        attendance: item.attendance,
-                        total: item.total,
-                        attended: item.attended,
-                      }
-                    ]}
+                    data={[{
+                      subject: item.subject,
+                      attendance: item.attendance,
+                      total: item.total,
+                      attended: item.attended,
+                    }]}
                     title={`Grafik Absensi ${item.subject}`}
                     showLegend={false}
                   />
@@ -179,32 +192,28 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 60,
     paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
   },
-  backBtn: {
+  iconBtn: {
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
     letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 2,
   },
   scrollContent: {
@@ -213,16 +222,15 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 24,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
     flexDirection: 'row',
   },
   cardIndicator: {
     width: 6,
     backgroundColor: Colors.ai.primary,
-    opacity: 0.6,
+    opacity: 0.7,
   },
   cardMain: {
     flex: 1,
@@ -245,14 +253,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(45, 108, 223, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   subject: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    flex: 1,
   },
   badge: {
     flexDirection: 'row',
@@ -261,7 +268,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
   },
   dot: {
     width: 6,
@@ -275,14 +282,12 @@ const styles = StyleSheet.create({
   },
   lecturer: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
     marginLeft: 46,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 16,
+    marginBottom: 14,
     marginLeft: 46,
   },
   cardFooter: {
@@ -300,29 +305,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoText: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     fontWeight: '500',
   },
   detailBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   expandedCard: {
-    borderRadius: 24,
-    marginLeft: 20,
-    marginRight: 20,
-    marginBottom: 20,
+    borderRadius: 20,
+    marginLeft: 12,
+    marginRight: 12,
+    marginBottom: 16,
+    marginTop: -8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderTopWidth: 0,
     padding: 20,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    paddingTop: 16,
-  }
+  },
 });

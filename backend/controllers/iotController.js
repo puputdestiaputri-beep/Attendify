@@ -181,7 +181,7 @@ exports.recognizeFromIoT = async (req, res) => {
         matchedUser.id_user,
         'Absensi IoT',
         `Absensi berhasil via ESP32: ${statusAbsen === 'hadir' ? '✅ Hadir' : '⏰ Terlambat'}`,
-        'absensi_iot',
+        'absensi',
         'belum'
       ]
     );
@@ -233,7 +233,7 @@ exports.recognizeFromIoT = async (req, res) => {
 
     return res.status(500).json({
       status: 'error',
-      message: 'Internal server error processing IoT recognition'
+      message: 'Internal server error processing IoT recognition: ' + error.message
     });
   }
 };

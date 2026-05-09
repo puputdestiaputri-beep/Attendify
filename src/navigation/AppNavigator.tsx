@@ -27,7 +27,7 @@ import ManageAttendanceScreen from '../screens/ManageAttendanceScreen';
 import ESP32CameraScreen from '../screens/ESP32CameraScreen';
 import AdminReportsScreen from '../screens/AdminReportsScreen';
 import { Colors } from '@/constants/Colors';
-
+import { useTheme } from '../context/ThemeContext';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -35,24 +35,34 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function TabNavigator() {
+  const { isLightTheme, tokens } = useTheme();
+  const tabBg = isLightTheme ? 'rgba(255,255,255,0.95)' : '#0F172A';
+  const tabBorder = isLightTheme ? 'rgba(0,0,0,0.08)' : 'transparent';
+  const inactiveColor = isLightTheme ? '#9ca3af' : 'rgba(255,255,255,0.4)';
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: '#0F172A',
-          borderTopWidth: 0,
+          backgroundColor: tabBg,
+          borderTopWidth: isLightTheme ? 1 : 0,
+          borderTopColor: tabBorder,
           height: 70,
           paddingBottom: 12,
           paddingTop: 8,
           borderTopRightRadius: 32,
           borderTopLeftRadius: 32,
           elevation: 0,
-          shadowColor: 'transparent',
+          shadowColor: isLightTheme ? '#000' : 'transparent',
+          shadowOpacity: isLightTheme ? 0.06 : 0,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -2 },
         },
         tabBarActiveTintColor: Colors.ai.primary,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
+        tabBarInactiveTintColor: inactiveColor,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: -4 },
       }}
     >
       <Tab.Screen
@@ -76,24 +86,33 @@ function TabNavigator() {
 
 // Tab Navigator untuk Admin
 function AdminTabNavigator() {
+  const { isLightTheme, tokens } = useTheme();
+  const tabBg = isLightTheme ? 'rgba(255,255,255,0.95)' : '#0F172A';
+  const tabBorder = isLightTheme ? 'rgba(0,0,0,0.08)' : 'transparent';
+  const inactiveColor = isLightTheme ? '#9ca3af' : 'rgba(255,255,255,0.4)';
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: '#0F172A',
-          borderTopWidth: 0,
+          backgroundColor: tabBg,
+          borderTopWidth: isLightTheme ? 1 : 0,
+          borderTopColor: tabBorder,
           height: 70,
           paddingBottom: 12,
           paddingTop: 8,
           borderTopRightRadius: 32,
           borderTopLeftRadius: 32,
           elevation: 0,
-          shadowColor: 'transparent',
+          shadowColor: isLightTheme ? '#000' : 'transparent',
+          shadowOpacity: isLightTheme ? 0.06 : 0,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -2 },
         },
         tabBarActiveTintColor: Colors.ai.primary,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
+        tabBarInactiveTintColor: inactiveColor,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: -4 }
       }}
     >
@@ -127,24 +146,33 @@ function AdminTabNavigator() {
 
 // Tab Navigator untuk Dosen
 function DosenTabNavigator() {
+  const { isLightTheme, tokens } = useTheme();
+  const tabBg = isLightTheme ? 'rgba(255,255,255,0.95)' : '#0F172A';
+  const tabBorder = isLightTheme ? 'rgba(0,0,0,0.08)' : 'transparent';
+  const inactiveColor = isLightTheme ? '#9ca3af' : 'rgba(255,255,255,0.4)';
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: '#0F172A',
-          borderTopWidth: 0,
+          backgroundColor: tabBg,
+          borderTopWidth: isLightTheme ? 1 : 0,
+          borderTopColor: tabBorder,
           height: 70,
           paddingBottom: 12,
           paddingTop: 8,
           borderTopRightRadius: 32,
           borderTopLeftRadius: 32,
           elevation: 0,
-          shadowColor: 'transparent',
+          shadowColor: isLightTheme ? '#000' : 'transparent',
+          shadowOpacity: isLightTheme ? 0.06 : 0,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -2 },
         },
         tabBarActiveTintColor: Colors.ai.primary,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
+        tabBarInactiveTintColor: inactiveColor,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: -4 }
       }}
     >
@@ -195,7 +223,6 @@ function DosenNavigator() {
       <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
-
   );
 }
 
@@ -215,7 +242,6 @@ function AdminNavigator() {
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
-
   );
 }
 

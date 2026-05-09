@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, 
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
-import { User, Settings, LogOut, ChevronRight, CreditCard, BookOpen, GraduationCap, Phone, Mail, ShieldCheck, Shield, UserCheck, Key, Edit3, IdCard } from 'lucide-react-native';
+import { User, Settings, LogOut, ChevronRight, BookOpen, GraduationCap, Phone, Mail, Shield, Edit3, IdCard } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,7 +14,7 @@ import AnimatedBackground from '../components/ui/AnimatedBackground';
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const { logout, user, role, login } = useAuth();
-  const { isDarkMode, setIsDarkMode } = useTheme();
+  const { tokens, isLightTheme } = useTheme();
 
   // Refresh profile data from server on mount
   useEffect(() => {
@@ -24,15 +24,12 @@ export default function ProfileScreen() {
         if (!token) return;
 
         const response = await fetch(`${API_URL}/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         const result = await response.json();
         
         if (result.status === 'success' && role) {
           const userData = result.data;
-          // Sync with AuthContext
           login(role, {
             fullName: userData.name,
             email: userData.email,
@@ -42,13 +39,11 @@ export default function ProfileScreen() {
             phone: userData.phone,
             avatar: userData.foto_profil || undefined,
           });
-          console.log('🔄 Profile synced from server');
         }
       } catch (error) {
         console.error('❌ Failed to refresh profile:', error);
       }
     };
-
     refreshProfile();
   }, []);
 
@@ -58,10 +53,7 @@ export default function ProfileScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
-
+  const handleLogout = () => { setShowLogoutModal(true); };
   const confirmLogout = () => {
     try {
       setIsLoggingOut(true);
@@ -72,9 +64,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleDevFeature = (featureName: string) => {
-    Alert.alert('Info', `Fitur ${featureName} sedang dalam tahap pengembangan.`);
-  };
+  const dividerStyle = { borderTopWidth: 1, borderTopColor: tokens.borderColor };
 
   return (
     <AnimatedBackground style={styles.container}>
@@ -90,50 +80,54 @@ export default function ProfileScreen() {
             </LinearGradient>
           )}
 
-          <Text style={styles.name}>{userName}</Text>
+          <Text style={[styles.name, { color: tokens.textColor }]}>{userName}</Text>
 
-          <View style={styles.roleBadge}>
-            <Text style={styles.role}>{roleLabel} {userProdi && role !== 'admin' ? `- ${userProdi}` : ''}</Text>
+          <View style={[styles.roleBadge, { backgroundColor: isLightTheme ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: isLightTheme ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.15)' }]}>
+            <Text style={[styles.role, { color: isLightTheme ? '#2563eb' : '#E2E8F0' }]}>
+              {roleLabel}{userProdi && role !== 'admin' ? ` - ${userProdi}` : ''}
+            </Text>
           </View>
         </View>
 
-        {/* Menu */}
-          {/* Menu - 3 Card Layout */}
         <View style={styles.menuWrapper}>
-          
+
           {/* ── CARD 1: Identitas ── */}
-          <Text style={styles.cardTitle}>Identitas Akun</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
-            {/* NIM / NIP / Admin ID */}
+          <Text style={[styles.cardTitle, { color: tokens.labelColor }]}>Identitas Akun</Text>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             <View style={styles.menuItem}>
               <View style={styles.menuItemLeft}>
                 <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
                   <IdCard size={20} color="#60A5FA" />
                 </View>
                 <View>
-                  <Text style={styles.menuItemLabel}>{role === 'mahasiswa' ? 'NIM' : role === 'dosen' ? 'NIP' : 'Admin ID'}</Text>
-                  <Text style={styles.menuItemValue}>{user?.nim || (role === 'admin' ? 'ADM-2024-001' : '-')}</Text>
+                  <Text style={[styles.menuItemLabel, { color: tokens.labelColor }]}>
+                    {role === 'mahasiswa' ? 'NIM' : role === 'dosen' ? 'NIP' : 'Admin ID'}
+                  </Text>
+                  <Text style={[styles.menuItemValue, { color: tokens.textColor }]}>
+                    {user?.nim || (role === 'admin' ? 'ADM-2024-001' : '-')}
+                  </Text>
                 </View>
               </View>
             </View>
 
-            {/* Role Display */}
-            <View style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+            <View style={[styles.menuItem, dividerStyle]}>
               <View style={styles.menuItemLeft}>
                 <View style={[styles.iconBox, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
                   <Shield size={20} color="#34D399" />
                 </View>
                 <View>
-                  <Text style={styles.menuItemLabel}>Status Akun</Text>
-                  <Text style={styles.menuItemValue}>{roleLabel}</Text>
+                  <Text style={[styles.menuItemLabel, { color: tokens.labelColor }]}>Status Akun</Text>
+                  <Text style={[styles.menuItemValue, { color: tokens.textColor }]}>{roleLabel}</Text>
                 </View>
               </View>
             </View>
           </BlurView>
 
           {/* ── CARD 2: Detail Informasi ── */}
-          <Text style={styles.cardTitle}>{role === 'mahasiswa' ? 'Data Akademik' : 'Informasi Kontak'}</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
+          <Text style={[styles.cardTitle, { color: tokens.labelColor }]}>
+            {role === 'mahasiswa' ? 'Data Akademik' : 'Informasi Kontak'}
+          </Text>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             {role === 'mahasiswa' ? (
               <>
                 <View style={styles.menuItem}>
@@ -142,19 +136,19 @@ export default function ProfileScreen() {
                       <BookOpen size={20} color="#A78BFA" />
                     </View>
                     <View>
-                      <Text style={styles.menuItemLabel}>Program Studi</Text>
-                      <Text style={styles.menuItemValue}>{userProdi || '-'}</Text>
+                      <Text style={[styles.menuItemLabel, { color: tokens.labelColor }]}>Program Studi</Text>
+                      <Text style={[styles.menuItemValue, { color: tokens.textColor }]}>{userProdi || '-'}</Text>
                     </View>
                   </View>
                 </View>
-                <View style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+                <View style={[styles.menuItem, dividerStyle]}>
                   <View style={styles.menuItemLeft}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
                       <GraduationCap size={20} color="#FBBF24" />
                     </View>
                     <View>
-                      <Text style={styles.menuItemLabel}>Kelas</Text>
-                      <Text style={styles.menuItemValue}>{user?.kelas || '-'}</Text>
+                      <Text style={[styles.menuItemLabel, { color: tokens.labelColor }]}>Kelas</Text>
+                      <Text style={[styles.menuItemValue, { color: tokens.textColor }]}>{user?.kelas || '-'}</Text>
                     </View>
                   </View>
                 </View>
@@ -167,19 +161,19 @@ export default function ProfileScreen() {
                       <Mail size={20} color="#A78BFA" />
                     </View>
                     <View>
-                      <Text style={styles.menuItemLabel}>Email Terdaftar</Text>
-                      <Text style={styles.menuItemValue}>{user?.email || '-'}</Text>
+                      <Text style={[styles.menuItemLabel, { color: tokens.labelColor }]}>Email Terdaftar</Text>
+                      <Text style={[styles.menuItemValue, { color: tokens.textColor }]}>{user?.email || '-'}</Text>
                     </View>
                   </View>
                 </View>
-                <View style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+                <View style={[styles.menuItem, dividerStyle]}>
                   <View style={styles.menuItemLeft}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
                       <Phone size={20} color="#FBBF24" />
                     </View>
                     <View>
-                      <Text style={styles.menuItemLabel}>Nomor Telepon</Text>
-                      <Text style={styles.menuItemValue}>{user?.phone || '-'}</Text>
+                      <Text style={[styles.menuItemLabel, { color: tokens.labelColor }]}>Nomor Telepon</Text>
+                      <Text style={[styles.menuItemValue, { color: tokens.textColor }]}>{user?.phone || '-'}</Text>
                     </View>
                   </View>
                 </View>
@@ -188,9 +182,8 @@ export default function ProfileScreen() {
           </BlurView>
 
           {/* ── CARD 3: Pengaturan & Aksi ── */}
-          <Text style={styles.cardTitle}>Pengaturan & Akun</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
-            {/* Edit Profile */}
+          <Text style={[styles.cardTitle, { color: tokens.labelColor }]}>Pengaturan & Akun</Text>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={() => navigation.navigate('ProfileDetails')}
@@ -200,14 +193,13 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
                   <Edit3 size={20} color="#60A5FA" />
                 </View>
-                <Text style={styles.menuItemText}>Ubah Profil</Text>
+                <Text style={[styles.menuItemText, { color: tokens.textColor }]}>Ubah Profil</Text>
               </View>
-              <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={20} color={tokens.subTextColor} />
             </TouchableOpacity>
 
-            {/* Settings */}
             <TouchableOpacity 
-              style={[styles.menuItem, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}
+              style={[styles.menuItem, dividerStyle]}
               onPress={() => navigation.navigate('Settings')}
               activeOpacity={0.7}
             >
@@ -215,19 +207,16 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: 'rgba(156,163,175,0.15)' }]}>
                   <Settings size={20} color="#9CA3AF" />
                 </View>
-                <Text style={styles.menuItemText}>Pengaturan Aplikasi</Text>
+                <Text style={[styles.menuItemText, { color: tokens.textColor }]}>Pengaturan Aplikasi</Text>
               </View>
-              <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={20} color={tokens.subTextColor} />
             </TouchableOpacity>
           </BlurView>
         </View>
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['#dc2626', '#b91c1c']}
-            style={styles.logoutGradient}
-          >
+          <LinearGradient colors={['#dc2626', '#b91c1c']} style={styles.logoutGradient}>
             <LogOut size={20} color="#fff" />
             <Text style={styles.logoutText}>Logout dari Akun</Text>
           </LinearGradient>
@@ -243,20 +232,20 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowLogoutModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalIconContainer}>
+          <BlurView intensity={40} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContainer, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor, borderWidth: 1 }]}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
               <LogOut size={32} color="#EF4444" />
             </View>
-            <Text style={styles.modalTitle}>Konfirmasi Logout</Text>
-            <Text style={styles.modalMessage}>Apakah Anda yakin ingin keluar dari akun Anda?</Text>
+            <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Konfirmasi Logout</Text>
+            <Text style={[styles.modalMessage, { color: tokens.subTextColor }]}>Apakah Anda yakin ingin keluar dari akun Anda?</Text>
             
             <View style={styles.modalActions}>
               <TouchableOpacity 
-                style={styles.modalBtnCancel} 
+                style={[styles.modalBtnCancel, { backgroundColor: tokens.iconButtonBg }]} 
                 onPress={() => setShowLogoutModal(false)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.modalBtnCancelText}>Batal</Text>
+                <Text style={[styles.modalBtnCancelText, { color: tokens.textColor }]}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.modalBtnLogout} 
@@ -266,7 +255,7 @@ export default function ProfileScreen() {
                 <Text style={styles.modalBtnLogoutText}>Logout</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </BlurView>
         </View>
       </Modal>
 
@@ -283,7 +272,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  profileHeader: { alignItems: 'center', marginBottom: 40 },
+  profileHeader: { alignItems: 'center', marginBottom: 36 },
 
   avatarContainer: {
     width: 110,
@@ -294,17 +283,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  name: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+  name: { fontSize: 26, fontWeight: 'bold' },
 
   roleBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
     marginTop: 8,
   },
 
-  role: { fontSize: 14, color: '#E2E8F0' },
+  role: { fontSize: 14, fontWeight: '600' },
 
   menuWrapper: {
     marginBottom: 20,
@@ -312,8 +300,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: 'rgba(255,255,255,0.4)',
-    marginBottom: 12,
+    marginBottom: 10,
     marginLeft: 4,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -322,7 +309,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
     overflow: 'hidden',
   },
   menuItem: {
@@ -341,19 +327,16 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   menuItemText: { 
-    color: '#fff', 
     fontSize: 16, 
     fontWeight: '500' 
   },
   menuItemLabel: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 11,
-    marginBottom: 2,
+    marginBottom: 3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   menuItemValue: {
-    color: '#fff',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -361,7 +344,7 @@ const styles = StyleSheet.create({
   logoutBtn: {
     borderRadius: 18,
     overflow: 'hidden',
-    marginTop: 10,
+    marginTop: 4,
   },
 
   logoutGradient: {
@@ -387,21 +370,15 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '85%',
     maxWidth: 400,
-    backgroundColor: '#fff',
     borderRadius: 30,
     padding: 24,
     alignItems: 'center',
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    overflow: 'hidden',
   },
   modalIconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -409,12 +386,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
     marginBottom: 8,
   },
   modalMessage: {
     fontSize: 15,
-    color: '#4B5563',
     textAlign: 'center',
     marginBottom: 26,
     lineHeight: 22,
@@ -428,13 +403,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
   },
   modalBtnCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
   },
   modalBtnLogout: {
     flex: 1,

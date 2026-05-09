@@ -232,44 +232,11 @@ export default function SplashScreen({ navigation }: any) {
           );
 
           setTimeout(() => {
-            // Robot and portal fade out
-            robotOpacity.value = withTiming(0, { duration: 500, easing: Easing.out(Easing.ease) });
-            portalScale.value = withTiming(0, { duration: 500, easing: Easing.out(Easing.ease) });
-
+            // Final Transition to Login
+            screenOpacity.value = withTiming(0, { duration: 600, easing: Easing.inOut(Easing.ease) });
             setTimeout(() => {
-              // Logo Appears
-              glowScale.value = withRepeat(
-                withTiming(1.2, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-                -1,
-                true
-              );
-              logoOpacity.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) });
-              logoScale.value = withSpring(1, { damping: 14, stiffness: 90 });
-
-              // Text Appears
-              textOpacity.value = withDelay(
-                300,
-                withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) })
-              );
-              textTranslateY.value = withDelay(
-                300,
-                withTiming(0, { duration: 1000, easing: Easing.out(Easing.exp) })
-              );
-
-              // Loader Appears
-              loaderOpacity.value = withDelay(
-                800,
-                withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
-              );
-
-              // Final Transition to Login
-              setTimeout(() => {
-                screenOpacity.value = withTiming(0, { duration: 600, easing: Easing.inOut(Easing.ease) });
-                setTimeout(() => {
-                  navigation.replace('Login');
-                }, 600);
-              }, 2500);
-            }, 600); // Wait for fade out
+              navigation.replace('Login');
+            }, 600);
           }, 1500); // Wait for waving
         }, 900); // Wait for rise
       }, 400); // Wait for portal
@@ -313,9 +280,7 @@ export default function SplashScreen({ navigation }: any) {
     alignItems: 'center',
   }));
 
-  const glowStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: glowScale.value }],
-  }));
+
 
   const loaderStyle = useAnimatedStyle(() => ({
     opacity: loaderOpacity.value,
@@ -359,15 +324,10 @@ export default function SplashScreen({ navigation }: any) {
           </Animated.View>
         </View>
 
-        {/* Main Logo & Text Content */}
+        {/* Main Logo & Text Content (Hidden Logo) */}
         <View style={styles.contentContainer} pointerEvents="none">
           <Animated.View style={logoStyle}>
-            <Animated.View style={[styles.glow, glowStyle]} />
-            <Image
-              source={require('../assets/images/logo_attendify.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            {/* Logo removed as requested */}
           </Animated.View>
 
           <Animated.View style={textStyle}>
@@ -375,7 +335,7 @@ export default function SplashScreen({ navigation }: any) {
           </Animated.View>
 
           <Animated.View style={[styles.loaderContainer, loaderStyle]}>
-            <AnimatedLoader />
+            {/* Loading dots removed */}
           </Animated.View>
         </View>
       </View>

@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { DesignSystem } from '@/constants/DesignSystem';
 import { LucideIcon, ChevronRight } from 'lucide-react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 interface StudentCardProps {
   id: string | number;
@@ -41,6 +42,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
   actionLabel,
   onAction,
 }) => {
+  const { tokens, isLightTheme } = useTheme();
   const scaleValue = useSharedValue(1);
 
   const animatedScaleStyle = useAnimatedStyle(() => ({
@@ -105,9 +107,9 @@ export const StudentCard: React.FC<StudentCardProps> = ({
         onPress={onPress}
         activeOpacity={0.8}
       >
-        <BlurView intensity={DesignSystem.blur} style={StyleSheet.absoluteFill}>
+        <BlurView intensity={DesignSystem.blur} tint={isLightTheme ? 'light' : 'dark'} style={StyleSheet.absoluteFill}>
           <LinearGradient
-            colors={(gradient || [DesignSystem.colors.glass, DesignSystem.colors.surfaceVariant]) as unknown as readonly [string, string, ...string[]]}
+            colors={(gradient || (isLightTheme ? ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.9)'] : [DesignSystem.colors.glass, DesignSystem.colors.surfaceVariant])) as unknown as readonly [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -117,21 +119,21 @@ export const StudentCard: React.FC<StudentCardProps> = ({
         <View style={styles.content}>
           {/* Avatar */}
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getAvatarLetter()}</Text>
+            <View style={[styles.avatar, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.1)' : DesignSystem.colors.primary, borderColor: isLightTheme ? 'rgba(30, 79, 168, 0.2)' : 'rgba(255,255,255,0.1)' }]}>
+              <Text style={[styles.avatarText, { color: isLightTheme ? '#1E4FA8' : '#FFF' }]}>{getAvatarLetter()}</Text>
             </View>
           </View>
 
           {/* Info */}
           <View style={styles.infoSection}>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
-            <Text style={styles.identifier} numberOfLines={1}>{identifier}</Text>
+            <Text style={[styles.name, { color: tokens.textColor }]} numberOfLines={1}>{name}</Text>
+            <Text style={[styles.identifier, { color: tokens.subTextColor }]} numberOfLines={1}>{identifier}</Text>
             <View style={styles.statusRow}>
-              <View style={[styles.statusBadge, { borderColor: getStatusColor() }]}>
+              <View style={[styles.statusBadge, { borderColor: getStatusColor(), backgroundColor: `${getStatusColor()}15` }]}>
                 <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
-                <Text style={styles.statusText}>{getStatusLabel()}</Text>
+                <Text style={[styles.statusText, { color: getStatusColor() }]}>{getStatusLabel()}</Text>
               </View>
-              {waktu && <Text style={styles.waktuText}>{waktu}</Text>}
+              {waktu && <Text style={[styles.waktuText, { color: tokens.subTextColor }]}>{waktu}</Text>}
             </View>
           </View>
 
@@ -142,7 +144,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
               onPress={onAction}
               activeOpacity={0.7}
             >
-              <ChevronRight size={20} color={DesignSystem.colors.primary} />
+              <ChevronRight size={20} color={isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -153,7 +155,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
             StyleSheet.absoluteFill,
             {
               borderWidth: 1,
-              borderColor: DesignSystem.colors.glassBorder,
+              borderColor: tokens.borderColor,
               borderRadius: DesignSystem.radius.md,
             },
           ]}

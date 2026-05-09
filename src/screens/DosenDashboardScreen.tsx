@@ -19,6 +19,7 @@ import DashboardCard from '../components/ui/DashboardCard';
 import StudentCard from '../components/ui/StudentCard';
 import ReportIssueModal from '../components/ReportIssueModal';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useTheme } from '../context/ThemeContext';
 
 
 const { width } = Dimensions.get('window');
@@ -58,6 +59,7 @@ type FilterType = 'Semua' | 'Hadir' | 'Telat' | 'Tidak Hadir';
 
 export default function DosenDashboardScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
   const [studentsList, setStudentsList] = useState(STUDENTS);
   const [isLoading, setIsLoading] = useState(false);
@@ -262,8 +264,8 @@ const toggleManualScan = async () => {
           <View style={styles.topHeader}>
             <View style={styles.headerRow}>
               <View style={styles.greetingBox}>
-                <Text style={styles.headerSub}>Selamat datang kembali, Pak!</Text>
-                <Text style={styles.headerTitle}>Dosen Attendify</Text>
+                <Text style={[styles.headerSub, { color: tokens.subTextColor }]}>Selamat datang kembali, Pak!</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Dosen Attendify</Text>
               </View>
 
               <TouchableOpacity 
@@ -278,7 +280,7 @@ const toggleManualScan = async () => {
 
 
           {/* ── Active Class Banner ── */}
-          <BlurView intensity={30} tint="dark" style={styles.courseBanner}>
+          <BlurView intensity={30} tint={isLightTheme ? 'light' : 'dark'} style={[styles.courseBanner, { borderColor: tokens.borderColor }]}>
             <View style={styles.courseHeader}>
               <View style={styles.statusRow}>
                 <Animated.View
@@ -328,73 +330,83 @@ const toggleManualScan = async () => {
           {/* Statistics Grid */}
           <View style={styles.statRow}>
             {[
-              { label: 'Hadir', value: hadir, color: '#4ADE80', icon: CheckCircle2 },
-              { label: 'Telat', value: telat, color: '#FBBF24', icon: Clock },
-              { label: 'Alpha', value: alpha, color: '#F87171', icon: XCircle },
-            ].map((item, idx) => (
-              <BlurView key={idx} intensity={20} tint="dark" style={styles.statCard}>
-                <item.icon size={20} color={item.color} />
-                <Text style={[styles.statValue, { color: item.color }]}>{item.value}</Text>
-                <Text style={styles.statLabel}>{item.label}</Text>
-              </BlurView>
-            ))}
+            <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.statCard, { borderColor: tokens.borderColor }]}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center' }}>
+                <CheckCircle2 size={24} color="#10B981" />
+              </View>
+              <Text style={[styles.statValue, { color: tokens.textColor }]}>58</Text>
+              <Text style={[styles.statLabel, { color: tokens.subTextColor }]}>Hadir</Text>
+            </BlurView>,
+            <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.statCard, { borderColor: tokens.borderColor }]}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.1)', justifyContent: 'center', alignItems: 'center' }}>
+                <XCircle size={24} color="#EF4444" />
+              </View>
+              <Text style={[styles.statValue, { color: tokens.textColor }]}>7</Text>
+              <Text style={[styles.statLabel, { color: tokens.subTextColor }]}>Absen</Text>
+            </BlurView>
+            ]}
           </View>
 
-          {/* Attendance List Section */}
+          {/* Student List */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Daftar Kehadiran</Text>
-            <TouchableOpacity onPress={handleRefresh}>
-              <RefreshCw size={18} color="#3B82F6" />
+            <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>Daftar Mahasiswa</Text>
+            <TouchableOpacity onPress={() => setIsLoading(true)}>
+              <RefreshCw size={20} color={isLightTheme ? '#1E4FA8' : '#3B82F6'} />
             </TouchableOpacity>
           </View>
 
-          {/* Filter Bar */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar}>
-            {(['Semua', 'Hadir', 'Telat', 'Tidak Hadir'] as FilterType[]).map(f => (
+            {['Semua', 'Hadir', 'Telat', 'Tidak Hadir'].map((filter) => (
               <TouchableOpacity
-                key={f}
-                style={[styles.filterBtn, activeFilter === f && styles.filterBtnActive]}
-                onPress={() => setActiveFilter(f)}
+                key={filter}
+                onPress={() => setActiveFilter(filter as FilterType)}
+                style={[
+                  styles.filterBtn,
+                  { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor },
+                  activeFilter === filter && styles.filterBtnActive
+                ]}
               >
-                <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
-                  {f}
-                </Text>
+                <Text style={[
+                  styles.filterText,
+                  { color: tokens.subTextColor },
+                  activeFilter === filter && styles.filterTextActive
+                ]}>{filter}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
-          {/* Student List Wrap */}
           <View style={styles.listContainer}>
-            {filtered.map((item, idx) => {
-              const sc = getStatusColor(item.status);
+            {studentsList.map((student, index) => {
+              const statusColors = {
+                'Hadir': '#10B981',
+                'Telat': '#FBBF24',
+                'Tidak Hadir': '#EF4444'
+              };
+              const color = statusColors[student.status as keyof typeof statusColors];
+
               return (
-                <View key={item.id} style={styles.studentItem}>
+                <View key={student.id} style={[styles.studentItem, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.03)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]}>
                   <View style={styles.avatarWrap}>
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                      style={styles.avatar}
-                    >
-                      <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
-                    </LinearGradient>
+                    <View style={[styles.avatar, { backgroundColor: `${color}15`, borderColor: `${color}30` }]}>
+                      <Text style={[styles.avatarText, { color }]}>{student.name.charAt(0)}</Text>
+                    </View>
                   </View>
                   <View style={styles.studentDetails}>
-                    <Text style={styles.studentName}>{item.name}</Text>
-                    <Text style={styles.studentNpm}>{item.npm}</Text>
+                    <Text style={[styles.studentName, { color: tokens.textColor }]}>{student.name}</Text>
+                    <Text style={[styles.studentNpm, { color: tokens.subTextColor }]}>{student.npm}</Text>
                   </View>
                   <View style={styles.statusWrap}>
-                    <View style={[styles.statusBadge, { backgroundColor: sc.bg, borderColor: sc.border }]}>
-                      {getStatusIcon(item.status)}
-                      <Text style={[styles.statusText, { color: sc.text }]}>{item.status}</Text>
+                    <View style={[styles.statusBadge, { borderColor: `${color}30`, backgroundColor: `${color}10` }]}>
+                      <Text style={[styles.statusText, { color }]}>{student.status.toUpperCase()}</Text>
                     </View>
-                    <Text style={styles.timeText}>{item.waktu !== '-' ? item.waktu : ''}</Text>
+                    <Text style={[styles.timeText, { color: tokens.subTextColor }]}>{student.waktu}</Text>
                   </View>
-
-                  {item.status === 'Tidak Hadir' && (
-                    <TouchableOpacity
-                      style={styles.manualActionBtn}
-                      onPress={() => handleManualCheckIn(item.id)}
+                  {student.status === 'Tidak Hadir' && (
+                    <TouchableOpacity 
+                      style={[styles.manualActionBtn, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]}
+                      onPress={() => handleManualCheckIn(student.id)}
                     >
-                      <CheckCircle2 size={20} color="#3B82F6" />
+                      <CheckCircle2 size={16} color={isLightTheme ? '#1E4FA8' : '#3B82F6'} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -414,28 +426,28 @@ const toggleManualScan = async () => {
           onRequestClose={() => setShowAttendanceModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <BlurView intensity={50} tint="dark" style={styles.modalContent}>
+            <BlurView intensity={50} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={[styles.successIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}>
                 <Clock size={40} color="#38BDF8" />
               </View>
-              <Text style={styles.modalTitle}>Status Kehadiran</Text>
-              <Text style={styles.modalMessage}>Pilih status kehadiran manual untuk mahasiswa ini.</Text>
+              <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Status Kehadiran</Text>
+              <Text style={[styles.modalMessage, { color: tokens.subTextColor }]}>Pilih status kehadiran manual untuk mahasiswa ini.</Text>
 
               <View style={styles.choiceGroup}>
                 <TouchableOpacity
-                  style={[styles.choiceBtn, { borderLeftColor: '#4ADE80' }]}
+                  style={[styles.choiceBtn, { borderLeftColor: '#4ADE80', backgroundColor: tokens.inputBg }]}
                   onPress={() => updateStudentStatus('Hadir')}
                 >
                   <CheckCircle2 color="#4ADE80" size={20} />
-                  <Text style={styles.choiceText}>Hadir Tepat Waktu</Text>
+                  <Text style={[styles.choiceText, { color: tokens.textColor }]}>Hadir Tepat Waktu</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.choiceBtn, { borderLeftColor: '#FBBF24' }]}
+                  style={[styles.choiceBtn, { borderLeftColor: '#FBBF24', backgroundColor: tokens.inputBg }]}
                   onPress={() => updateStudentStatus('Telat')}
                 >
                   <Clock color="#FBBF24" size={20} />
-                  <Text style={styles.choiceText}>Terlambat (Telat)</Text>
+                  <Text style={[styles.choiceText, { color: tokens.textColor }]}>Terlambat (Telat)</Text>
                 </TouchableOpacity>
               </View>
 
@@ -443,7 +455,7 @@ const toggleManualScan = async () => {
                 style={styles.cancelBtnFull}
                 onPress={() => setShowAttendanceModal(false)}
               >
-                <Text style={styles.cancelBtnText}>Batal</Text>
+                <Text style={[styles.cancelBtnText, { color: tokens.subTextColor }]}>Batal</Text>
               </TouchableOpacity>
             </BlurView>
           </View>
@@ -457,19 +469,19 @@ const toggleManualScan = async () => {
           onRequestClose={() => setShowConfirmModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <BlurView intensity={50} tint="dark" style={styles.modalContent}>
+            <BlurView intensity={50} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={[styles.successIconBox, { backgroundColor: 'rgba(251,191,36,0.1)' }]}>
                 <Radio size={40} color="#FBBF24" />
               </View>
-              <Text style={styles.modalTitle}>Selesaikan Kelas?</Text>
-              <Text style={styles.modalMessage}>Apakah Anda yakin ingin menyudahi sesi absensi dan mengirim semua data ke database pusat?</Text>
+              <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Selesaikan Kelas?</Text>
+              <Text style={[styles.modalMessage, { color: tokens.subTextColor }]}>Apakah Anda yakin ingin menyudahi sesi absensi dan mengirim semua data ke database pusat?</Text>
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
-                  style={styles.cancelBtnSmall}
+                  style={[styles.cancelBtnSmall, { backgroundColor: tokens.iconButtonBg }]}
                   onPress={() => setShowConfirmModal(false)}
                 >
-                  <Text style={styles.cancelBtnTextSmall}>Batal</Text>
+                  <Text style={[styles.cancelBtnTextSmall, { color: tokens.textColor }]}>Batal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.finishClassBtnSmall}
@@ -490,12 +502,12 @@ const toggleManualScan = async () => {
           onRequestClose={() => setShowSuccessModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <BlurView intensity={50} tint="dark" style={styles.modalContent}>
+            <BlurView intensity={50} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.successIconBox}>
                 <CheckCircle2 size={40} color="#10B981" />
               </View>
-              <Text style={styles.modalTitle}>{successTitle || 'Berhasil!'}</Text>
-              <Text style={styles.modalMessage}>{successMessage}</Text>
+              <Text style={[styles.modalTitle, { color: tokens.textColor }]}>{successTitle || 'Berhasil!'}</Text>
+              <Text style={[styles.modalMessage, { color: tokens.subTextColor }]}>{successMessage}</Text>
 
               <TouchableOpacity
                 style={styles.finishClassBtn}
@@ -516,7 +528,7 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   scroll: { paddingBottom: 40 },
   topHeader: {
-    paddingTop: 40,
+    paddingTop: 60,
     paddingHorizontal: 24,
     marginBottom: 24,
   },
@@ -527,14 +539,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   greetingBox: {
-    marginTop: 0,
     flex: 1,
   },
   reportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 0,
     backgroundColor: 'rgba(251, 191, 36, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -550,11 +560,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
   },
   headerSub: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
     marginTop: 2,
   },
   manualScanCard: {
@@ -563,8 +571,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.3)',
-    backgroundColor: 'rgba(16,185,129,0.05)',
   },
   manualScanHeader: {
     flexDirection: 'row',
@@ -575,10 +581,8 @@ const styles = StyleSheet.create({
   manualScanTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
   },
   manualScanDesc: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
     marginBottom: 16,
     lineHeight: 20,
@@ -622,7 +626,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     marginBottom: 24,
     overflow: 'hidden',
   },
@@ -651,12 +654,10 @@ const styles = StyleSheet.create({
   },
   updatedText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
   },
   courseName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 16,
     lineHeight: 28,
   },
@@ -671,7 +672,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
   },
   finishBtn: {
@@ -702,7 +702,6 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
   },
   statValue: {
@@ -712,7 +711,6 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
     marginTop: 2,
   },
   sectionHeader: {
@@ -725,7 +723,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
   },
   filterBar: {
     paddingLeft: 20,
@@ -735,17 +732,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   filterBtnActive: {
     backgroundColor: '#3B82F6',
     borderColor: '#3B82F6',
   },
   filterText: {
-    color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -758,12 +752,10 @@ const styles = StyleSheet.create({
   studentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 20,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   avatarWrap: {
     marginRight: 16,
@@ -775,10 +767,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   avatarText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -786,12 +776,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   studentName: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   studentNpm: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
     marginTop: 4,
   },
@@ -814,15 +802,12 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
   },
   manualActionBtn: {
     padding: 8,
     marginLeft: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   modalOverlay: {
     flex: 1,
@@ -836,7 +821,6 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
   },
   successIconBox: {
@@ -853,12 +837,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 8,
   },
   modalMessage: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
@@ -902,7 +884,6 @@ const styles = StyleSheet.create({
   choiceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
     padding: 16,
     borderRadius: 16,
     borderLeftWidth: 4,
@@ -910,7 +891,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   choiceText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -921,7 +901,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   cancelBtnText: {
-    color: 'rgba(255,255,255,0.5)',
     fontSize: 15,
     fontWeight: '600',
   },

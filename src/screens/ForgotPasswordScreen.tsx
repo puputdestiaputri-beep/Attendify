@@ -13,6 +13,7 @@ import AnimatedButton from '../components/ui/AnimatedButton';
 import AnimatedInput from '../components/ui/AnimatedInput';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useTheme } from '../context/ThemeContext';
 
 import { Dimensions } from 'react-native';
 const { width } = Dimensions.get('window');
@@ -22,6 +23,7 @@ interface ForgotPasswordScreenProps {
 }
 
 export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) {
+  const { tokens, isLightTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +85,8 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         {/* Header Section */}
         <View style={styles.headerSection}>
           <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 300, height: 220, marginBottom: -40 }} resizeMode="contain" />
-          <Text style={styles.subtitle}>Reset Password</Text>
+          <Text style={[styles.subtitle, { color: tokens.textColor, fontSize: 24, fontWeight: '700' }]}>Reset Password</Text>
+          <Text style={[styles.brandSubtitle, { color: tokens.subTextColor }]}>Recover your account access</Text>
         </View>
 
         {/* Main Card */}
@@ -91,15 +94,15 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
           entering={FadeInUp.delay(200).springify()}
           style={styles.cardWrapper}
         >
-          <AnimatedCard variant="glass" style={styles.mainCard}>
+          <AnimatedCard variant={isLightTheme ? "surface" : "glass"} style={[styles.mainCard, { borderColor: tokens.borderColor }]}>
             {/* Success Message */}
             {isSent && (
               <Animated.View 
                 entering={ZoomIn.springify()}
-                style={styles.successAlert}
+                style={[styles.successAlert, { backgroundColor: isLightTheme ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}
               >
-                <CheckCircle size={20} color={DesignSystem.colors.success} />
-                <Text style={styles.successAlertText}>Link reset telah dikirim ke email!</Text>
+                <CheckCircle size={20} color="#10b981" />
+                <Text style={[styles.successAlertText, { color: '#10b981' }]}>Link reset telah dikirim ke email!</Text>
               </Animated.View>
             )}
 
@@ -107,16 +110,16 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
             {errors.general && (
               <Animated.View 
                 entering={FadeInDown.springify()}
-                style={styles.errorAlert}
+                style={[styles.errorAlert, { backgroundColor: isLightTheme ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}
               >
-                <AlertCircle size={18} color={DesignSystem.colors.error} />
-                <Text style={styles.errorAlertText}>{errors.general}</Text>
+                <AlertCircle size={18} color="#ef4444" />
+                <Text style={[styles.errorAlertText, { color: '#ef4444' }]}>{errors.general}</Text>
               </Animated.View>
             )}
 
             {/* Description */}
-            <Text style={styles.descriptionText}>
-              Masukkan email terdaftar Anda.
+            <Text style={[styles.descriptionText, { color: tokens.subTextColor }]}>
+              Masukkan email terdaftar Anda untuk menerima instruksi reset password.
             </Text>
 
             {/* Email Input */}
@@ -153,15 +156,15 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 
             {/* Back to Login */}
             <View style={styles.backToLoginContainer}>
-              <Text style={styles.backToLoginText}>Ingat password? </Text>
+              <Text style={[styles.backToLoginText, { color: tokens.subTextColor }]}>Ingat password? </Text>
               <TouchableOpacity 
                 onPress={() => navigation.goBack()} 
                 disabled={isLoading}
                 activeOpacity={0.7}
               >
                 <View style={styles.backToLoginLinkContainer}>
-                  <Text style={styles.backToLoginLink}>Kembali ke login</Text>
-                  <ArrowRight size={12} color={DesignSystem.colors.secondary} />
+                  <Text style={[styles.backToLoginLink, { color: isLightTheme ? '#1E4FA8' : DesignSystem.colors.secondary }]}>Kembali ke login</Text>
+                  <ArrowRight size={12} color={isLightTheme ? '#1E4FA8' : DesignSystem.colors.secondary} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -216,6 +219,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textAlign: 'center',
   },
+  brandSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    marginTop: 4,
+  },
   subtitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -239,10 +248,8 @@ const styles = StyleSheet.create({
   successAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
     borderWidth: 1,
-    borderRadius: DesignSystem.radius.md,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 20,
@@ -250,17 +257,14 @@ const styles = StyleSheet.create({
   },
   successAlertText: {
     flex: 1,
-    color: DesignSystem.colors.success,
     fontSize: 13,
     fontWeight: '500',
   },
   errorAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
     borderWidth: 1,
-    borderRadius: DesignSystem.radius.md,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 20,
@@ -268,7 +272,6 @@ const styles = StyleSheet.create({
   },
   errorAlertText: {
     flex: 1,
-    color: DesignSystem.colors.error,
     fontSize: 13,
     fontWeight: '500',
   },

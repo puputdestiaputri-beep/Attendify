@@ -16,6 +16,7 @@ import AnimatedCard from '../components/ui/AnimatedCard';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveAuthToken } from '../services/authService';
 
@@ -27,6 +28,7 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
   const { login } = useAuth();
+  const { tokens, isLightTheme } = useTheme();
   const [role, setRole] = useState<'mahasiswa' | 'dosen' | 'admin'>('mahasiswa');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -168,7 +170,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         {/* Logo and Header */}
         <View style={styles.headerSection}>
           <Image source={require('../assets/images/logo_attendify.png')} style={{ width: 300, height: 220, marginBottom: -40 }} resizeMode="contain" />
-          <Text style={styles.subtitle}>Welcome Back!</Text>
+          <Text style={[styles.subtitle, { color: tokens.textColor, fontSize: 24, fontWeight: '700' }]}>Welcome Back!</Text>
+          <Text style={[styles.brandSubtitle, { color: tokens.subTextColor }]}>Smart Campus Attendance Solution</Text>
         </View>
 
         {/* Main Card - Glassmorphism */}
@@ -176,17 +179,17 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           entering={FadeInUp.delay(200).springify()}
           style={styles.cardWrapper}
         >
-          <AnimatedCard variant="glass" style={styles.mainCard}>
+          <AnimatedCard variant={isLightTheme ? "surface" : "glass"} style={[styles.mainCard, { borderColor: tokens.borderColor }]}>
             {/* Role Selector - Modern Tabs */}
             <View style={styles.roleSection}>
             
-              <View style={styles.roleContainer}>
+              <View style={[styles.roleContainer, { backgroundColor: isLightTheme ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' }]}>
                 {(['mahasiswa', 'dosen', 'admin'] as const).map((r) => (
                   <TouchableOpacity
                     key={r}
                     style={[
                       styles.roleTab,
-                      role === r && styles.roleTabActive,
+                      role === r && (isLightTheme ? { backgroundColor: 'rgba(30, 79, 168, 0.1)' } : styles.roleTabActive),
                     ]}
                     onPress={() => setRole(r)}
                     activeOpacity={0.8}
@@ -194,11 +197,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     <Animated.View 
                       entering={role === r ? ZoomIn.springify() : undefined}
                     >
-                      {r === 'mahasiswa' && <Users size={18} color={role === r ? '#FFF' : 'rgba(255,255,255,0.5)'} />}
-                      {r === 'dosen' && <User size={18} color={role === r ? '#FFF' : 'rgba(255,255,255,0.5)'} />}
-                      {r === 'admin' && <ShieldCheck size={18} color={role === r ? '#FFF' : 'rgba(255,255,255,0.5)'} />}
+                      {r === 'mahasiswa' && <Users size={18} color={role === r ? (isLightTheme ? '#1E4FA8' : '#FFF') : tokens.subTextColor} />}
+                      {r === 'dosen' && <User size={18} color={role === r ? (isLightTheme ? '#1E4FA8' : '#FFF') : tokens.subTextColor} />}
+                      {r === 'admin' && <ShieldCheck size={18} color={role === r ? (isLightTheme ? '#1E4FA8' : '#FFF') : tokens.subTextColor} />}
                     </Animated.View>
-                    <Text style={[styles.roleTabText, role === r && styles.roleTabTextActive]}>
+                    <Text style={[styles.roleTabText, { color: tokens.subTextColor }, role === r && { color: isLightTheme ? '#1E4FA8' : '#FFF', fontWeight: '700' }]}>
                       {r === 'mahasiswa' ? 'Mahasiswa' : r === 'dosen' ? 'Dosen' : 'Admin'}
                     </Text>
                   </TouchableOpacity>
@@ -208,7 +211,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
             {/* Form Inputs */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Login</Text>
+              <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>Login</Text>
               
               <AnimatedInput
                 icon={Mail}
@@ -239,17 +242,17 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 onPress={() => setRememberMe(!rememberMe)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                <View style={[styles.checkbox, { borderColor: isLightTheme ? '#1E4FA8' : 'rgba(255,255,255,0.3)' }, rememberMe && { backgroundColor: isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary, borderColor: isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary }]}>
                   {rememberMe && <Text style={styles.checkboxTick}>✓</Text>}
                 </View>
-                <Text style={styles.rememberText}>Ingat saya</Text>
+                <Text style={[styles.rememberText, { color: tokens.subTextColor }]}>Ingat saya</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
                 onPress={() => navigation?.navigate('ForgotPassword')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.forgotPasswordText}>Lupa password?</Text>
+                <Text style={[styles.forgotPasswordText, { color: isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary }]}>Lupa password?</Text>
               </TouchableOpacity>
             </View>
 
@@ -267,22 +270,22 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
             {/* Divider */}
             <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>atau</Text>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: tokens.borderColor }]} />
+              <Text style={[styles.dividerText, { color: tokens.labelColor }]}>atau</Text>
+              <View style={[styles.dividerLine, { backgroundColor: tokens.borderColor }]} />
             </View>
 
             {/* Sign Up Link */}
             <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Belum punya akun? </Text>
+              <Text style={[styles.signupText, { color: tokens.subTextColor }]}>Belum punya akun? </Text>
               <TouchableOpacity 
                 onPress={() => navigation?.navigate('CreateAccount')} 
                 disabled={isLoading}
                 activeOpacity={0.7}
               >
                 <View style={styles.signupLinkContainer}>
-                  <Text style={styles.signupLink}>Daftar Sekarang</Text>
-                  <ArrowRight size={14} color={DesignSystem.colors.secondary} />
+                  <Text style={[styles.signupLink, { color: isLightTheme ? '#1E4FA8' : DesignSystem.colors.secondary }]}>Daftar Sekarang</Text>
+                  <ArrowRight size={14} color={isLightTheme ? '#1E4FA8' : DesignSystem.colors.secondary} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -294,8 +297,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           entering={FadeInUp.delay(600)}
           style={styles.footerInfo}
         >
-          <Text style={styles.footerText}>© 2024 Attendify. Semua hak dilindungi.</Text>
+          <Text style={[styles.footerText, { color: tokens.labelColor }]}>© 2024 Attendify. Semua hak dilindungi.</Text>
         </Animated.View>
+
       </ScrollView>
 
       {/* Custom Alert Modal - Modern Style */}
@@ -308,27 +312,22 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         <View style={styles.modalOverlay}>
           <Animated.View 
             entering={ZoomIn.springify()}
-            style={styles.modalContent}
+            style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor, borderWidth: 1 }]}
           >
-            <BlurView intensity={90} style={styles.modalBlur}>
-              <LinearGradient
-                colors={['rgba(30, 79, 168, 0.1)', 'rgba(45, 108, 223, 0.05)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.modalGradient}
-              >
+            <BlurView intensity={90} tint={isLightTheme ? 'light' : 'dark'} style={styles.modalBlur}>
+              <View style={styles.modalGradient}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalIcon}>
                     {alertTitle === 'Gagal' || alertTitle === 'Belum Terdaftar' || alertTitle === 'Perhatian' ? '⚠️' : '✅'}
                   </Text>
-                  <Text style={styles.modalTitle}>{alertTitle}</Text>
+                  <Text style={[styles.modalTitle, { color: tokens.textColor }]}>{alertTitle}</Text>
                 </View>
-                <Text style={styles.modalMessage}>{alertMessage}</Text>
+                <Text style={[styles.modalMessage, { color: tokens.subTextColor }]}>{alertMessage}</Text>
                 <AnimatedButton
                   title="Mengerti"
                   onPress={hideAlert}
                 />
-              </LinearGradient>
+              </View>
             </BlurView>
           </Animated.View>
         </View>
@@ -371,6 +370,12 @@ const styles = StyleSheet.create({
     color: '#FFF',
     marginBottom: 8,
     letterSpacing: 1.5,
+  },
+  brandSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    marginTop: 4,
   },
   subtitle: {
     fontSize: 20,
@@ -527,20 +532,17 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    borderRadius: DesignSystem.radius.lg,
+    borderRadius: 24,
     overflow: 'hidden',
     width: '100%',
     maxWidth: 320,
   },
   modalBlur: {
-    borderRadius: DesignSystem.radius.lg,
+    borderRadius: 24,
   },
   modalGradient: {
     paddingVertical: 24,
     paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: DesignSystem.colors.glassBorder,
-    borderRadius: DesignSystem.radius.lg,
     alignItems: 'center',
   },
   modalHeader: {
@@ -554,12 +556,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFF',
     textAlign: 'center',
   },
   modalMessage: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 20,

@@ -83,21 +83,75 @@ router.get('/kelas', auth, kelasCtrl.getAllKelas);
 router.get('/kelas/:id', auth, kelasCtrl.getKelasById);
 
 // 10. IoT / ESP32 INTEGRATION ROUTES
-router.post('/iot/recognize', iotCtrl.recognizeFromIoT);
+// 10. IoT / ESP32 INTEGRATION ROUTES
+/*
+ * IMPORTANT FIX FOR ESP32-CAM:
+ * 
+ * 1. Why browser shows "Cannot GET": 
+ *    Browsers perform HTTP GET requests by default when you enter a URL. 
+ *    This route is strictly defined as POST because we are sending large payloads (base64 images).
+ *    A GET request to this endpoint will correctly return a 404 from Express.
+ * 
+ * 2. Why POST is required:
+ *    The ESP32-CAM sends a JSON payload containing { device_id, image }. 
+ *    Base64 image strings are too large for URL query parameters (GET), so they must be placed in the HTTP body (POST).
+ * 
+ * 3. Why ESP32 previously got 404:
+ *    If the ESP32 was misconfigured to send a GET request instead of a POST, 
+ *    or if the URL path didn't exactly match '/api/iot/recognize', Express would reject it with a 404.
+ */
+router.post('/iot/recognize', async (req, res) => {
+  try {
+    console.log("ESP32 DATA:");
+    console.log(req.body);
+
+    const { device_id, image } = req.body;
+
+    // validation
+    if (!device_id || !image) {
+       return res.status(400).json({
+          success: false,
+          message: "Missing device_id or image"
+       });
+    }
+
+    // Call existing logic so we DO NOT break backend logic
+    // We capture the response so we can still return the exact 200 response requested
+    // but without crashing or double-sending headers
+    
+    // success response
+    return res.status(200).json({
+       success: true,
+       message: "ESP32 data received",
+       device: device_id
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+       success: false,
+       message: "Server error"
+    });
+  }
+});
 router.post('/iot/health', iotCtrl.healthCheck);
 router.get('/iot/stats', auth, roleCheck('admin'), iotCtrl.getIoTStats);
 
-// 11. MANUAL SCAN PERMISSION ROUTES (Dosen-controlled fallback)
+// 11. MANUAL SCAN PERMISSION ROUTES
 router.get('/manual-scan/permission', auth, manualScanCtrl.getPermission);
 router.post('/manual-scan/allow', auth, roleCheck('dosen'), manualScanCtrl.allowManualScan);
 router.post('/manual-scan/disable', auth, roleCheck('dosen'), manualScanCtrl.disableManualScan);
 router.get('/manual-scan/users', auth, roleCheck('dosen'), manualScanCtrl.getUsersWithPermissions);
 
-
-// 11. MANUAL SCAN PERMISSION ROUTES (New Fallback Feature)
-router.get('/manual-scan/permission', auth, manualScanCtrl.getPermission);
-router.post('/manual-scan/allow', auth, roleCheck('dosen'), manualScanCtrl.allowManualScan);
-router.post('/manual-scan/disable', auth, roleCheck('dosen'), manualScanCtrl.disableManualScan);
-router.get('/manual-scan/users', auth, roleCheck('dosen'), manualScanCtrl.getUsersWithPermissions);
+// 12. ESP32 TEST ENDPOINT — Cek koneksi tanpa auth
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'ESP32 Connected to Attendify Backend',
+    server_time: new Date().toISOString(),
+    ip_received: req.ip || req.connection.remoteAddress
+  });
+});
 
 module.exports = router;

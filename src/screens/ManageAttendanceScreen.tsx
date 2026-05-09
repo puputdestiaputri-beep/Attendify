@@ -22,6 +22,9 @@ if (Platform.OS !== 'web') {
   RNHTMLtoPDF = require('react-native-html-to-pdf');
 }
 
+import { useTheme } from '../context/ThemeContext';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
@@ -51,6 +54,7 @@ interface AttendanceEntry {
 
 export default function ManageAttendanceScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
   const [attendance, setAttendance] = useState<AttendanceEntry[]>([]);
   const [classes, setClasses] = useState<Kelas[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
@@ -297,49 +301,50 @@ Terima kasih.`;
     const status = getStatusStyle(item.status);
     return (
       <TouchableOpacity 
-        style={styles.recordWrapper}
+        style={[styles.recordWrapper, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}
         onPress={() => {
           setSelectedRecord(item);
           setIsEditModalVisible(true);
         }}
       >
-        <BlurView intensity={20} tint="dark" style={styles.recordCard}>
+        <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={styles.recordCard}>
           <View style={styles.recordMain}>
-            <View style={styles.avatarMini}>
-              <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+            <View style={[styles.avatarMini, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}>
+              <Text style={[styles.avatarText, { color: tokens.textColor }]}>{item.name.charAt(0)}</Text>
             </View>
             <View style={styles.infoCol}>
-              <Text style={styles.studentName}>{item.name}</Text>
-              <Text style={styles.studentDetails}>{item.nama_kelas} • {item.nama_mk}</Text>
+              <Text style={[styles.studentName, { color: tokens.textColor }]}>{item.name}</Text>
+              <Text style={[styles.studentDetails, { color: tokens.subTextColor }]}>{item.nama_kelas} • {item.nama_mk}</Text>
             </View>
             <View style={styles.statusCol}>
               <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
                 <status.icon size={12} color={status.color} />
                 <Text style={[styles.statusText, { color: status.color }]}>{item.status.toUpperCase()}</Text>
               </View>
-              <Text style={styles.timeText}>{item.waktu_datang || '-'}</Text>
+              <Text style={[styles.timeText, { color: tokens.subTextColor }]}>{item.waktu_datang || '-'}</Text>
             </View>
           </View>
         </BlurView>
       </TouchableOpacity>
     );
-  };
-
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-        style={styles.background}
-      >
+  };  return (
+    <AnimatedBackground style={styles.container}>
+      <StatusBar barStyle={isLightTheme ? "dark-content" : "light-content"} />
+      
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={24} color="#fff" />
+          <TouchableOpacity 
+            style={[styles.backButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]} 
+            onPress={() => navigation.goBack()}
+          >
+            <ChevronLeft size={24} color={tokens.textColor} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Laporan Per Kelas</Text>
-          <TouchableOpacity style={styles.actionButton} onPress={onRefresh}>
-            <RefreshCw size={20} color="#fff" />
+          <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Laporan Per Kelas</Text>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]} 
+            onPress={onRefresh}
+          >
+            <RefreshCw size={20} color={tokens.textColor} />
           </TouchableOpacity>
         </View>
 
@@ -347,20 +352,28 @@ Terima kasih.`;
         <View style={styles.selectorContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.classScroll}>
             <TouchableOpacity 
-              style={[styles.classChip, selectedClassId === null && styles.classChipActive]}
+              style={[
+                styles.classChip, 
+                { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor },
+                selectedClassId === null && styles.classChipActive
+              ]}
               onPress={() => setSelectedClassId(null)}
             >
-              <Grid size={16} color={selectedClassId === null ? '#fff' : 'rgba(255,255,255,0.5)'} />
-              <Text style={[styles.classChipText, selectedClassId === null && styles.classChipTextActive]}>Semua</Text>
+              <Grid size={16} color={selectedClassId === null ? '#fff' : tokens.subTextColor} />
+              <Text style={[styles.classChipText, { color: tokens.subTextColor }, selectedClassId === null && styles.classChipTextActive]}>Semua</Text>
             </TouchableOpacity>
             {classes.map((c) => (
               <TouchableOpacity 
                 key={c.id_kelas}
-                style={[styles.classChip, selectedClassId === c.id_kelas && styles.classChipActive]}
+                style={[
+                  styles.classChip, 
+                  { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor },
+                  selectedClassId === c.id_kelas && styles.classChipActive
+                ]}
                 onPress={() => setSelectedClassId(c.id_kelas)}
               >
-                <BookOpen size={16} color={selectedClassId === c.id_kelas ? '#fff' : 'rgba(255,255,255,0.5)'} />
-                <Text style={[styles.classChipText, selectedClassId === c.id_kelas && styles.classChipTextActive]}>{c.nama_kelas}</Text>
+                <BookOpen size={16} color={selectedClassId === c.id_kelas ? '#fff' : tokens.subTextColor} />
+                <Text style={[styles.classChipText, { color: tokens.subTextColor }, selectedClassId === c.id_kelas && styles.classChipTextActive]}>{c.nama_kelas}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -368,29 +381,29 @@ Terima kasih.`;
 
         {/* Quick Export Bar */}
         <View style={styles.exportSection}>
-          <Text style={styles.exportSectionTitle}>Export & Share Reports</Text>
+          <Text style={[styles.exportSectionTitle, { color: tokens.textColor }]}>Export & Share Reports</Text>
           <View style={styles.exportRow}>
-            <TouchableOpacity style={styles.exportBtn} onPress={handleExportExcel} disabled={isExporting}>
+            <TouchableOpacity style={[styles.exportBtn, { backgroundColor: tokens.cardBg, borderColor: 'rgba(52,211,153,0.3)' }]} onPress={handleExportExcel} disabled={isExporting}>
               {isExporting ? <ActivityIndicator size="small" color="#34D399" /> : <FileSpreadsheet size={18} color="#34D399" />}
-              <Text style={styles.exportBtnText}>Excel</Text>
+              <Text style={[styles.exportBtnText, { color: tokens.textColor }]}>Excel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.exportBtn, { borderColor: 'rgba(248,113,113,0.3)' }]} onPress={handleExportPDF} disabled={isExporting}>
+            <TouchableOpacity style={[styles.exportBtn, { backgroundColor: tokens.cardBg, borderColor: 'rgba(248,113,113,0.3)' }]} onPress={handleExportPDF} disabled={isExporting}>
               {isExporting ? <ActivityIndicator size="small" color="#F87171" /> : <FileText size={18} color="#F87171" />}
-              <Text style={styles.exportBtnText}>PDF</Text>
+              <Text style={[styles.exportBtnText, { color: tokens.textColor }]}>PDF</Text>
             </TouchableOpacity>
           </View>
           
-          <Text style={styles.exportSectionSubtitle}>Bagikan Laporan via WhatsApp</Text>
+          <Text style={[styles.exportSectionSubtitle, { color: tokens.subTextColor }]}>Bagikan Laporan via WhatsApp</Text>
           <View style={styles.waButtonsContainer}>
-            <TouchableOpacity style={styles.waBtn} onPress={() => handleSendWhatsApp('dosen')}>
+            <TouchableOpacity style={[styles.waBtn, { backgroundColor: isLightTheme ? 'rgba(37,211,102,0.05)' : 'rgba(37,211,102,0.1)' }]} onPress={() => handleSendWhatsApp('dosen')}>
               <Send size={14} color="#25D366" />
               <Text style={styles.waBtnText}>Kirim ke Dosen</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.waBtn} onPress={() => handleSendWhatsApp('kaprodi')}>
+            <TouchableOpacity style={[styles.waBtn, { backgroundColor: isLightTheme ? 'rgba(37,211,102,0.05)' : 'rgba(37,211,102,0.1)' }]} onPress={() => handleSendWhatsApp('kaprodi')}>
               <Send size={14} color="#25D366" />
               <Text style={styles.waBtnText}>Kirim ke Kaprodi</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.waBtn} onPress={() => handleSendWhatsApp('dekan')}>
+            <TouchableOpacity style={[styles.waBtn, { backgroundColor: isLightTheme ? 'rgba(37,211,102,0.05)' : 'rgba(37,211,102,0.1)' }]} onPress={() => handleSendWhatsApp('dekan')}>
               <Send size={14} color="#25D366" />
               <Text style={styles.waBtnText}>Kirim ke Dekan</Text>
             </TouchableOpacity>
@@ -418,14 +431,12 @@ Terima kasih.`;
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.ai.primary} />
             }
           />
-        )}
-
-        {/* Edit Status Modal */}
+        )}        {/* Edit Status Modal */}
         <Modal visible={isEditModalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
-            <BlurView intensity={40} tint="dark" style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Ubah Status Absensi</Text>
-              <Text style={styles.modalSubtitle}>
+            <BlurView intensity={40} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+              <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Ubah Status Absensi</Text>
+              <Text style={[styles.modalSubtitle, { color: tokens.subTextColor }]}>
                 {selectedRecord?.name} - {selectedRecord?.nama_mk}
               </Text>
               
@@ -435,6 +446,7 @@ Terima kasih.`;
                     key={st}
                     style={[
                       styles.statusOptionBtn,
+                      { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor },
                       selectedRecord?.status === st && { borderColor: getStatusStyle(st).color, backgroundColor: `${getStatusStyle(st).color}20` }
                     ]}
                     onPress={() => handleUpdateStatus(st)}
@@ -442,6 +454,7 @@ Terima kasih.`;
                   >
                     <Text style={[
                       styles.statusOptionText,
+                      { color: tokens.subTextColor },
                       selectedRecord?.status === st && { color: getStatusStyle(st).color, fontWeight: 'bold' }
                     ]}>
                       {st.toUpperCase()}
@@ -451,18 +464,17 @@ Terima kasih.`;
               </View>
 
               <TouchableOpacity 
-                style={styles.cancelModalBtn}
+                style={[styles.cancelModalBtn, { backgroundColor: tokens.iconButtonBg }]}
                 onPress={() => setIsEditModalVisible(false)}
                 disabled={isUpdating}
               >
-                <Text style={styles.cancelModalBtnText}>Batal</Text>
+                <Text style={[styles.cancelModalBtnText, { color: tokens.textColor }]}>Batal</Text>
               </TouchableOpacity>
             </BlurView>
           </View>
         </Modal>
 
-      </LinearGradient>
-    </View>
+      </AnimatedBackground>
   );
 }
 

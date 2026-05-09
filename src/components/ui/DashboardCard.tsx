@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { DesignSystem } from '@/constants/DesignSystem';
 import { LucideIcon } from 'lucide-react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 interface DashboardCardProps {
   title: string;
@@ -28,12 +29,13 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   value,
   subtitle,
   icon: Icon,
-  iconColor = DesignSystem.colors.primary,
+  iconColor,
   gradient,
   style,
   delay = 0,
   onPress,
 }) => {
+  const { tokens, isLightTheme } = useTheme();
   const scaleValue = useSharedValue(1);
 
   const animatedScaleStyle = useAnimatedStyle(() => ({
@@ -66,9 +68,9 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
         onPress={onPress}
         activeOpacity={0.8}
       >
-        <BlurView intensity={DesignSystem.blur} style={StyleSheet.absoluteFill}>
+        <BlurView intensity={DesignSystem.blur} tint={isLightTheme ? 'light' : 'dark'} style={StyleSheet.absoluteFill}>
           <LinearGradient
-            colors={(gradient || [DesignSystem.colors.glass, DesignSystem.colors.surfaceVariant]) as unknown as readonly [string, string, ...string[]]}
+            colors={(gradient || (isLightTheme ? ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.9)'] : [DesignSystem.colors.glass, DesignSystem.colors.surfaceVariant])) as unknown as readonly [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -78,16 +80,16 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
         <View style={styles.content}>
           <View style={styles.header}>
             {Icon && (
-              <View style={[styles.iconContainer, { borderColor: iconColor }]}>
-                <Icon size={24} color={iconColor} />
+              <View style={[styles.iconContainer, { borderColor: iconColor || tokens.borderColor, backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)' }]}>
+                <Icon size={24} color={iconColor || (isLightTheme ? '#1E4FA8' : DesignSystem.colors.primary)} />
               </View>
             )}
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={[styles.title, { color: tokens.subTextColor }]} numberOfLines={1}>{title}</Text>
           </View>
 
           <View style={styles.valueSection}>
-            <Text style={styles.value}>{value}</Text>
-            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            <Text style={[styles.value, { color: tokens.textColor }]}>{value}</Text>
+            {subtitle && <Text style={[styles.subtitle, { color: tokens.subTextColor }]}>{subtitle}</Text>}
           </View>
         </View>
 
@@ -97,7 +99,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             StyleSheet.absoluteFill,
             {
               borderWidth: 1,
-              borderColor: DesignSystem.colors.glassBorder,
+              borderColor: tokens.borderColor,
               borderRadius: DesignSystem.radius.lg,
             },
           ]}

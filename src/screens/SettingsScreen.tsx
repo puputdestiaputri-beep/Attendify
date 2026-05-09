@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
-import { UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle, Palette, MessageSquare, Send, X } from 'lucide-react-native';
+import { UserCog, ChevronLeft, ChevronRight, Shield, Info, HelpCircle, Palette, MessageSquare, Send, X, Check } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +16,7 @@ const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
   const navigation = useNavigation<any>();
-  const { isDarkMode, themeColors, setThemeColors } = useTheme();
+  const { isDarkMode, themeColors, setThemeColors, isLightTheme, tokens } = useTheme();
   const { role, user } = useAuth();
 
   const [isReportModalVisible, setIsReportModalVisible] = useState(false);
@@ -28,6 +28,7 @@ export default function SettingsScreen() {
     { name: 'Blue', colors: ['#0f172a', '#1e3a8a', '#3b82f6', '#60a5fa', '#3b82f6', '#1e3a8a', '#0f172a'] },
     { name: 'Purple', colors: ['#1e1b4b', '#4c1d95', '#7c3aed', '#a78bfa', '#7c3aed', '#4c1d95', '#1e1b4b'] },
     { name: 'Pink', colors: ['#4c0519', '#be123c', '#e11d48', '#fb7185', '#e11d48', '#be123c', '#4c0519'] },
+    { name: 'Grey', colors: ['#020617', '#0f172a', '#1e293b', '#334155', '#1e293b', '#0f172a', '#020617'] },
   ];
 
   const submitReport = async () => {
@@ -95,13 +96,13 @@ export default function SettingsScreen() {
       <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
         <TouchableOpacity 
           onPress={handleBack} 
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: tokens.iconButtonBg }]}
         >
-          <ChevronLeft size={28} color="#fff" />
+          <ChevronLeft size={28} color={tokens.textColor} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#1f2937' }]}>Pengaturan</Text>
+        <Text style={[styles.title, { color: tokens.textColor }]}>Pengaturan</Text>
         <TouchableOpacity onPress={() => handleDevFeature('Pusat Bantuan')}>
-           <HelpCircle size={24} color="rgba(255,255,255,0.6)" />
+           <HelpCircle size={24} color={tokens.subTextColor} />
         </TouchableOpacity>
       </Animated.View>
 
@@ -111,8 +112,8 @@ export default function SettingsScreen() {
       >
         
         <View style={styles.settingsGroup}>
-          <Text style={styles.groupTitle}>Keamanan & Akun</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
+          <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Keamanan & Akun</Text>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             <TouchableOpacity 
                style={styles.settingItem}
                onPress={() => navigation.navigate('ProfileDetails')}
@@ -121,9 +122,9 @@ export default function SettingsScreen() {
                  <View style={[styles.iconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
                    <UserCog size={20} color="#38BDF8" />
                  </View>
-                 <Text style={styles.settingItemText}>Detail Profil</Text>
+                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Detail Profil</Text>
               </View>
-              <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={20} color={tokens.subTextColor} />
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -134,41 +135,61 @@ export default function SettingsScreen() {
                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
                    <Shield size={20} color="#10B981" />
                  </View>
-                 <Text style={styles.settingItemText}>Privasi & Keamanan</Text>
+                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Privasi & Keamanan</Text>
               </View>
-              <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={20} color={tokens.subTextColor} />
             </TouchableOpacity>
           </BlurView>
         </View>
 
         <View style={styles.settingsGroup}>
-          <Text style={styles.groupTitle}>Tampilan</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
+          <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Tampilan</Text>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             <View style={[styles.settingItem, styles.noBorder, { flexDirection: 'column', alignItems: 'flex-start' }]}>
               <View style={styles.settingItemLeft}>
                  <View style={[styles.iconBox, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
                    <Palette size={20} color="#EC4899" />
                  </View>
-                 <Text style={styles.settingItemText}>Tema Warna</Text>
+                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Tema Warna</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16, width: '100%' }}>
-                {gradients.map((grad, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    onPress={() => setThemeColors(grad.colors)}
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 24,
-                      marginRight: 12,
-                      borderWidth: 2,
-                      borderColor: themeColors && themeColors[0] === grad.colors[0] ? '#fff' : 'transparent',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <LinearGradient colors={grad.colors as unknown as readonly [string, string, ...string[]]} style={{ flex: 1 }} />
-                  </TouchableOpacity>
-                ))}
+                {gradients.map((grad, index) => {
+                  const isSelected = themeColors && themeColors[0] === grad.colors[0];
+                  const isLight = grad.colors[0] === '#ffffff' || grad.colors[0] === '#fdfaf5';
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => setThemeColors(grad.colors)}
+                      style={{ alignItems: 'center', marginRight: 16 }}
+                    >
+                      <View
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 24,
+                          borderWidth: 2.5,
+                          borderColor: isSelected
+                            ? (isLight ? '#6b7280' : '#ffffff')
+                            : (isLight ? 'rgba(0,0,0,0.15)' : 'transparent'),
+                          overflow: 'hidden',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <LinearGradient colors={grad.colors as unknown as readonly [string, string, ...string[]]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                        {isSelected && (
+                          <Check size={20} color={isLight ? '#374151' : '#ffffff'} strokeWidth={3} />
+                        )}
+                      </View>
+                      <Text style={{
+                        color: isLight ? (isLightTheme ? '#374151' : 'rgba(255,255,255,0.6)') : 'rgba(255,255,255,0.6)',
+                        fontSize: 10,
+                        marginTop: 6,
+                        fontWeight: isSelected ? '700' : '400',
+                      }}>{grad.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
           </BlurView>
@@ -176,8 +197,8 @@ export default function SettingsScreen() {
 
         {role !== 'admin' && (
           <View style={styles.settingsGroup}>
-            <Text style={styles.groupTitle}>Bantuan</Text>
-            <BlurView intensity={20} tint="dark" style={styles.card}>
+            <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Bantuan</Text>
+            <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
               <TouchableOpacity 
                  style={[styles.settingItem, styles.noBorder]}
                  onPress={() => setIsReportModalVisible(true)}
@@ -186,34 +207,34 @@ export default function SettingsScreen() {
                    <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
                      <MessageSquare size={20} color="#F59E0B" />
                    </View>
-                   <Text style={styles.settingItemText}>Laporkan Masalah</Text>
+                   <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Laporkan Masalah</Text>
                 </View>
-                <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+                <ChevronRight size={20} color={tokens.subTextColor} />
               </TouchableOpacity>
             </BlurView>
           </View>
         )}
 
         <View style={styles.settingsGroup}>
-          <Text style={styles.groupTitle}>Lainnya</Text>
-          <BlurView intensity={20} tint="dark" style={styles.card}>
+          <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Lainnya</Text>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             <TouchableOpacity 
                style={[styles.settingItem, styles.noBorder]}
                onPress={() => navigation.navigate('AboutAttendify')}
             >
               <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
-                   <Info size={20} color="rgba(255, 255, 255, 0.6)" />
+                 <View style={[styles.iconBox, { backgroundColor: tokens.iconButtonBg }]}>
+                   <Info size={20} color={tokens.subTextColor} />
                  </View>
-                 <Text style={styles.settingItemText}>Tentang Attendify</Text>
+                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Tentang Attendify</Text>
               </View>
-              <Text style={styles.versionText}>v1.0.4</Text>
+              <Text style={[styles.versionText, { color: tokens.labelColor }]}>v1.0.4</Text>
             </TouchableOpacity>
           </BlurView>
         </View>
 
         <View style={{ marginTop: 24 }}>
-          <Text style={styles.copyright}>© 2026 SmartFace System. All rights reserved.</Text>
+          <Text style={[styles.copyright, { color: tokens.labelColor }]}>© 2026 SmartFace System. All rights reserved.</Text>
         </View>
 
       </ScrollView>

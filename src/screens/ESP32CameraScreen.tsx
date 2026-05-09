@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Image, ActivityIndicator, StyleSheet, Text, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ESP32_URL = 'http://10.61.4.131/capture';
-const BACKEND_URL = 'http://10.61.4.141:5000/api';
+const ESP32_URL = 'http://10.60.4.104/capture';
+const BACKEND_URL = 'http://10.149.165.20:5000/api';
 const DEVICE_ID = 'esp32-kelas-a';
 const SEND_INTERVAL = 5000; // 5 seconds
 

@@ -2,15 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
-import { BarChart3, TrendingUp } from 'lucide-react-native';
+import { BarChart3 } from 'lucide-react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 interface AttendanceData {
   subject: string;
-  attendance: number; // percentage
-  total: number; // total classes
-  attended: number; // classes attended
+  attendance: number;
+  total: number;
+  attended: number;
 }
 
 interface AttendanceChartProps {
@@ -26,12 +27,13 @@ export const AttendanceChart: React.FC<AttendanceChartProps> = ({
   showLegend = true,
   containerStyle 
 }) => {
+  const { tokens, isLightTheme } = useTheme();
   const maxValue = 100;
 
   const getColor = (percentage: number) => {
-    if (percentage >= 80) return '#22C55E'; // Green
-    if (percentage >= 60) return '#EAB308'; // Amber
-    return '#EF4444'; // Red
+    if (percentage >= 80) return '#22C55E';
+    if (percentage >= 60) return '#EAB308';
+    return '#EF4444';
   };
 
   return (
@@ -40,23 +42,32 @@ export const AttendanceChart: React.FC<AttendanceChartProps> = ({
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <BarChart3 color={Colors.ai.primary} size={20} />
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: tokens.textColor }]}>{title}</Text>
           </View>
         </View>
       )}
 
-      <View style={styles.chartContainer}>
+      <View style={[styles.chartContainer, {
+        backgroundColor: isLightTheme ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+        borderColor: tokens.borderColor,
+      }]}>
         {data.map((item, index) => {
           const barColor = getColor(item.attendance);
 
           return (
             <View key={index} style={styles.chartRow}>
               <View style={styles.labelCol}>
-                <Text style={styles.label} numberOfLines={2}>{item.subject}</Text>
-                <Text style={styles.meta}>{item.attended}/{item.total} kelas</Text>
+                <Text style={[styles.label, { color: tokens.textColor }]} numberOfLines={2}>
+                  {item.subject}
+                </Text>
+                <Text style={[styles.meta, { color: tokens.subTextColor }]}>
+                  {item.attended}/{item.total} kelas
+                </Text>
               </View>
 
-              <View style={styles.barSection}>
+              <View style={[styles.barSection, {
+                backgroundColor: isLightTheme ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)',
+              }]}>
                 <LinearGradient
                   colors={[barColor, `${barColor}80`]}
                   start={{ x: 0, y: 0 }}
@@ -74,15 +85,15 @@ export const AttendanceChart: React.FC<AttendanceChartProps> = ({
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} />
-            <Text style={styles.legendText}>Baik (≥80%)</Text>
+            <Text style={[styles.legendText, { color: tokens.subTextColor }]}>Baik (≥80%)</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: '#EAB308' }]} />
-            <Text style={styles.legendText}>Cukup (60-79%)</Text>
+            <Text style={[styles.legendText, { color: tokens.subTextColor }]}>Cukup (60-79%)</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-            <Text style={styles.legendText}>Kurang (60% ke bawah)</Text>
+            <Text style={[styles.legendText, { color: tokens.subTextColor }]}>Kurang (&lt;60%)</Text>
           </View>
         </View>
       )}
@@ -102,14 +113,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
   },
   chartContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   chartRow: {
     flexDirection: 'row',
@@ -123,18 +131,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
     lineHeight: 14,
   },
   meta: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 2,
   },
   barSection: {
     flex: 1,
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 6,
     overflow: 'hidden',
     position: 'relative',
@@ -172,6 +177,5 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
   },
 });

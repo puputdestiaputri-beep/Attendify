@@ -23,6 +23,7 @@ import {
   Users,
   GraduationCap,
   ChevronRight,
+  ChevronLeft,
   CheckCircle,
   Clock,
   FileX,
@@ -49,6 +50,7 @@ import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 import * as XLSX from 'xlsx';
+import { useTheme } from '../context/ThemeContext';
 
 let RNHTMLtoPDF: any = null;
 if (Platform.OS !== 'web') {
@@ -72,36 +74,15 @@ const dayLabels: Record<string, string> = {
 // ============================================================
 // DESIGN SYSTEM - Modern Light Theme
 // ============================================================
-const THEME = {
-  primary: '#669bbc',
-  primaryLight: '#8fb8d4',
-  primaryDark: '#4a7a9e',
-  secondary: '#0E3b95',
-  background: '#ffffff',
-  surface: '#f8fafc',
-  surfaceElevated: '#ffffff',
-  text: '#333333',
-  textSecondary: '#64748b',
-  textMuted: '#94a3b8',
-  border: '#e2e8f0',
-  borderLight: '#f1f5f9',
-  shadow: 'rgba(0, 0, 0, 0.06)',
-  shadowStrong: 'rgba(0, 0, 0, 0.12)',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#3b82f6',
-};
-
 const statusColor: Record<string, string> = {
-  Hadir: THEME.success,
-  Telat: THEME.warning,
-  Izin: THEME.info,
-  Alfa: THEME.error,
-  hadir: THEME.success,
-  terlambat: THEME.warning,
-  izin: THEME.info,
-  alfa: THEME.error,
+  Hadir: '#22c55e',
+  Telat: '#f59e0b',
+  Izin: '#3b82f6',
+  Alfa: '#ef4444',
+  hadir: '#22c55e',
+  terlambat: '#f59e0b',
+  izin: '#3b82f6',
+  alfa: '#ef4444',
 };
 
 const statusLabel: Record<string, string> = {
@@ -179,6 +160,7 @@ const ScalePress = ({ children, onPress, style, disabled = false }: any) => {
 
 const SkeletonShimmer = () => {
   const shimmer = useRef(new Animated.Value(0)).current;
+  const { tokens } = useTheme();
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -205,16 +187,16 @@ const SkeletonShimmer = () => {
   });
 
   return (
-    <View style={styles.skeletonCard}>
-      <View style={[styles.skeletonLine, { width: '60%', height: 20, marginBottom: 12 }]} />
-      <View style={[styles.skeletonLine, { width: '40%', height: 14, marginBottom: 8 }]} />
-      <View style={[styles.skeletonLine, { width: '80%', height: 14 }]} />
+    <View style={[styles.skeletonCard, { backgroundColor: tokens.cardBg }]}>
+      <View style={[styles.skeletonLine, { width: '60%', height: 20, marginBottom: 12, backgroundColor: tokens.borderColor }]} />
+      <View style={[styles.skeletonLine, { width: '40%', height: 14, marginBottom: 8, backgroundColor: tokens.borderColor }]} />
+      <View style={[styles.skeletonLine, { width: '80%', height: 14, backgroundColor: tokens.borderColor }]} />
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
           {
             transform: [{ translateX }],
-            backgroundColor: 'rgba(255,255,255,0.4)',
+            backgroundColor: 'rgba(255,255,255,0.1)',
           },
         ]}
       />
@@ -246,7 +228,7 @@ const Toast = ({ visible, message, type = 'success', onHide }: any) => {
     }
   }, [visible]);
 
-  const bgColor = type === 'success' ? THEME.success : type === 'error' ? THEME.error : THEME.info;
+  const bgColor = type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6';
 
   return (
     <Animated.View
@@ -295,6 +277,7 @@ const AnimatedInfoCard = ({ children, delay = 0 }: any) => {
 const AnimatedStatCard = ({ index, color, number, label, icon }: any) => {
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
+  const { tokens, isLightTheme } = useTheme();
 
   useEffect(() => {
     Animated.parallel([
@@ -317,12 +300,17 @@ const AnimatedStatCard = ({ index, color, number, label, icon }: any) => {
     <Animated.View
       style={[
         styles.statCard,
-        { opacity, transform: [{ scale }], borderLeftColor: color },
+        { 
+          opacity, 
+          transform: [{ scale }], 
+          borderLeftColor: color,
+          backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(15, 23, 42, 0.6)'
+        },
       ]}
     >
       {icon}
-      <Text style={styles.statNumber}>{number}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statNumber, { color: tokens.textColor }]}>{number}</Text>
+      <Text style={[styles.statLabel, { color: tokens.subTextColor }]}>{label}</Text>
     </Animated.View>
   );
 };
@@ -337,6 +325,7 @@ const ColoredIcon = ({ icon: Icon, size, color }: any) => {
 
 export default function AdminJadwalScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
 
   // ── State ────────────────────────────────────────────────
   const [selectedDay, setSelectedDay] = useState('senin');
@@ -703,7 +692,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
 
           {/* INFO JADWAL */}
           <AnimatedInfoCard delay={0}>
-            <BlurView intensity={20} tint="dark" style={styles.card}>
+            <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={['#3b82f6', '#2563eb']}
@@ -714,24 +703,24 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   {/* @ts-ignore */}
                   <GraduationCap size={20} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.section}>Informasi Jadwal Kuliah</Text>
+                <Text style={[styles.section, { color: tokens.textColor }]}>Informasi Jadwal Kuliah</Text>
               </View>
               <View style={styles.infoGrid}>
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>👨‍🏫 Dosen</Text>
-                  <Text style={styles.infoValue}>{selectedJadwal?.dosen_name || '-'}</Text>
+                  <Text style={[styles.infoLabel, { color: tokens.subTextColor }]}>👨‍🏫 Dosen</Text>
+                  <Text style={[styles.infoValue, { color: tokens.textColor }]}>{selectedJadwal?.dosen_name || '-'}</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>📚 Mata Kuliah</Text>
-                  <Text style={styles.infoValue}>{selectedJadwal?.subject || '-'}</Text>
+                  <Text style={[styles.infoLabel, { color: tokens.subTextColor }]}>📚 Mata Kuliah</Text>
+                  <Text style={[styles.infoValue, { color: tokens.textColor }]}>{selectedJadwal?.subject || '-'}</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>🏫 Ruangan</Text>
-                  <Text style={styles.infoValue}>{selectedJadwal?.ruang || '-'}</Text>
+                  <Text style={[styles.infoLabel, { color: tokens.subTextColor }]}>🏫 Ruangan</Text>
+                  <Text style={[styles.infoValue, { color: tokens.textColor }]}>{selectedJadwal?.ruang || '-'}</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>🕐 Jam Kuliah</Text>
-                  <Text style={styles.infoValue}>{`${selectedJadwal?.jam_mulai || '-'} - ${selectedJadwal?.jam_selesai || '-'}`}</Text>
+                  <Text style={[styles.infoLabel, { color: tokens.subTextColor }]}>🕐 Jam Kuliah</Text>
+                  <Text style={[styles.infoValue, { color: tokens.textColor }]}>{`${selectedJadwal?.jam_mulai || '-'} - ${selectedJadwal?.jam_selesai || '-'}`}</Text>
                 </View>
               </View>
             </BlurView>
@@ -739,7 +728,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
 
           {/* REKAP ABSENSI */}
           <AnimatedInfoCard delay={100}>
-            <BlurView intensity={20} tint="dark" style={styles.card}>
+            <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={['#6366f1', '#4f46e5']}
@@ -750,7 +739,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   {/* @ts-ignore */}
                   <Users size={20} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.section}>Rekap Absensi Mahasiswa</Text>
+                <Text style={[styles.section, { color: tokens.textColor }]}>Rekap Absensi Mahasiswa</Text>
               </View>
               <View style={styles.statGrid}>
                 <AnimatedStatCard
@@ -782,9 +771,9 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   icon={<ColoredIcon icon={AlertCircle} size={24} color="#ef4444" />}
                 />
               </View>
-              <View style={styles.progressBar}>
+              <View style={[styles.progressBar, { borderTopColor: tokens.borderColor }]}>
                 <View style={styles.progressLabelContainer}>
-                  <Text style={styles.progressLabel}>Total Kehadiran</Text>
+                  <Text style={[styles.progressLabel, { color: tokens.subTextColor }]}>Total Kehadiran</Text>
                   <Text style={styles.progressPercentage}>{persentaseKehadiran}%</Text>
                 </View>
                 <LinearGradient
@@ -845,36 +834,56 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                 <Text style={styles.section}>Daftar Absensi ({filteredAbsensi.length})</Text>
               </View>
 
-              {loadingAbsensi ? (
-                <ActivityIndicator size="large" color="#60a5fa" style={{ marginVertical: 20 }} />
-              ) : (
-                <>
-                  <View style={styles.tableHeader}>
-                    <Text style={[styles.tableCol1, styles.tableHeaderText]}>Nama</Text>
-                    <Text style={[styles.tableCol2, styles.tableHeaderText]}>Status</Text>
-                    <Text style={[styles.tableCol3, styles.tableHeaderText]}>Tanggal</Text>
-                  </View>
-                  {filteredAbsensi.map((d, i) => (
-                    <View key={i} style={styles.tableRow}>
-                      <Text style={[styles.tableCol1, styles.tableText]}>{d.name || '-'}</Text>
-                      <View style={[styles.tableCol2, styles.statusBadge]}>
+              {/* SEARCH & FILTER */}
+              <View style={[styles.searchContainer, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }]}>
+                {/* @ts-ignore */}
+                <Search size={18} color={tokens.subTextColor} />
+                <TextInput
+                  style={{ flex: 1, height: 44, color: tokens.textColor, marginLeft: 10 }}
+                  placeholder="Cari nama mahasiswa..."
+                  placeholderTextColor={tokens.subTextColor}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+
+              <View style={[styles.tableHeader, { borderBottomColor: tokens.borderColor }]}>
+                <View style={styles.tableCol1}><Text style={[styles.tableHeaderText, { color: tokens.subTextColor }]}>Mahasiswa</Text></View>
+                <View style={styles.tableCol2}><Text style={[styles.tableHeaderText, { color: tokens.subTextColor }]}>Waktu</Text></View>
+                <View style={styles.tableCol3}><Text style={[styles.tableHeaderText, { color: tokens.subTextColor }]}>Status</Text></View>
+              </View>
+
+              {filteredAbsensi.length > 0 ? (
+                filteredAbsensi.map((item: any, idx: number) => (
+                  <View key={item.id_absensi || idx} style={[styles.tableRow, { borderBottomColor: tokens.borderColor }]}>
+                    <View style={styles.tableCol1}>
+                      <Text style={[styles.tableText, { color: tokens.textColor, fontWeight: 'bold' }]}>{item.name}</Text>
+                      <Text style={[styles.tableText, { color: tokens.subTextColor, fontSize: 11 }]}>{item.nim}</Text>
+                    </View>
+                    <View style={styles.tableCol2}>
+                      <Text style={[styles.tableText, { color: tokens.textColor }]}>{item.waktu_datang || '-'}</Text>
+                    </View>
+                    <View style={styles.tableCol3}>
+                      <View style={styles.statusBadge}>
                         <LinearGradient
-                          colors={[statusColor[d.status] + '30', statusColor[d.status] + '10']}
+                          colors={[statusColor[item.status] + '30', statusColor[item.status] + '10']}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 1 }}
                           style={styles.statusBadgeGradient}
                         >
-                          <Text style={[styles.tableText, { color: statusColor[d.status], fontWeight: '600' }]}>
-                            {statusLabel[d.status] || d.status}
+                          <Text style={[styles.tableText, { color: statusColor[item.status], fontWeight: '600' }]}>
+                            {statusLabel[item.status] || item.status}
                           </Text>
                         </LinearGradient>
                       </View>
                       <Text style={[styles.tableCol3, styles.tableText, { fontSize: 12 }]}>
-                        {d.tanggal ? new Date(d.tanggal).toLocaleDateString('id-ID') : '-'}
+                        {item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}
                       </Text>
                     </View>
-                  ))}
-                </>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>Tidak ada data</Text>
               )}
             </BlurView>
           </AnimatedInfoCard>
@@ -959,54 +968,67 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   end={{ x: 1, y: 1 }}
                   style={styles.backButtonGradient}
                 >
-                  {/* @ts-ignore */}
-                  <ArrowLeft color="#60a5fa" size={24} />
+                  <ChevronLeft color={tokens.textColor} size={24} />
                 </LinearGradient>
               </TouchableOpacity>
-              <Text style={styles.title}>Jadwal Kelas</Text>
-              {/* @ts-ignore */}
-              <Sparkles color="#60a5fa" size={20} />
             </View>
           </View>
 
-          {/* JADWAL LIST */}
-          <View style={styles.klasListContainer}>
-            {loadingJadwal ? (
-              <ActivityIndicator size="large" color="#60a5fa" style={{ marginVertical: 40 }} />
-            ) : Object.keys(jadwalPerHari).length > 0 ? (
-              Object.entries(jadwalPerHari).map(([day, jadwalList]) => (
-                <View key={day} style={{ marginBottom: 24 }}>
-                  <Text style={styles.dayLabel}>{dayLabels[day] || day}</Text>
-                  {jadwalList.map((jadwal, idx) => (
-                    <Pressable
-                      key={jadwal.id}
-                      style={({ pressed }) => [
-                        styles.klasCard,
-                        pressed && { transform: [{ scale: 0.97 }] },
-                      ]}
-                      onPress={() => handleSelectJadwal(jadwal)}
-                    >
-                      <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-                      <View style={styles.klasCardHeader}>
-                        <View>
-                          <Text style={styles.klasName}>{jadwal.class_name || '-'}</Text>
-                          <Text style={styles.klasMatkul}>📖 {jadwal.subject || '-'}</Text>
-                        </View>
-                        {/* @ts-ignore */}
-                        <ChevronRight color="#60a5fa" size={20} />
-                      </View>
-                      <View style={styles.klasInfoRow}>
-                        <Text style={styles.klasInfo}>👨‍🏫 {jadwal.dosen_name || '-'}</Text>
-                        <Text style={styles.klasInfo}>⏰ {jadwal.jam_mulai || '-'}</Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ))
-            ) : (
-              <Text style={styles.emptyText}>Tidak ada jadwal</Text>
-            )}
+          {/* Day Selector */}
+          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {days.map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  onPress={() => setSelectedDay(day)}
+                  style={[
+                    styles.kelasChip,
+                    { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor },
+                    selectedDay === day && styles.kelasChipActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.kelasChipText,
+                    { color: tokens.subTextColor },
+                    selectedDay === day && styles.kelasChipTextActive
+                  ]}>{dayLabels[day]}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
+
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.klasListContainer}
+          >
+            {loadingJadwal ? (
+              <ActivityIndicator color="#3b82f6" size="large" style={{ marginTop: 50 }} />
+            ) : (
+              (jadwalPerHari[selectedDay] || []).length > 0 ? (
+                (jadwalPerHari[selectedDay] || []).map((jadwal: any, index: number) => (
+                  <Pressable
+                    key={jadwal.id_jadwal || index}
+                    style={[styles.klasCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}
+                    onPress={() => setSelectedJadwal(jadwal)}
+                  >
+                    <View style={styles.klasCardHeader}>
+                      <View>
+                        <Text style={[styles.klasMatkul, { color: tokens.textColor }]}>{jadwal.subject || '-'}</Text>
+                        <Text style={[styles.klasName, { color: tokens.textColor }]}>{jadwal.class_name || '-'}</Text>
+                      </View>
+                      <ChevronRight color="#60a5fa" size={20} />
+                    </View>
+                    <View style={styles.klasInfoRow}>
+                      <Text style={styles.klasInfo}>👨‍🏫 {jadwal.dosen_name || '-'}</Text>
+                      <Text style={styles.klasInfo}>⏰ {jadwal.jam_mulai || '-'}</Text>
+                    </View>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>Tidak ada jadwal</Text>
+              )
+            )}
+          </ScrollView>
         </ScrollView>
       )}
 
@@ -1035,32 +1057,47 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    marginLeft: -8,
-  },
-  backButtonGradient: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  backButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    flex: 1,
-    marginHorizontal: 12,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 44,
   },
 
-  // CARD STYLING
+  // CARD BASE
   card: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    borderRadius: 24,
     padding: 20,
-    borderRadius: 16,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.1)',
+    overflow: 'hidden',
+  },
+  expandedCard: {
+    marginHorizontal: 16,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    marginTop: -10,
+    borderWidth: 1,
     overflow: 'hidden',
   },
 
@@ -1068,42 +1105,36 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 20,
+    gap: 12,
   },
   iconBg: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   section: {
-    color: '#f1f5f9',
     fontSize: 16,
-    fontWeight: '700',
-    flex: 1,
+    fontWeight: 'bold',
   },
 
   // INFO GRID
   infoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
+    gap: 16,
   },
   infoItem: {
-    width: '50%',
-    paddingHorizontal: 6,
-    marginBottom: 14,
+    width: '47%',
   },
   infoLabel: {
-    color: '#94a3b8',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 6,
   },
   infoValue: {
-    color: '#f1f5f9',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1116,8 +1147,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   statCard: {
-    width: '50%',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    width: '47%',
     paddingHorizontal: 12,
     paddingVertical: 16,
     borderRadius: 12,
@@ -1129,13 +1159,11 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(148, 163, 184, 0.1)',
   },
   statNumber: {
-    color: '#fff',
     fontSize: 28,
     fontWeight: '800',
     marginVertical: 8,
   },
   statLabel: {
-    color: '#cbd5e1',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1145,7 +1173,6 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(148, 163, 184, 0.1)',
   },
   progressLabelContainer: {
     flexDirection: 'row',
@@ -1154,23 +1181,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   progressLabel: {
-    color: '#cbd5e1',
     fontSize: 14,
     fontWeight: '600',
   },
   progressPercentage: {
-    color: '#22c55e',
     fontSize: 16,
     fontWeight: '800',
   },
   progressBarContainer: {
     height: 10,
-    borderRadius: 6,
+    borderRadius: 5,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: 5,
   },
 
   // TABLE STYLING
@@ -1179,10 +1204,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(148, 163, 184, 0.1)',
   },
   tableHeaderText: {
-    color: '#94a3b8',
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -1192,7 +1215,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(148, 163, 184, 0.05)',
     alignItems: 'center',
   },
   tableCol1: {
@@ -1205,13 +1227,11 @@ const styles = StyleSheet.create({
     flex: 0.8,
   },
   tableText: {
-    color: '#cbd5e1',
     fontSize: 13,
     fontWeight: '500',
   },
   statusBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
   },
   statusBadgeGradient: {
     flexDirection: 'row',
@@ -1235,7 +1255,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: '600',
     borderWidth: 1,
   },
   excelBtn: {
@@ -1263,7 +1282,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filterKelasLabel: {
-    color: '#94a3b8',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
@@ -1276,17 +1294,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   kelasChipActive: {
     backgroundColor: '#3b82f6',
     borderColor: '#3b82f6',
   },
   kelasChipText: {
-    color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -1305,7 +1320,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.1)',
     overflow: 'hidden',
   },
   klasCardHeader: {
@@ -1315,14 +1329,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   klasName: {
-    color: '#fff',
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
     marginBottom: 6,
   },
   klasMatkul: {
-    color: '#60a5fa',
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 8,

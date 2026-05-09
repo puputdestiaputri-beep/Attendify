@@ -1,5 +1,0 @@
-﻿src/screens/DosenDashboardScreen.tsx(280,13): error TS17002: Expected corresponding JSX closing tag for 'ScrollView'.
-src/screens/DosenDashboardScreen.tsx(407,11): error TS17002: Expected corresponding JSX closing tag for 'AnimatedBackground'.
-src/screens/DosenDashboardScreen.tsx(513,9): error TS17002: Expected corresponding JSX closing tag for 'View'.
-src/screens/DosenDashboardScreen.tsx(514,5): error TS1005: ')' expected.
-src/screens/DosenDashboardScreen.tsx(515,3): error TS1109: Expression expected.
