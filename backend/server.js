@@ -1,16 +1,57 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+
+const http = require('http');
+const { Server } = require('socket.io');
 
 const apiRoutes = require('./routes/api');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
+
+// Attach io to req.app so routes can access it
+app.set('io', io);
+
+// --- Production Hardening ---
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded by mobile app
+}));
+app.use(compression());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// Rate Limiting: 100 requests per 15 minutes per IP
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { success: false, message: 'Too many requests, please try again later.' }
+});
+app.use('/api/auth/', limiter); // Apply specifically to auth routes for security
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+};
+app.use(cors(corsOptions));
 // Built-in middleware for json with extended body limit to handle base64 images
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Static route for uploads folder
+app.use('/uploads', express.static('uploads'));
 
 // Simple welcome route
 app.get('/', (req, res) => {
@@ -21,13 +62,15 @@ app.get('/', (req, res) => {
 // This correctly mounts all routes defined in api.js under the '/api' prefix.
 // The ESP32 route will become: /api/iot/recognize
 app.use('/api', apiRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is gracefully running on port ${PORT}.`);
     console.log(`Local:   http://localhost:${PORT}/api/`);
     console.log(`Network: http://10.149.165.20:${PORT}/api/`);
     console.log(`ESP32:   http://10.149.165.20:${PORT}/api/iot/recognize`);
     console.log('JWT_SECRET loaded:', process.env.JWT_SECRET ? 'YES' : 'NO');
+    console.log('Socket.IO is running and ready for real-time connection');
 });

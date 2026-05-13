@@ -10,7 +10,7 @@ import { API_URL } from '../../constants/Config';
 import {
   CheckCircle2, XCircle, Clock,
   Users, RefreshCw, Radio,
-  AlertTriangle, ShieldCheck, Zap
+  AlertTriangle, ShieldCheck, Zap, MapPin
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
@@ -20,6 +20,7 @@ import StudentCard from '../components/ui/StudentCard';
 import ReportIssueModal from '../components/ReportIssueModal';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import { useTheme } from '../context/ThemeContext';
+import io from 'socket.io-client';
 
 
 const { width } = Dimensions.get('window');
@@ -61,7 +62,7 @@ export default function DosenDashboardScreen() {
   const navigation = useNavigation<any>();
   const { tokens, isLightTheme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
-  const [studentsList, setStudentsList] = useState(STUDENTS);
+  const [studentsList, setStudentsList] = useState<any[]>(STUDENTS);
   const [isLoading, setIsLoading] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -105,6 +106,38 @@ export default function DosenDashboardScreen() {
       }
     };
   }, [manualScanEnabled, manualScanTimer]);
+
+  useEffect(() => {
+    const socket = io(API_URL);
+    socket.on('new_attendance', (data: any) => {
+      setStudentsList(prev => {
+        // format time from data.time
+        const date = new Date(data.time);
+        const h = date.getHours().toString().padStart(2, '0');
+        const m = date.getMinutes().toString().padStart(2, '0');
+        
+        // Find existing student or prepend
+        const existingIdx = prev.findIndex(s => s.id === data.user_id || s.name === data.name);
+        if (existingIdx > -1) {
+          const updated = [...prev];
+          updated[existingIdx] = { ...updated[existingIdx], status: 'Hadir', waktu: `${h}:${m}`, photo: data.photo };
+          return updated;
+        } else {
+          return [{ id: data.user_id, name: data.name, npm: '-', status: 'Hadir', waktu: `${h}:${m}`, photo: data.photo }, ...prev];
+        }
+      });
+    });
+    
+    socket.on('update_location', (data: any) => {
+      setStudentsList(prev => prev.map(student => 
+        student.id === data.user_id ? { ...student, location_name: data.location_name } : student
+      ));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
 
 
@@ -387,13 +420,26 @@ const toggleManualScan = async () => {
               return (
                 <View key={student.id} style={[styles.studentItem, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.03)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]}>
                   <View style={styles.avatarWrap}>
-                    <View style={[styles.avatar, { backgroundColor: `${color}15`, borderColor: `${color}30` }]}>
-                      <Text style={[styles.avatarText, { color }]}>{student.name.charAt(0)}</Text>
-                    </View>
+                    {student.photo ? (
+                      <Image source={{ uri: `${API_URL}/uploads/${student.photo}` }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, { backgroundColor: `${color}15`, borderColor: `${color}30` }]}>
+                        <Text style={[styles.avatarText, { color }]}>{student.name.charAt(0)}</Text>
+                      </View>
+                    )}
                   </View>
                   <View style={styles.studentDetails}>
                     <Text style={[styles.studentName, { color: tokens.textColor }]}>{student.name}</Text>
-                    <Text style={[styles.studentNpm, { color: tokens.subTextColor }]}>{student.npm}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                      <Text style={[styles.studentNpm, { color: tokens.subTextColor, marginTop: 0 }]}>{student.npm}</Text>
+                      {student.location_name && (
+                        <>
+                          <Text style={{ color: tokens.subTextColor, fontSize: 10 }}>•</Text>
+                          <MapPin size={10} color="#38BDF8" />
+                          <Text style={{ fontSize: 10, color: tokens.subTextColor, flexShrink: 1 }} numberOfLines={1}>{student.location_name}</Text>
+                        </>
+                      )}
+                    </View>
                   </View>
                   <View style={styles.statusWrap}>
                     <View style={[styles.statusBadge, { borderColor: `${color}30`, backgroundColor: `${color}10` }]}>

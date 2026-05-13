@@ -300,9 +300,9 @@ const AnimatedStatCard = ({ index, color, number, label, icon }: any) => {
     <Animated.View
       style={[
         styles.statCard,
-        { 
-          opacity, 
-          transform: [{ scale }], 
+        {
+          opacity,
+          transform: [{ scale }],
           borderLeftColor: color,
           backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(15, 23, 42, 0.6)'
         },
@@ -533,7 +533,7 @@ export default function AdminJadwalScreen() {
         document.body.appendChild(iframe);
         iframe.contentDocument?.write(htmlContent);
         iframe.contentDocument?.close();
-        
+
         // Wait for iframe content to load then print
         setTimeout(() => {
           iframe.contentWindow?.focus();
@@ -551,7 +551,7 @@ export default function AdminJadwalScreen() {
         };
 
         let file = await RNHTMLtoPDF.convert(options);
-        
+
         if (file.filePath) {
           await Sharing.shareAsync(file.filePath, {
             mimeType: 'application/pdf',
@@ -589,9 +589,9 @@ export default function AdminJadwalScreen() {
       const ws = XLSX.utils.json_to_sheet(dataToExport);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Absensi");
-      
+
       const filename = selectedKelas ? `absensi_kelas_${selectedKelas}.xlsx` : `absensi.xlsx`;
-      
+
       if (Platform.OS === 'web') {
         XLSX.writeFile(wb, filename);
         showToast('Berhasil export Excel', 'success');
@@ -599,7 +599,7 @@ export default function AdminJadwalScreen() {
         const wbout = XLSX.write(wb, { type: 'base64', bookType: "xlsx" });
         // @ts-ignore
         const fileUri = FileSystem.documentDirectory + filename;
-        
+
         await FileSystem.writeAsStringAsync(fileUri, wbout, {
           // @ts-ignore
           encoding: FileSystem.EncodingType.Base64
@@ -931,7 +931,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                 )}
               </Pressable>
             </View>
-            
+
             <View style={[styles.buttonContainer, { marginTop: 0 }]}>
               <Pressable
                 style={({ pressed }) => [
@@ -997,7 +997,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
             </ScrollView>
           </View>
 
-          <ScrollView 
+          <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.klasListContainer}
           >
