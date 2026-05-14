@@ -3,15 +3,37 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   StatusBar, Alert, Platform, Linking
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { API_URL } from '../../constants/Config';
+import {
+  CheckCircle2, XCircle, Clock,
+  Users, RefreshCw, Radio,
+  AlertTriangle, ShieldCheck, Zap, MapPin
+} from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { BlurView } from 'expo-blur';
+import { DesignSystem } from '../../constants/DesignSystem';
+import DashboardCard from '../components/ui/DashboardCard';
+import StudentCard from '../components/ui/StudentCard';
+import ReportIssueModal from '../components/ReportIssueModal';
 
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import ReportIssueModal from '../components/ReportIssueModal';
 import { AlertTriangle, Wifi, WifiOff, Clock3, Bell } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import io from 'socket.io-client';
 
 const API_URL = 'http://127.0.0.1:5000/api'; 
 
 export default function DosenDashboardScreen() {
+  const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
+  const [activeFilter, setActiveFilter] = useState<FilterType>('Semua');
+  const [studentsList, setStudentsList] = useState<any[]>(STUDENTS);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLive, setIsLive] = useState(true);
   const { tokens } = useTheme();
 
   const [showReportModal, setShowReportModal] = useState(false);
@@ -40,6 +62,87 @@ export default function DosenDashboardScreen() {
   };
 
   useEffect(() => {
+    if (manualScanEnabled && manualScanTimer > 0) {
+      timerIntervalRef.current = setInterval(() => {
+        setManualScanTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(timerIntervalRef.current!);
+            setManualScanEnabled(false);
+            return 300;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (!manualScanEnabled) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [manualScanEnabled, manualScanTimer]);
+
+  useEffect(() => {
+    const socket = io(API_URL);
+    socket.on('new_attendance', (data: any) => {
+      setStudentsList(prev => {
+        // format time from data.time
+        const date = new Date(data.time);
+        const h = date.getHours().toString().padStart(2, '0');
+        const m = date.getMinutes().toString().padStart(2, '0');
+        
+        // Find existing student or prepend
+        const existingIdx = prev.findIndex(s => s.id === data.user_id || s.name === data.name);
+        if (existingIdx > -1) {
+          const updated = [...prev];
+          updated[existingIdx] = { ...updated[existingIdx], status: 'Hadir', waktu: `${h}:${m}`, photo: data.photo };
+          return updated;
+        } else {
+          return [{ id: data.user_id, name: data.name, npm: '-', status: 'Hadir', waktu: `${h}:${m}`, photo: data.photo }, ...prev];
+        }
+      });
+    });
+    
+    socket.on('update_location', (data: any) => {
+      setStudentsList(prev => prev.map(student => 
+        student.id === data.user_id ? { ...student, location_name: data.location_name } : student
+      ));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+
+
+  const total = studentsList.length;
+  const hadir = studentsList.filter(s => s.status === 'Hadir').length;
+  const telat = studentsList.filter(s => s.status === 'Telat').length;
+  const alpha = studentsList.filter(s => s.status === 'Tidak Hadir').length;
+
+  const filtered = activeFilter === 'Semua'
+    ? studentsList
+    : studentsList.filter(s => s.status === activeFilter);
+
+  const handleRefresh = () => {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, '0');
+    const m = now.getMinutes().toString().padStart(2, '0');
+    setLastUpdated(`${h}:${m}`);
+
+    setSuccessTitle('Data Diperbarui');
+    setSuccessMessage('Data kehadiran terbaru berhasil dimuat dari sistem.');
+    setShowSuccessModal(true);
+  };
+
+  const handleManualCheckIn = (id: number) => {
+    setSelectedStudentId(id);
+    setShowAttendanceModal(true);
     fetchSchedules();
     checkIotStatus();
     fetchRecentScans();
@@ -293,6 +396,71 @@ export default function DosenDashboardScreen() {
                         </TouchableOpacity>
                       </View>
 
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar}>
+            {['Semua', 'Hadir', 'Telat', 'Tidak Hadir'].map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                onPress={() => setActiveFilter(filter as FilterType)}
+                style={[
+                  styles.filterBtn,
+                  { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor },
+                  activeFilter === filter && styles.filterBtnActive
+                ]}
+              >
+                <Text style={[
+                  styles.filterText,
+                  { color: tokens.subTextColor },
+                  activeFilter === filter && styles.filterTextActive
+                ]}>{filter}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <View style={styles.listContainer}>
+            {studentsList.map((student, index) => {
+              const statusColors = {
+                'Hadir': '#10B981',
+                'Telat': '#FBBF24',
+                'Tidak Hadir': '#EF4444'
+              };
+              const color = statusColors[student.status as keyof typeof statusColors];
+
+              return (
+                <View key={student.id} style={[styles.studentItem, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.03)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]}>
+                  <View style={styles.avatarWrap}>
+                    {student.photo ? (
+                      <Image source={{ uri: `${API_URL}/uploads/${student.photo}` }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, { backgroundColor: `${color}15`, borderColor: `${color}30` }]}>
+                        <Text style={[styles.avatarText, { color }]}>{student.name.charAt(0)}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.studentDetails}>
+                    <Text style={[styles.studentName, { color: tokens.textColor }]}>{student.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                      <Text style={[styles.studentNpm, { color: tokens.subTextColor, marginTop: 0 }]}>{student.npm}</Text>
+                      {student.location_name && (
+                        <>
+                          <Text style={{ color: tokens.subTextColor, fontSize: 10 }}>•</Text>
+                          <MapPin size={10} color="#38BDF8" />
+                          <Text style={{ fontSize: 10, color: tokens.subTextColor, flexShrink: 1 }} numberOfLines={1}>{student.location_name}</Text>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.statusWrap}>
+                    <View style={[styles.statusBadge, { borderColor: `${color}30`, backgroundColor: `${color}10` }]}>
+                      <Text style={[styles.statusText, { color }]}>{student.status.toUpperCase()}</Text>
+                    </View>
+                    <Text style={[styles.timeText, { color: tokens.subTextColor }]}>{student.waktu}</Text>
+                  </View>
+                  {student.status === 'Tidak Hadir' && (
+                    <TouchableOpacity 
+                      style={[styles.manualActionBtn, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.05)' : 'rgba(255,255,255,0.05)', borderColor: tokens.borderColor }]}
+                      onPress={() => handleManualCheckIn(student.id)}
+                    >
+                      <CheckCircle2 size={16} color={isLightTheme ? '#1E4FA8' : '#3B82F6'} />
                       <View style={styles.statsRow}>
                         <View style={styles.statsCard}><Text style={styles.statsNumber}>{hadirCount}</Text><Text style={styles.statsLabel}>Hadir</Text></View>
                         <View style={styles.statsCard}><Text style={styles.statsNumber}>{belumCount}</Text><Text style={styles.statsLabel}>Belum</Text></View>

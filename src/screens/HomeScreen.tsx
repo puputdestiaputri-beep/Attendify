@@ -11,6 +11,9 @@ import { useTheme } from '../context/ThemeContext';
 import { AttendanceChart } from '../components/AttendanceChart';
 import ReportIssueModal from '../components/ReportIssueModal';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import io from 'socket.io-client';
+import * as Location from 'expo-location';
+import { API_URL } from '@/constants/Config';
 
 
 const { width } = Dimensions.get('window');
@@ -21,10 +24,61 @@ export default function HomeScreen() {
   console.log('HomeScreen User Data:', JSON.stringify(user));
   const { tokens, isLightTheme } = useTheme();
   const [showReportModal, setShowReportModal] = useState(false);
-
+  const [lastAttendancePhoto, setLastAttendancePhoto] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<string | null>(null);
 
   const userName = user?.fullName || 'Mahasiswa';
   const userProdi = user?.prodi || '-';
+
+  useEffect(() => {
+    // Socket.io integration
+    const socket = io(API_URL);
+    
+    socket.on('new_attendance', async (data: any) => {
+      // Check if this attendance event belongs to the logged in user
+      if (user && data.user_id === user.id) {
+        Alert.alert('Absensi Berhasil', 'Kamu sudah absen hari ini');
+        setLastAttendancePhoto(data.photo);
+
+        // Fetch GPS Location
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await Location.getCurrentPositionAsync({});
+            const reverseGeocode = await Location.reverseGeocodeAsync({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude
+            });
+            
+            let locName = 'Kampus Area';
+            if (reverseGeocode.length > 0) {
+              const place = reverseGeocode[0];
+              locName = [place.street, place.city].filter(Boolean).join(', ') || locName;
+            }
+            setUserLocation(locName);
+
+            // Send GPS to backend
+            await fetch(`${API_URL}/api/attendance/location`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user.id,
+                latitude: loc.coords.latitude.toString(),
+                longitude: loc.coords.longitude.toString(),
+                location_name: locName
+              })
+            });
+          }
+        } catch(err) {
+          console.error('Location error:', err);
+        }
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   // Mock data - replace with real data from backend
   const attendanceData = [
@@ -86,7 +140,7 @@ export default function HomeScreen() {
             <Text style={[styles.statusLabel, { color: tokens.textColor }]}>Status Hari Ini</Text>
             <View style={styles.statusBadge}>
               <View style={styles.pulseDot} />
-              <Text style={styles.statusBadgeText}>Belum Absen</Text>
+              <Text style={styles.statusBadgeText}>{lastAttendancePhoto ? 'Sudah Absen' : 'Belum Absen'}</Text>
             </View>
           </View>
 
@@ -94,12 +148,23 @@ export default function HomeScreen() {
 
           <View style={styles.statusDetails}>
             <View style={styles.detailItem}>
-              <CheckCircle2 color="#4ADE80" size={16} />
-              <Text style={[styles.detailText, { color: tokens.subTextColor }]}>Tepat Waktu</Text>
+              {userLocation ? <MapPin color="#38BDF8" size={16} /> : <CheckCircle2 color="#4ADE80" size={16} />}
+              <Text style={[styles.detailText, { color: tokens.subTextColor }]}>{userLocation || 'Tepat Waktu'}</Text>
             </View>
-            <Text style={[styles.detailValue, { color: tokens.textColor }]}>0%</Text>
+            <Text style={[styles.detailValue, { color: tokens.textColor }]}>{userLocation ? '' : '0%'}</Text>
           </View>
         </BlurView>
+
+        {/* Real-time Attendance Photo */}
+        {lastAttendancePhoto && (
+          <View style={styles.photoContainer}>
+            <Text style={[styles.sectionTitle, { color: tokens.textColor, marginBottom: 10 }]}>Foto Kehadiran Terakhir</Text>
+            <Image 
+              source={{ uri: `${API_URL}/uploads/${lastAttendancePhoto}` }} 
+              style={styles.attendancePhoto} 
+            />
+          </View>
+        )}
 
         {/* Main Menu */}
         <View style={styles.menuContainer}>
@@ -308,5 +373,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 30,
     overflow: 'hidden',
+  },
+  photoContainer: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  attendancePhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    resizeMode: 'cover',
   },
 });

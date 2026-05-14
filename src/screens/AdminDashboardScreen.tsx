@@ -11,7 +11,7 @@ import {
   ChevronRight, Bell, Search, RefreshCw,
   UserPlus, BookOpen, Database, BarChart3,
   MonitorSmartphone, Camera, FileText, Calendar,
-  AlertTriangle
+  AlertTriangle, MapPin
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -21,6 +21,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import { useTheme } from '../context/ThemeContext';
+import io from 'socket.io-client';
+import { LineChart, PieChart } from 'react-native-chart-kit';
+import { Zap, TrendingUp, PieChart as PieChartIcon } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -31,12 +34,16 @@ export default function AdminDashboardScreen() {
   const { tokens, isLightTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [liveAttendances, setLiveAttendances] = useState<any[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   // Use centralized API_URL from Config.ts
 
 
   // Pulse animation for IoT Status
   useEffect(() => {
     fetchUnreadCount();
+    fetchAnalytics();
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
@@ -44,9 +51,38 @@ export default function AdminDashboardScreen() {
       ])
     ).start();
 
-    const interval = setInterval(fetchUnreadCount, 30000); // Check every 30s
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+      fetchAnalytics();
+    }, 30000); // Check every 30s
+    
+    // Socket.io for live attendance
+    const socket = io(API_URL);
+    socket.on('new_attendance', (data: any) => {
+      setLiveAttendances(prev => [data, ...prev].slice(0, 5)); // Keep last 5
+      fetchAnalytics(); // Refresh charts on new attendance
+    });
+    socket.on('update_location', (data: any) => {
+      setLiveAttendances(prev => prev.map(item => item.user_id === data.user_id ? { ...item, location_name: data.location_name } : item));
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/analytics/dashboard`);
+      const result = await response.json();
+      if (result.success) {
+        setAnalyticsData(result.data);
+      }
+    } catch (err) {
+      console.error('Fetch analytics error:', err);
+    }
+  };
 
   const fetchUnreadCount = async () => {
     try {
@@ -165,23 +201,110 @@ const confirmLogout = () => {
           <View style={styles.statsGrid}>
             <StatItem 
               label="Total Siswa" 
-              value="1,240" 
+              value={analyticsData?.totalStudents?.toString() || "..."} 
               icon={Users} 
               color="#60A5FA" 
             />
             <StatItem 
-              label="Total Dosen" 
-              value="86" 
+              label="Hadir Hari Ini" 
+              value={analyticsData?.attendedCount?.toString() || "..."} 
               icon={UserCheck} 
               color="#34D399" 
             />
             <StatItem 
-              label="Kehadiran" 
-              value="94%" 
+              label="Persentase" 
+              value={(analyticsData?.attendancePercentage?.toString() || "0") + "%"} 
               icon={BarChart3} 
               color="#FBBF24" 
             />
           </View>
+
+          {/* Analytics Charts */}
+          {analyticsData && (
+            <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+              <View style={styles.sectionHeader}>
+                <TrendingUp size={20} color={tokens.textColor} />
+                <Text style={[styles.sectionTitle, { color: tokens.textColor, marginHorizontal: 10, marginBottom: 0 }]}>Attendance Trend</Text>
+              </View>
+              <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.chartContainer, { borderColor: tokens.borderColor }]}>
+                <LineChart
+                  data={{
+                    labels: analyticsData.trend.labels,
+                    datasets: [{ data: analyticsData.trend.data }]
+                  }}
+                  width={width - 60}
+                  height={180}
+                  chartConfig={{
+                    backgroundColor: 'transparent',
+                    backgroundGradientFrom: 'transparent',
+                    backgroundGradientTo: 'transparent',
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
+                    labelColor: (opacity = 1) => isLightTheme ? `rgba(0, 0, 0, ${opacity})` : `rgba(255, 255, 255, ${opacity})`,
+                    style: { borderRadius: 16 },
+                    propsForDots: { r: "4", strokeWidth: "2", stroke: "#60A5FA" }
+                  }}
+                  bezier
+                  style={{ marginVertical: 8, borderRadius: 16 }}
+                />
+              </BlurView>
+
+              <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                <PieChartIcon size={20} color={tokens.textColor} />
+                <Text style={[styles.sectionTitle, { color: tokens.textColor, marginHorizontal: 10, marginBottom: 0 }]}>Class Breakdown</Text>
+              </View>
+              <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.chartContainer, { borderColor: tokens.borderColor }]}>
+                <PieChart
+                  data={analyticsData.classBreakdown}
+                  width={width - 60}
+                  height={180}
+                  chartConfig={{
+                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  }}
+                  accessor={"population"}
+                  backgroundColor={"transparent"}
+                  paddingLeft={"15"}
+                  center={[10, 0]}
+                  absolute
+                />
+              </BlurView>
+
+              <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                <Zap size={20} color={tokens.textColor} />
+                <Text style={[styles.sectionTitle, { color: tokens.textColor, marginHorizontal: 10, marginBottom: 0 }]}>Smart Insights</Text>
+              </View>
+              {analyticsData.insights.map((insight: string, idx: number) => (
+                <View key={idx} style={[styles.insightCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+                  <View style={[styles.insightDot, { backgroundColor: idx === 0 ? '#60A5FA' : idx === 1 ? '#34D399' : '#FBBF24' }]} />
+                  <Text style={[styles.insightText, { color: tokens.textColor }]}>{insight}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Live Attendance Stream */}
+          {liveAttendances.length > 0 && (
+            <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
+              <Text style={[styles.sectionTitle, { color: tokens.textColor, marginHorizontal: 0, marginBottom: 12 }]}>Live Attendance</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {liveAttendances.map((item, idx) => (
+                  <View key={idx} style={[styles.liveCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+                    <Image source={{ uri: `${API_URL}/uploads/${item.photo}` }} style={styles.livePhoto} />
+                    <View style={styles.liveInfo}>
+                      <Text style={[styles.liveName, { color: tokens.textColor }]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={[styles.liveClass, { color: tokens.subTextColor }]}>{item.kelas}</Text>
+                      {item.location_name && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                          <MapPin size={10} color="#38BDF8" />
+                          <Text style={{ fontSize: 9, color: tokens.subTextColor, flex: 1 }} numberOfLines={1}>{item.location_name}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Management Menu */}
           <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>System Management</Text>
@@ -530,5 +653,58 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  chartContainer: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 10,
+    overflow: 'hidden',
+  },
+  insightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  insightDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  insightText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  liveCard: {
+    width: 140,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  livePhoto: {
+    width: '100%',
+    height: 100,
+    resizeMode: 'cover',
+  },
+  liveInfo: {
+    padding: 10,
+  },
+  liveName: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  liveClass: {
+    fontSize: 11,
   },
 });
