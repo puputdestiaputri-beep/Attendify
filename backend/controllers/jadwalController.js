@@ -1,65 +1,90 @@
 const db = require('../config/db');
 
 exports.getAllJadwal = async (req, res) => {
+
     try {
-        const [jadwal] = await db.query(`
+
+        const { dosen_id } = req.query;
+
+        let query = `
             SELECT 
-                jk.id_jadwal as id, 
-                jk.hari, 
-                jk.jam_mulai, 
-                jk.jam_selesai, 
-                jk.ruang,
-                p.nama as dosen_name,
-                mk.nama_mk as subject,
-                k.nama_kelas as class_name,
-                (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id = jk.id_jadwal AND DATE(a.tanggal) = CURDATE() AND a.status IN ('hadir', 'terlambat')) as attended_count,
-                (SELECT COUNT(*) FROM mahasiswa_kelas mk_sub WHERE mk_sub.kelas_id = jk.kelas_id) as total_students
-            FROM jadwal_kuliah jk
-            JOIN pengguna p ON jk.dosen_id = p.id_user
-            JOIN mata_kuliah mk ON jk.mata_kuliah_id = mk.id_mk
-            JOIN kelas k ON jk.kelas_id = k.id_kelas
-            ORDER BY FIELD(jk.hari, 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'), jk.jam_mulai
-        `);
-        res.json({ status: 'success', data: jadwal });
-    } catch (err) {
-        console.error('Error fetching jadwal:', err);
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-};
+                jadwal_kuliah.id_jadwal AS id,
 
-exports.createJadwal = async (req, res) => {
-    try {
-        const { mata_kuliah_id, dosen_id, kelas_id, ruangan, hari, jam_mulai, jam_selesai } = req.body;
-        const [result] = await db.query(
-            'INSERT INTO jadwal_kuliah (mata_kuliah_id, dosen_id, kelas_id, ruang, hari, jam_mulai, jam_selesai) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [mata_kuliah_id, dosen_id, kelas_id, ruangan, hari, jam_mulai, jam_selesai]
-        );
-        res.status(201).json({ status: 'success', message: 'Jadwal created', data: { id: result.insertId } });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-};
+                jadwal_kuliah.hari,
 
-exports.updateJadwal = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { mata_kuliah_id, dosen_id, kelas_id, ruangan, hari, jam_mulai, jam_selesai } = req.body;
-        await db.query(
-            'UPDATE jadwal_kuliah SET mata_kuliah_id=?, dosen_id=?, kelas_id=?, ruang=?, hari=?, jam_mulai=?, jam_selesai=? WHERE id_jadwal=?',
-            [mata_kuliah_id, dosen_id, kelas_id, ruangan, hari, jam_mulai, jam_selesai, id]
-        );
-        res.json({ status: 'success', message: 'Jadwal updated' });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-};
+                jadwal_kuliah.jam_mulai,
 
-exports.deleteJadwal = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await db.query('DELETE FROM jadwal_kuliah WHERE id_jadwal = ?', [id]);
-        res.json({ status: 'success', message: 'Jadwal deleted' });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
+                jadwal_kuliah.jam_selesai,
+
+                jadwal_kuliah.ruang,
+
+                pengguna.nama AS dosen_name,
+
+                mata_kuliah.nama_mk AS subject,
+
+                kelas.nama_kelas AS class_name,
+
+                kelas.id_kelas AS kelas_id,
+
+                (
+                    SELECT COUNT(*)
+                    FROM absensi
+                    WHERE absensi.jadwal_id = jadwal_kuliah.id_jadwal
+                    AND absensi.status = 'hadir'
+                ) AS attended_count,
+
+                (
+                    SELECT COUNT(*)
+                    FROM mahasiswa_kelas
+                    WHERE mahasiswa_kelas.kelas_id = jadwal_kuliah.kelas_id
+                ) AS total_students
+
+            FROM jadwal_kuliah
+
+            JOIN pengguna
+            ON pengguna.id_user = jadwal_kuliah.dosen_id
+
+            JOIN mata_kuliah
+            ON mata_kuliah.id_mk = jadwal_kuliah.mata_kuliah_id
+
+            JOIN kelas
+            ON kelas.id_kelas = jadwal_kuliah.kelas_id
+        `;
+
+        let params = [];
+
+        // FILTER BERDASARKAN DOSEN LOGIN
+
+        if (dosen_id) {
+
+            query += `
+                WHERE jadwal_kuliah.dosen_id = ?
+            `;
+
+            params.push(dosen_id);
+        }
+
+        query += `
+            ORDER BY 
+            jadwal_kuliah.hari ASC,
+            jadwal_kuliah.jam_mulai ASC
+        `;
+
+        const [rows] =
+            await db.query(query, params);
+
+        res.json({
+            status: 'success',
+            data: rows,
+        });
+
+    } catch (error) {
+
+        console.log('ERROR JADWAL:', error);
+
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+        });
     }
 };

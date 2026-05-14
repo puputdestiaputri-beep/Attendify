@@ -1,22 +1,10 @@
 const db = require('../config/db');
 const ExcelJS = require('exceljs');
-const PdfPrinter = require('pdfmake/js/printer').default;
-const path = require('path');
+const PDFDocument = require('pdfkit');
 
-// Configure fonts for pdfmake
-const fonts = {
-    Roboto: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-    }
-};
-const printer = new PdfPrinter(fonts);
-
-/**
- * Common query for reports
- */
+// ======================================================
+// COMMON QUERY (DIPERBAIKI)
+// ======================================================
 const getAttendanceData = async (classId, date, jadwalId) => {
     let query = `
         SELECT 
@@ -38,283 +26,137 @@ const getAttendanceData = async (classId, date, jadwalId) => {
         JOIN pengguna d ON jk.dosen_id = d.id_user
         WHERE 1=1
     `;
-    
+
     const params = [];
+
+    // Filter berdasarkan Jadwal ID (Paling Akurat)
+    if (jadwalId && jadwalId !== 'null' && jadwalId !== 'undefined') {
+        query += " AND jk.id_jadwal = ?";
+        params.push(jadwalId);
+    }
+
     if (classId) {
         query += " AND k.id_kelas = ?";
         params.push(classId);
     }
-    if (jadwalId) {
-        query += " AND jk.id_jadwal = ?";
-        params.push(jadwalId);
-    }
+
     if (date) {
         query += " AND DATE(a.tanggal) = ?";
         params.push(date);
     }
-    
-    query += " ORDER BY k.nama_kelas ASC, a.tanggal DESC, a.waktu_datang DESC";
-    
+
+    query += " ORDER BY a.waktu_datang ASC";
+
     const [rows] = await db.query(query, params);
     return rows;
 };
 
-exports.exportExcel = async (req, res) => {
-    try {
-        const { class_id, jadwal_id, date } = req.query;
-        const data = await getAttendanceData(class_id, date, jadwal_id);
-        
-        if (!data || data.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'Tidak ada data absensi' });
-        }
-        
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Laporan Absensi');
-        
-        // Header info
-        const firstData = data[0];
-        worksheet.mergeCells('A1:H1');
-        const titleCell = worksheet.getCell('A1');
-        titleCell.value = `LAPORAN ABSENSI - ${firstData.subject}`;
-        titleCell.font = { bold: true, size: 14 };
-        titleCell.alignment = { horizontal: 'center', vertical: 'center' };
-        
-        worksheet.mergeCells('A2:H2');
-        const classCell = worksheet.getCell('A2');
-        classCell.value = `Kelas: ${firstData.class_name} | Dosen: ${firstData.dosen_name} | Ruangan: ${firstData.ruang}`;
-        classCell.font = { size: 11 };
-        classCell.alignment = { horizontal: 'center', vertical: 'center' };
-        
-        worksheet.addRow([]);
-        
-        worksheet.columns = [
-            { header: 'No', key: 'no', width: 5 },
-            { header: 'Nama Mahasiswa', key: 'name', width: 25 },
-            { header: 'NIM', key: 'nim', width: 12 },
-            { header: 'Tanggal', key: 'date', width: 12 },
-            { header: 'Waktu Datang', key: 'time', width: 12 },
-            { header: 'Status', key: 'status', width: 12 }
-        ];
-        
-        // Remove default header row and add custom header at row 4
-        worksheet.getRow(4).values = ['No', 'Nama Mahasiswa', 'NIM', 'Tanggal', 'Waktu Datang', 'Status'];
-        worksheet.getRow(4).font = { bold: true };
-        worksheet.getRow(4).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFD3D3D3' }
-        };
-        
-        // Add data
-        let rowNum = 5;
-        data.forEach((row, index) => {
-            worksheet.getRow(rowNum).values = {
-                no: index + 1,
-                name: row.name,
-                nim: row.nim,
-                date: new Date(row.tanggal).toLocaleDateString('id-ID'),
-                time: row.time || '-',
-                status: row.status.toUpperCase()
-            };
-            
-            // Color status based on value
-            const statusCell = worksheet.getRow(rowNum).getCell(6);
-            if (row.status === 'hadir') {
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-            } else if (row.status === 'terlambat') {
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF99' } };
-            } else if (row.status === 'sakit' || row.status === 'izin') {
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
-            } else {
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } };
-            }
-            rowNum++;
-        });
-        
-        const filename = `Laporan_${firstData.subject.replace(/\s+/g, '_')}_${new Date().getTime()}.xlsx`;
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        
-        await workbook.xlsx.write(res);
-        res.end();
-        
-    } catch (err) {
-        console.error('Excel Export Error:', err);
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-};
-
+// ======================================================
+// EXPORT PDF (LAYOUT DIPERBAIKI BIAR RAPI)
+// ======================================================
 exports.exportPDF = async (req, res) => {
     try {
         const { class_id, jadwal_id, date } = req.query;
+
         const data = await getAttendanceData(class_id, date, jadwal_id);
-        
+
         if (!data || data.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'Tidak ada data absensi' });
+            return res.status(404).json({
+                status: 'error',
+                message: 'Tidak ada data absensi untuk sesi ini.'
+            });
         }
-        
+
         const firstData = data[0];
-        
-        const content = [
-            { text: 'LAPORAN KEHADIRAN MAHASISWA', style: 'header' },
-            { text: `Mata Kuliah: ${firstData.subject}`, style: 'info' },
-            { text: `Kelas: ${firstData.class_name} | Dosen: ${firstData.dosen_name}`, style: 'info' },
-            { text: `Ruangan: ${firstData.ruang}`, style: 'info' },
-            { text: `Periode: ${date || 'Semua Data'}`, style: 'info' },
-            { text: '\n' }
-        ];
-        
-        // Group by status for summary
-        const statusGroups = {
-            hadir: data.filter(d => d.status === 'hadir'),
-            terlambat: data.filter(d => d.status === 'terlambat'),
-            sakit: data.filter(d => d.status === 'sakit'),
-            izin: data.filter(d => d.status === 'izin'),
-            alfa: data.filter(d => d.status === 'alfa')
-        };
-        
-        // Summary section
-        content.push({
-            table: {
-                widths: ['*', '*', '*', '*', '*'],
-                body: [
-                    ['Hadir', 'Terlambat', 'Sakit', 'Izin', 'Alfa'],
-                    [
-                        statusGroups.hadir.length.toString(),
-                        statusGroups.terlambat.length.toString(),
-                        statusGroups.sakit.length.toString(),
-                        statusGroups.izin.length.toString(),
-                        statusGroups.alfa.length.toString()
-                    ]
-                ]
-            },
-            margin: [0, 0, 0, 20]
-        });
-        
-        content.push({ text: 'DETAIL KEHADIRAN', style: 'sectionHeader' });
-        
-        const body = [
-            ['No', 'Nama Mahasiswa', 'NIM', 'Tanggal', 'Waktu', 'Status']
-        ];
-        
-        data.forEach((row, index) => {
-            body.push([
-                (index + 1).toString(),
-                row.name,
-                row.nim,
-                new Date(row.tanggal).toLocaleDateString('id-ID'),
-                row.time || '-',
-                row.status.toUpperCase()
-            ]);
-        });
-        
-        content.push({
-            table: {
-                headerRows: 1,
-                widths: [20, '*', 60, 70, 50, 55],
-                body: body
-            },
-            margin: [0, 0, 0, 20]
-        });
-        
-        const docDefinition = {
-            content: content,
-            styles: {
-                header: {
-                    fontSize: 18,
-                    bold: true,
-                    margin: [0, 0, 0, 5],
-                    alignment: 'center',
-                    color: '#2563EB'
-                },
-                info: {
-                    fontSize: 11,
-                    margin: [0, 0, 0, 2],
-                    alignment: 'center',
-                    color: '#1E293B'
-                },
-                sectionHeader: {
-                    fontSize: 13,
-                    bold: true,
-                    margin: [0, 15, 0, 10],
-                    color: '#1E293B',
-                    decoration: 'underline'
-                }
-            },
-            defaultStyle: {
-                font: 'Roboto',
-                fontSize: 10
-            },
-            pageMargins: [40, 40, 40, 40]
-        };
-        
-        const pdfDoc = printer.createPdfKitDocument(docDefinition);
-        
-        const filename = `Laporan_${firstData.subject.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+        const filename = `Laporan_Absensi_${firstData.subject.replace(/\s+/g, '_')}.pdf`;
+
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        doc.pipe(res);
+
+        // Header Instansi (Opsional, biar keren)
+        doc.fontSize(16).text('ATTENDIFY - SISTEM ABSENSI WAJAH', { align: 'center', bullet: true });
+        doc.fontSize(10).text('Laporan Kehadiran Mahasiswa Otomatis', { align: 'center' });
+        doc.moveDown();
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke(); // Garis Horizontal
+        doc.moveDown();
+
+        // Info Matkul
+        doc.fontSize(11).font('Helvetica-Bold').text(`Mata Kuliah : `, { continued: true }).font('Helvetica').text(firstData.subject);
+        doc.font('Helvetica-Bold').text(`Dosen       : `, { continued: true }).font('Helvetica').text(firstData.dosen_name);
+        doc.font('Helvetica-Bold').text(`Kelas/Ruang : `, { continued: true }).font('Helvetica').text(`${firstData.class_name} / ${firstData.ruang}`);
+        doc.font('Helvetica-Bold').text(`Tanggal     : `, { continued: true }).font('Helvetica').text(new Date(firstData.tanggal).toLocaleDateString('id-ID', { dateStyle: 'full' }));
+        doc.moveDown(2);
+
+        // TABLE HEADER (Pakai koordinat X biar lurus)
+        const tableTop = doc.y;
+        doc.font('Helvetica-Bold').fontSize(10);
+        doc.text('No', 50, tableTop);
+        doc.text('NIM', 80, tableTop);
+        doc.text('Nama Mahasiswa', 180, tableTop);
+        doc.text('Jam', 380, tableTop);
+        doc.text('Status', 480, tableTop);
         
-        pdfDoc.pipe(res);
-        pdfDoc.end();
-        
+        doc.moveTo(50, tableTop + 15).lineTo(545, tableTop + 15).stroke();
+        doc.font('Helvetica').moveDown();
+
+        // TABLE ROWS
+        let currentY = tableTop + 25;
+        data.forEach((item, index) => {
+            // Cek jika halaman penuh
+            if (currentY > 750) {
+                doc.addPage();
+                currentY = 50; 
+            }
+
+            doc.text(index + 1, 50, currentY);
+            doc.text(item.nim, 80, currentY);
+            doc.text(item.name, 180, currentY, { width: 190 });
+            doc.text(item.time || '--:--', 380, currentY);
+            
+            // Warna Status (Hijau untuk Hadir)
+            if (item.status.toUpperCase() === 'HADIR') {
+                doc.fillColor('green').text(item.status.toUpperCase(), 480, currentY).fillColor('black');
+            } else {
+                doc.fillColor('red').text(item.status.toUpperCase(), 480, currentY).fillColor('black');
+            }
+
+            currentY += 20;
+        });
+
+        doc.moveTo(50, currentY).lineTo(545, currentY).stroke();
+        doc.moveDown();
+        doc.fontSize(10).font('Helvetica-Oblique').text(`Total Kehadiran: ${data.length} Mahasiswa`, { align: 'right' });
+
+        doc.end();
+
     } catch (err) {
         console.error('PDF Export Error:', err);
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+
+// ======================================================
+// EXPORT EXCEL & OTHER
+// ======================================================
+exports.exportExcel = async (req, res) => {
+    
+};
+
 exports.exportAttendance = async (req, res) => {
     return this.exportExcel(req, res);
 };
 
 exports.createReport = async (req, res) => {
-    try {
-        const { user_id, role, message, created_at } = req.body;
-        if (!user_id || !message) {
-            return res.status(400).json({ status: 'error', message: 'user_id and message are required' });
-        }
-        const insertDate = created_at ? new Date(created_at) : new Date();
-        await db.query(
-            'INSERT INTO reports (user_id, role, message, created_at) VALUES (?, ?, ?, ?)',
-            [user_id, role || 'unknown', message, insertDate]
-        );
-        res.json({ status: 'success', message: 'Laporan berhasil dikirim' });
-    } catch (err) {
-        console.error('Create Report Error:', err);
-        res.status(500).json({ status: 'error', message: err.message });
-    }
+    
 };
 
 exports.getAdminReports = async (req, res) => {
-    try {
-        const [reports] = await db.query(`
-            SELECT r.*, p.nama as user_name 
-            FROM reports r 
-            LEFT JOIN pengguna p ON r.user_id = p.id_user 
-            ORDER BY r.created_at DESC
-        `);
-        res.json({ status: 'success', data: reports });
-    } catch (err) {
-        console.error('Get Admin Reports Error:', err);
-        res.status(500).json({ status: 'error', message: err.message });
-    }
+    
 };
 
 exports.updateReportStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-        
-        if (!status) {
-            return res.status(400).json({ status: 'error', message: 'Status is required' });
-        }
 
-        await db.query(
-            'UPDATE reports SET status = ? WHERE id = ?',
-            [status, id]
-        );
-        res.json({ status: 'success', message: 'Status laporan berhasil diperbarui' });
-    } catch (err) {
-        console.error('Update Report Status Error:', err);
-        res.status(500).json({ status: 'error', message: err.message });
-    }
 };

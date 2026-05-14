@@ -216,12 +216,40 @@ function MahasiswaNavigator() {
 function DosenNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="DosenMain" component={DosenTabNavigator} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
-      <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
-      <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
-      <Stack.Screen name="Notification" component={NotificationScreen} />
+      <Stack.Screen 
+        name="DosenMain" 
+        component={DosenTabNavigator} 
+      />
+
+      <Stack.Screen 
+        name="ManageAttendance" 
+        component={ManageAttendanceScreen} 
+      />
+
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen} 
+      />
+
+      <Stack.Screen 
+        name="PrivacySecurity" 
+        component={PrivacySecurityScreen} 
+      />
+
+      <Stack.Screen 
+        name="ProfileDetails" 
+        component={ProfileDetailsScreen} 
+      />
+
+      <Stack.Screen 
+        name="AboutAttendify" 
+        component={AboutAttendifyScreen} 
+      />
+
+      <Stack.Screen 
+        name="Notification" 
+        component={NotificationScreen} 
+      />
     </Stack.Navigator>
   );
 }

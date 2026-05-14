@@ -223,3 +223,65 @@ exports.getAdminAttendance = async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+exports.triggerScan = async (
+  req,
+  res
+) => {
+  try {
+
+    const students = [
+      {
+        id: 1,
+        name: 'Rian Hidayat',
+      },
+
+      {
+        id: 2,
+        name: 'Lestari Putri',
+      },
+
+      {
+        id: 3,
+        name: 'Andi Wijaya',
+      },
+    ];
+
+    const randomStudent =
+      students[
+        Math.floor(
+          Math.random() *
+            students.length
+        )
+      ];
+
+    const result = {
+      mahasiswa:
+        randomStudent.name,
+
+      status: 'hadir',
+
+      waktu:
+        new Date().toLocaleTimeString(),
+    };
+
+    console.log(
+      'SCAN RESULT:',
+      result
+    );
+
+    res.json({
+      status: 'success',
+      data: result,
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      status: 'error',
+      message:
+        err.message,
+    });
+  }
+};

@@ -25,6 +25,7 @@ if (Platform.OS !== 'web') {
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 
+import { useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
