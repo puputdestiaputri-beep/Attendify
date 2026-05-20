@@ -10,18 +10,21 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
+import { SocketProvider } from './src/context/SocketContext';
 
 export default function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <NavigationIndependentTree>
-          <NavigationContainer>
-            <StatusBar style="light" />
-            <AppNavigator />
-          </NavigationContainer>
-        </NavigationIndependentTree>
-      </ThemeProvider>
+      <SocketProvider>
+        <ThemeProvider>
+          <NavigationIndependentTree>
+            <NavigationContainer>
+              <StatusBar style="light" />
+              <AppNavigator />
+            </NavigationContainer>
+          </NavigationIndependentTree>
+        </ThemeProvider>
+      </SocketProvider>
     </AuthProvider>
   );
 }

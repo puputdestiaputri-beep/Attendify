@@ -142,21 +142,229 @@ exports.exportPDF = async (req, res) => {
 // EXPORT EXCEL & OTHER
 // ======================================================
 exports.exportExcel = async (req, res) => {
-    
+    return res.status(501).json({ status: 'error', message: 'Not implemented' });
 };
 
 exports.exportAttendance = async (req, res) => {
     return this.exportExcel(req, res);
 };
 
+// ======================================================
+// MAHASISWA FACILITY / ISSUE REPORTS
+// ======================================================
 exports.createReport = async (req, res) => {
-    
+    try {
+        const { title, description, category, location, image } = req.body;
+        const sender_user_id = req.userId;
+        const sender_role = req.userRole;
+
+        const [result] = await db.query(
+            `INSERT INTO reports (sender_user_id, sender_role, title, description, category, location, image, status, approval_status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', 'PENDING')`,
+            [sender_user_id, sender_role, title, description, category, location, image || null]
+        );
+
+        // Fetch the created report to emit
+        const [newReport] = await db.query(`SELECT * FROM reports WHERE id = ?`, [result.insertId]);
+
+        // Insert notification for Admin
+        const [admins] = await db.query(`SELECT id_user FROM pengguna WHERE role = 'admin'`);
+        for (const admin of admins) {
+            await db.query(
+                `INSERT INTO notifications (receiver_user_id, sender_user_id, type, title, message) VALUES (?, ?, ?, ?, ?)`,
+                [admin.id_user, sender_user_id, 'NEW_REPORT', 'Laporan Baru Masuk', `Laporan baru dari Mahasiswa: ${title}`]
+            );
+        }
+
+        // Emit Socket.IO event to Admin
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('NEW_REPORT', newReport[0]);
+        }
+
+        res.json({ status: 'success', message: 'Laporan berhasil dikirim', data: newReport[0] });
+    } catch (err) {
+        console.error('Create Report Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+exports.getMyReports = async (req, res) => {
+    try {
+        const [reports] = await db.query(
+            `SELECT * FROM reports WHERE sender_user_id = ? ORDER BY created_at DESC`,
+            [req.userId]
+        );
+        res.json({ status: 'success', data: reports });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
 };
 
 exports.getAdminReports = async (req, res) => {
-    
+    try {
+        const [reports] = await db.query(`
+            SELECT r.*, p.nama as sender_name 
+            FROM reports r 
+            LEFT JOIN pengguna p ON r.sender_user_id = p.id_user 
+            ORDER BY r.created_at DESC
+        `);
+        res.json({ status: 'success', data: reports });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
 };
 
 exports.updateReportStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, approval_status, rejection_reason } = req.body;
+        const admin_id = req.userId;
 
+        // Get previous status for audit log
+        const [oldReport] = await db.query(`SELECT status, approval_status, sender_user_id, title FROM reports WHERE id = ?`, [id]);
+        if (oldReport.length === 0) return res.status(404).json({ status: 'error', message: 'Report not found' });
+
+        const prev_status = oldReport[0].status;
+
+        // Update
+        await db.query(
+            `UPDATE reports 
+             SET status = ?, approval_status = ?, approved_by = ?, approved_at = NOW(), rejection_reason = ? 
+             WHERE id = ?`,
+            [status || prev_status, approval_status || oldReport[0].approval_status, admin_id, rejection_reason || null, id]
+        );
+
+        // Create Audit Log
+        await db.query(
+            `INSERT INTO audit_logs (entity_type, entity_id, action_by_user_id, previous_status, new_status, notes)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            ['reports', id, admin_id, prev_status, status || approval_status, rejection_reason || 'Status updated']
+        );
+
+        // Notify Sender
+        const message = approval_status === 'REJECTED' 
+            ? `Laporan "${oldReport[0].title}" ditolak: ${rejection_reason}`
+            : (approval_status === 'APPROVED' ? `Laporan "${oldReport[0].title}" disetujui` : `Laporan "${oldReport[0].title}" sedang diproses`);
+
+        await db.query(
+            `INSERT INTO notifications (receiver_user_id, sender_user_id, type, title, message) VALUES (?, ?, ?, ?, ?)`,
+            [oldReport[0].sender_user_id, admin_id, 'REPORT_STATUS_UPDATE', 'Update Status Laporan', message]
+        );
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('REPORT_STATUS_UPDATE', { report_id: id, status, approval_status, rejection_reason, receiver_id: oldReport[0].sender_user_id });
+        }
+
+        res.json({ status: 'success', message: 'Status laporan diperbarui' });
+    } catch (err) {
+        console.error('Update Report Status Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+// ======================================================
+// DOSEN DAILY REPORTS
+// ======================================================
+exports.createDailyReport = async (req, res) => {
+    try {
+        const { class_id, report_date, total_present, total_late, total_absent, attendance_percentage, notes } = req.body;
+        const dosen_id = req.userId;
+
+        const [result] = await db.query(
+            `INSERT INTO daily_attendance_reports (dosen_id, class_id, report_date, total_present, total_late, total_absent, attendance_percentage, notes, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+            [dosen_id, class_id, report_date, total_present, total_late, total_absent, attendance_percentage, notes]
+        );
+
+        const [newReport] = await db.query(`SELECT * FROM daily_attendance_reports WHERE id = ?`, [result.insertId]);
+
+        // Notify Admin
+        const [admins] = await db.query(`SELECT id_user FROM pengguna WHERE role = 'admin'`);
+        for (const admin of admins) {
+            await db.query(
+                `INSERT INTO notifications (receiver_user_id, sender_user_id, type, title, message) VALUES (?, ?, ?, ?, ?)`,
+                [admin.id_user, dosen_id, 'DAILY_REPORT', 'Laporan Harian Dosen', `Laporan absensi baru masuk`]
+            );
+        }
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('DAILY_REPORT', newReport[0]);
+        }
+
+        res.json({ status: 'success', message: 'Laporan harian berhasil dikirim', data: newReport[0] });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+exports.getDosenDailyReports = async (req, res) => {
+    try {
+        const [reports] = await db.query(`
+            SELECT d.*, k.nama_kelas 
+            FROM daily_attendance_reports d
+            LEFT JOIN kelas k ON d.class_id = k.id_kelas
+            WHERE d.dosen_id = ? ORDER BY d.created_at DESC
+        `, [req.userId]);
+        res.json({ status: 'success', data: reports });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+exports.getDailyReports = async (req, res) => {
+    try {
+        const [reports] = await db.query(`
+            SELECT d.*, p.nama as dosen_name, k.nama_kelas 
+            FROM daily_attendance_reports d
+            LEFT JOIN pengguna p ON d.dosen_id = p.id_user
+            LEFT JOIN kelas k ON d.class_id = k.id_kelas
+            ORDER BY d.created_at DESC
+        `);
+        res.json({ status: 'success', data: reports });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+exports.updateDailyReportStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, rejection_reason } = req.body;
+        const admin_id = req.userId;
+
+        const [oldReport] = await db.query(`SELECT status, dosen_id FROM daily_attendance_reports WHERE id = ?`, [id]);
+        if (oldReport.length === 0) return res.status(404).json({ status: 'error', message: 'Report not found' });
+
+        await db.query(
+            `UPDATE daily_attendance_reports 
+             SET status = ?, approved_by = ?, approved_at = NOW(), rejection_reason = ? 
+             WHERE id = ?`,
+            [status, admin_id, rejection_reason || null, id]
+        );
+
+        await db.query(
+            `INSERT INTO audit_logs (entity_type, entity_id, action_by_user_id, previous_status, new_status, notes)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            ['daily_attendance', id, admin_id, oldReport[0].status, status, rejection_reason || 'Status updated']
+        );
+
+        // Notify Dosen
+        const message = status === 'REJECTED' ? `Laporan harian ditolak: ${rejection_reason}` : `Laporan harian disetujui`;
+        await db.query(
+            `INSERT INTO notifications (receiver_user_id, sender_user_id, type, title, message) VALUES (?, ?, ?, ?, ?)`,
+            [oldReport[0].dosen_id, admin_id, 'REPORT_STATUS_UPDATE', 'Status Laporan Harian', message]
+        );
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('REPORT_STATUS_UPDATE', { report_id: id, status, type: 'daily_attendance', receiver_id: oldReport[0].dosen_id });
+        }
+
+        res.json({ status: 'success', message: 'Status laporan harian diperbarui' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
 };

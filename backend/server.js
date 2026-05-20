@@ -1,4 +1,5 @@
 require('dotenv').config();
+const os = require('os');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -67,10 +68,23 @@ app.use('/api/analytics', analyticsRoutes);
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, '0.0.0.0', () => {
+    // Get local network IP dynamically
+    const interfaces = os.networkInterfaces();
+    let networkIp = '127.0.0.1';
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                networkIp = iface.address;
+                break;
+            }
+        }
+        if (networkIp !== '127.0.0.1') break;
+    }
+
     console.log(`Server is gracefully running on port ${PORT}.`);
     console.log(`Local:   http://localhost:${PORT}/api/`);
-    console.log(`Network: http://10.149.165.20:${PORT}/api/`);
-    console.log(`ESP32:   http://10.149.165.20:${PORT}/api/iot/recognize`);
+    console.log(`Network: http://${networkIp}:${PORT}/api/`);
+    console.log(`ESP32:   http://${networkIp}:${PORT}/api/iot/recognize`);
     console.log('JWT_SECRET loaded:', process.env.JWT_SECRET ? 'YES' : 'NO');
     console.log('Socket.IO is running and ready for real-time connection');
 });

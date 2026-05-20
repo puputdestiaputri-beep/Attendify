@@ -3,111 +3,110 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Zap, Code2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 
 export default function AboutAttendifyScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
 
   return (
-    <LinearGradient
-      colors={[Colors.attendify.primary, Colors.attendify.tertiary, Colors.attendify.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
             onPress={() => navigation.goBack()}
           >
-            <ArrowLeft color="#fff" size={24} />
+            <ArrowLeft color={tokens.textColor} size={24} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Tentang Attendify</Text>
+          <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Tentang Attendify</Text>
           <View style={{ width: 44 }} />
         </View>
 
         {/* Logo Section */}
         <View style={styles.logoSection}>
-          <View style={styles.logoContainer}>
-            <Zap size={50} color="#fff" strokeWidth={2} />
+          <View style={[styles.logoContainer, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}>
+            <Zap size={50} color={tokens.textColor} strokeWidth={2} />
           </View>
-          <Text style={styles.appName}>ATTENDIFY</Text>
+          <Text style={[styles.appName, { color: tokens.textColor }]}>ATTENDIFY</Text>
         </View>
 
         {/* Description Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Tentang Kami</Text>
-          <Text style={styles.description}>
+        <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+          <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>Tentang Kami</Text>
+          <Text style={[styles.description, { color: tokens.subTextColor }]}>
             Attendify adalah aplikasi absensi berbasis IoT dan face recognition untuk mempermudah proses kehadiran.
           </Text>
 
           {/* Key Features */}
           <View style={styles.featureBox}>
-            <View style={styles.featureRow}>
+            <View style={[styles.featureRow, { borderBottomColor: tokens.borderColor }]}>
               <View style={styles.featureIcon}>
                 <Text style={styles.iconText}>🤖</Text>
               </View>
               <View style={styles.featureText}>
-                <Text style={styles.featureTitle}>Face Recognition</Text>
-                <Text style={styles.featureDesc}>Teknologi pengenalan wajah terdepan</Text>
+                <Text style={[styles.featureTitle, { color: tokens.textColor }]}>Face Recognition</Text>
+                <Text style={[styles.featureDesc, { color: tokens.subTextColor }]}>Teknologi pengenalan wajah terdepan</Text>
               </View>
             </View>
 
-            <View style={styles.featureRow}>
+            <View style={[styles.featureRow, { borderBottomColor: tokens.borderColor }]}>
               <View style={styles.featureIcon}>
                 <Text style={styles.iconText}>🌐</Text>
               </View>
               <View style={styles.featureText}>
-                <Text style={styles.featureTitle}>IoT Integration</Text>
-                <Text style={styles.featureDesc}>Koneksi IoT yang seamless dan aman</Text>
+                <Text style={[styles.featureTitle, { color: tokens.textColor }]}>IoT Integration</Text>
+                <Text style={[styles.featureDesc, { color: tokens.subTextColor }]}>Koneksi IoT yang seamless dan aman</Text>
               </View>
             </View>
 
-            <View style={styles.featureRow}>
+            <View style={[styles.featureRow, { borderBottomColor: tokens.borderColor }]}>
               <View style={styles.featureIcon}>
                 <Text style={styles.iconText}>⚡</Text>
               </View>
               <View style={styles.featureText}>
-                <Text style={styles.featureTitle}>Real-time Tracking</Text>
-                <Text style={styles.featureDesc}>Pelacakan kehadiran secara real-time</Text>
+                <Text style={[styles.featureTitle, { color: tokens.textColor }]}>Real-time Tracking</Text>
+                <Text style={[styles.featureDesc, { color: tokens.subTextColor }]}>Pelacakan kehadiran secara real-time</Text>
               </View>
             </View>
           </View>
-        </View>
+        </BlurView>
 
         {/* Info Section */}
         <View style={styles.infoCard}>
-          <View style={styles.infoBadge}>
-            <View style={styles.badgeIcon}>
-              <Code2 size={20} color={Colors.attendify.primary} />
+          <BlurView intensity={10} tint={isLightTheme ? 'light' : 'dark'} style={[styles.infoBadge, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+            <View style={[styles.badgeIcon, { backgroundColor: tokens.iconButtonBg }]}>
+              <Code2 size={20} color={isLightTheme ? '#1E4FA8' : Colors.attendify.primary} />
             </View>
             <View style={styles.badgeContent}>
-              <Text style={styles.badgeLabel}>Versi Aplikasi</Text>
-              <Text style={styles.badgeValue}>v1.0.0</Text>
+              <Text style={[styles.badgeLabel, { color: tokens.labelColor }]}>Versi Aplikasi</Text>
+              <Text style={[styles.badgeValue, { color: tokens.textColor }]}>v1.0.4</Text>
             </View>
-          </View>
+          </BlurView>
 
-          <View style={styles.infoBadge}>
-            <View style={styles.badgeIcon}>
-              <Zap size={20} color={Colors.attendify.secondary} />
+          <BlurView intensity={10} tint={isLightTheme ? 'light' : 'dark'} style={[styles.infoBadge, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+            <View style={[styles.badgeIcon, { backgroundColor: tokens.iconButtonBg }]}>
+              <Zap size={20} color={isLightTheme ? '#1E4FA8' : Colors.attendify.secondary} />
             </View>
             <View style={styles.badgeContent}>
-              <Text style={styles.badgeLabel}>Developer</Text>
-              <Text style={styles.badgeValue}>Attendify Team</Text>
+              <Text style={[styles.badgeLabel, { color: tokens.labelColor }]}>Developer</Text>
+              <Text style={[styles.badgeValue, { color: tokens.textColor }]}>Attendify Team</Text>
             </View>
-          </View>
+          </BlurView>
         </View>
 
         {/* Status Section */}
-        <View style={styles.statusCard}>
+        <BlurView intensity={10} tint={isLightTheme ? 'light' : 'dark'} style={[styles.statusCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor, borderStyle: 'dashed' }]}>
           <Text style={styles.statusIcon}>✨</Text>
-          <Text style={styles.statusTitle}>Konten Lengkap Segera Hadir</Text>
-          <Text style={styles.statusDesc}>
+          <Text style={[styles.statusTitle, { color: tokens.textColor }]}>Konten Lengkap Segera Hadir</Text>
+          <Text style={[styles.statusDesc, { color: tokens.subTextColor }]}>
             Lebih banyak fitur dan informasi akan ditambahkan segera.
           </Text>
-        </View>
+        </BlurView>
 
         {/* Back Button */}
         <TouchableOpacity
@@ -115,7 +114,7 @@ export default function AboutAttendifyScreen() {
           onPress={() => navigation.goBack()}
         >
           <LinearGradient
-            colors={[Colors.attendify.primary, Colors.attendify.secondary]}
+            colors={isLightTheme ? ['#1E4FA8', '#2D6CDF'] : [Colors.attendify.primary, Colors.attendify.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -124,7 +123,7 @@ export default function AboutAttendifyScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 
@@ -140,21 +139,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 20,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
   },
   logoSection: {
     alignItems: 'center',
@@ -164,40 +162,31 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
     marginBottom: 16,
   },
   appName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
     letterSpacing: 2,
   },
   card: {
     marginHorizontal: 20,
-    backgroundColor: Colors.attendify.surface,
     borderRadius: 24,
     padding: 28,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.attendify.primary,
     marginBottom: 12,
   },
   description: {
     fontSize: 15,
-    color: Colors.attendify.neutral,
     lineHeight: 22,
     marginBottom: 24,
   },
@@ -209,7 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(11,30,95,0.1)',
   },
   featureIcon: {
     fontSize: 28,
@@ -225,12 +213,10 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.attendify.primary,
     marginBottom: 4,
   },
   featureDesc: {
     fontSize: 13,
-    color: Colors.attendify.neutral,
     lineHeight: 18,
   },
   infoCard: {
@@ -241,18 +227,16 @@ const styles = StyleSheet.create({
   infoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
   },
   badgeIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -262,7 +246,6 @@ const styles = StyleSheet.create({
   },
   badgeLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 2,
@@ -270,19 +253,16 @@ const styles = StyleSheet.create({
   badgeValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
   },
   statusCard: {
     marginHorizontal: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 20,
     paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
     marginBottom: 24,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderStyle: 'dashed',
+    overflow: 'hidden',
   },
   statusIcon: {
     fontSize: 40,
@@ -291,13 +271,11 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 8,
     textAlign: 'center',
   },
   statusDesc: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -305,6 +283,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 14,
     overflow: 'hidden',
+    marginBottom: 40,
   },
   buttonGradient: {
     justifyContent: 'center',

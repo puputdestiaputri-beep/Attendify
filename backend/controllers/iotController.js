@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
+const faceService = require('../services/faceService');
 
 // Rate limiting map to prevent spam from same device
 const deviceLastScan = new Map();
@@ -78,16 +79,53 @@ exports.recognizeFromIoT = async (req, res) => {
     // TODO: Integrate with actual face recognition library (e.g., face-api.js, OpenCV, etc.)
     // For now, using a simple matching algorithm based on device and timing
     
-    const matchedUser = await performFaceRecognition(image, device_id);
+    const recognitionOutput = await performFaceRecognition(image, device_id);
+    const { matchedUser, matchResult, ioData } = recognitionOutput;
+    
+    // We can emit health event periodically or on every request
+    const io = req.app.get('io');
+    if (io) {
+        io.emit('AI_HEALTH_UPDATE', {
+            active: true,
+            latency: Date.now() - (now * 1000), // very rough latency
+            queue: 0
+        });
+    }
 
-    if (!matchedUser) {
-      // Log unknown face
-      await logIotActivity(device_id, 'unknown', null, 'face_not_recognized');
+    if (!matchedUser || !matchResult.success) {
+      if (matchResult && matchResult.spoof) {
+          // Log suspicious activity
+          await db.query(
+              `INSERT INTO suspicious_logs (device_id, event_type, confidence, image_path, notes) VALUES (?, ?, ?, ?, ?)`,
+              [device_id, matchResult.type || 'SPOOF_ATTEMPT', matchResult.confidence || 0, fileName, matchResult.message]
+          );
+          
+          if (io) {
+              io.emit('SPOOF_ATTEMPT', {
+                  device_id,
+                  type: matchResult.type,
+                  message: matchResult.message,
+                  image: fileName,
+                  timestamp: new Date().toISOString()
+              });
+          }
+      } else {
+          await logIotActivity(device_id, 'unknown', null, matchResult ? matchResult.message : 'face_not_recognized');
+      }
       
       return res.json({
-        status: 'unknown',
-        message: 'Face not recognized in database'
+        status: matchResult?.spoof ? 'spoof' : 'unknown',
+        message: matchResult ? matchResult.message : 'Face not recognized in database'
       });
+    }
+
+    // Determine approval status based on confidence
+    const confidencePct = matchResult.confidence * 100;
+    let approvalStatus = 'APPROVED';
+    if (confidencePct < 80) {
+        approvalStatus = 'REJECTED';
+    } else if (confidencePct >= 80 && confidencePct < 95) {
+        approvalStatus = 'REVIEW_REQUIRED';
     }
 
     // ── MANUAL MODE PERMISSION CHECK (NEW) ──────────
@@ -166,23 +204,26 @@ exports.recognizeFromIoT = async (req, res) => {
       statusAbsen = 'terlambat';
     }
 
+    const lat = req.body.latitude || '-6.200000';
+    const lng = req.body.longitude || '106.816666';
+    const locName = req.body.location_name || 'Gedung Utama (IoT)';
+
     // ── Insert attendance record ────────────────────
     await db.query(
-      `INSERT INTO absensi (user_id, jadwal_id, tanggal, waktu_datang, status, manual_mode) 
-       VALUES (?, ?, NOW(), CURTIME(), ?, ?)`,
-      [matchedUser.id_user, jadwalId, statusAbsen, manualMode]
+      `INSERT INTO absensi (user_id, jadwal_id, tanggal, waktu_datang, status, manual_mode, approval_status, approved_at, latitude, longitude, location_name) 
+       VALUES (?, ?, NOW(), CURTIME(), ?, ?, ?, NOW(), ?, ?, ?)`,
+      [matchedUser.id_user, jadwalId, statusAbsen, manualMode, approvalStatus, lat, lng, locName]
     );
 
     // ── Create notification ─────────────────────────
     await db.query(
-      `INSERT INTO notifikasi (user_id, judul, pesan, jenis_notif, tanggal, status_baca) 
-       VALUES (?, ?, ?, ?, NOW(), ?)`,
+      `INSERT INTO notifications (receiver_user_id, type, title, message, is_read) 
+       VALUES (?, ?, ?, ?, FALSE)`,
       [
         matchedUser.id_user,
-        'Absensi IoT',
-        `Absensi berhasil via ESP32: ${statusAbsen === 'hadir' ? '✅ Hadir' : '⏰ Terlambat'}`,
-        'absensi',
-        'belum'
+        'ATTENDANCE_SUCCESS',
+        approvalStatus === 'APPROVED' ? 'Absensi IoT Berhasil' : (approvalStatus === 'REVIEW_REQUIRED' ? 'Absensi Menunggu Review' : 'Absensi Ditolak'),
+        `Absensi AI (${confidencePct.toFixed(1)}%): ${statusAbsen === 'hadir' ? '✅ Hadir' : '⏰ Terlambat'} - ${approvalStatus}`
       ]
     );
 
@@ -205,15 +246,36 @@ exports.recognizeFromIoT = async (req, res) => {
       statusAbsen + (manualMode ? ' (manual)' : '')
     );
 
+    // ── Emit Realtime Event via Socket.io ───────────
+    const attendanceData = {
+      success: approvalStatus !== 'REJECTED',
+      recognized: true,
+      user_id: matchedUser.id_user,
+      name: matchedUser.nama,
+      kelas: matchedUser.kelas || 'Umum',
+      photo: fileName,
+      attendance_status: statusAbsen,
+      approval_status: approvalStatus,
+      confidence: confidencePct,
+      mode: mode,
+      device_id: device_id,
+      timestamp: new Date().toISOString(),
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lng),
+      location_name: locName
+    };
+    if (io) {
+        // Emit to general channel for Dosen Dashboard
+        io.emit('new_attendance', attendanceData);
+        // Emit to specific user for Mahasiswa Dashboard
+        io.emit('ATTENDANCE_SUCCESS', attendanceData);
+    }
+
     // ── Success response ────────────────────────────
     return res.json({
       status: 'matched',
       message: 'Attendance recorded successfully',
-      user_id: matchedUser.id_user,
-      name: matchedUser.nama,
-      attendance_status: statusAbsen,
-      mode: mode,
-      timestamp: new Date().toISOString()
+      ...attendanceData
     });
 
   } catch (error) {
@@ -251,27 +313,43 @@ exports.recognizeFromIoT = async (req, res) => {
  */
 async function performFaceRecognition(base64Image, deviceId) {
   try {
-    // PLACEHOLDER: In production, integrate with actual face recognition service
-    // For now, return a mock implementation for testing
-    
-    // Get all users with face data
-    const [users] = await db.query(
-      `SELECT id_user, nama FROM pengguna 
-       WHERE status = 'Y' 
-       AND id_wajah IS NOT NULL
-       LIMIT 1`
+    const buffer = Buffer.from(base64Image, 'base64');
+
+    // Get all users with verified face profiles
+    const [registeredProfiles] = await db.query(
+      `SELECT user_id, embedding_data 
+       FROM face_profiles 
+       WHERE verification_status = 'VERIFIED'`
     );
 
-    // Return first active user for testing
-    // TODO: Replace with actual facial recognition matching
-    if (users.length > 0) {
-      return users[0];
+    const matchResult = await faceService.recognizeFace(buffer, registeredProfiles);
+
+    if (!matchResult.success) {
+        console.log('[IoT] Face recognition failed/spoof:', matchResult.message);
+        return { matchedUser: null, matchResult };
     }
 
-    return null;
+    const matchedUserId = matchResult.user_id;
+    console.log(`[IoT] Match Found! User ID: ${matchedUserId}, Confidence: ${(matchResult.confidence * 100).toFixed(1)}%`);
+
+    // Fetch user details including class
+    const [users] = await db.query(
+      `SELECT p.id_user, p.nama, IFNULL(k.nama_kelas, '-') as kelas 
+       FROM pengguna p 
+       LEFT JOIN mahasiswa_kelas mk ON p.id_user = mk.mahasiswa_id 
+       LEFT JOIN kelas k ON mk.kelas_id = k.id_kelas 
+       WHERE p.id_user = ?`,
+      [matchedUserId]
+    );
+
+    if (users.length > 0) {
+      return { matchedUser: users[0], matchResult };
+    }
+
+    return { matchedUser: null, matchResult: { success: false, message: 'User not found in DB' } };
   } catch (error) {
     console.error('[IoT] Face recognition error:', error);
-    return null;
+    return { matchedUser: null, matchResult: { success: false, message: error.message } };
   }
 }
 
@@ -318,6 +396,12 @@ exports.healthCheck = async (req, res) => {
       `SELECT id_jadwal FROM jadwal_kuliah 
        WHERE CURRENT_TIME() BETWEEN jam_mulai AND jam_selesai 
        LIMIT 1`
+    );
+
+    // Update last_ping
+    await db.query(
+      `UPDATE kamera SET last_ping = NOW() WHERE ip_address = ? OR nama_kamera = ?`,
+      [req.ip || req.connection.remoteAddress, device_id]
     );
 
     return res.json({

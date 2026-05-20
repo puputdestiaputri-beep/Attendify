@@ -285,3 +285,62 @@ exports.triggerScan = async (
     });
   }
 };
+
+exports.validateAttendance = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { approval_status, rejection_reason } = req.body;
+        const admin_id = req.userId;
+
+        if (!['APPROVED', 'REJECTED', 'PENDING'].includes(approval_status)) {
+            return res.status(400).json({ status: 'error', message: 'Invalid approval_status' });
+        }
+
+        const [oldRecord] = await db.query(`SELECT approval_status, user_id FROM absensi WHERE id_absensi = ?`, [id]);
+        if (oldRecord.length === 0) return res.status(404).json({ status: 'error', message: 'Attendance record not found' });
+
+        const prev_status = oldRecord[0].approval_status;
+
+        await db.query(
+            `UPDATE absensi 
+             SET approval_status = ?, approved_by = ?, approved_at = NOW(), rejection_reason = ? 
+             WHERE id_absensi = ?`,
+            [approval_status, admin_id, rejection_reason || null, id]
+        );
+
+        await db.query(
+            `INSERT INTO audit_logs (entity_type, entity_id, action_by_user_id, previous_status, new_status, notes)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            ['absensi', id, admin_id, prev_status, approval_status, rejection_reason || 'Status updated']
+        );
+
+        let message = '';
+        if (approval_status === 'APPROVED') {
+            message = 'Absensi Anda telah disetujui.';
+        } else if (approval_status === 'REJECTED') {
+            message = `⚠️ Absensi ditolak: ${rejection_reason || 'Wajah tidak cocok / alasan lain'}`;
+        } else {
+            message = 'Status absensi Anda sedang di-review.';
+        }
+
+        await db.query(
+            `INSERT INTO notifications (receiver_user_id, sender_user_id, type, title, message) VALUES (?, ?, ?, ?, ?)`,
+            [oldRecord[0].user_id, admin_id, 'ATTENDANCE_VALIDATION', 'Validasi Absensi', message]
+        );
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('ATTENDANCE_VALIDATION', { 
+                absensi_id: id, 
+                approval_status, 
+                rejection_reason, 
+                receiver_id: oldRecord[0].user_id 
+            });
+        }
+
+        res.json({ status: 'success', message: 'Status absensi berhasil divalidasi' });
+    } catch (err) {
+        console.error('Validate Attendance Error:', err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};

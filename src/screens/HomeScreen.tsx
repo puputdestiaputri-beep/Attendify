@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +11,11 @@ import { useTheme } from '../context/ThemeContext';
 import { AttendanceChart } from '../components/AttendanceChart';
 import ReportIssueModal from '../components/ReportIssueModal';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
-import io from 'socket.io-client';
+import { useSocket } from '../context/SocketContext';
+import AppModal from '../components/ui/AppModal';
+import AIConfidenceBadge from '../components/ui/AIConfidenceBadge';
+import StatusBadge from '../components/ui/StatusBadge';
+import RealtimeIndicator from '../components/ui/RealtimeIndicator';
 import * as Location from 'expo-location';
 import { API_URL } from '@/constants/Config';
 
@@ -26,18 +30,19 @@ export default function HomeScreen() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [lastAttendancePhoto, setLastAttendancePhoto] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<string | null>(null);
+  const [attendanceSuccess, setAttendanceSuccess] = useState<any>(null);
 
   const userName = user?.fullName || 'Mahasiswa';
   const userProdi = user?.prodi || '-';
 
+  const { socket } = useSocket();
+
   useEffect(() => {
-    // Socket.io integration
-    const socket = io(API_URL);
+    if (!socket) return;
     
-    socket.on('new_attendance', async (data: any) => {
-      // Check if this attendance event belongs to the logged in user
-      if (user && data.user_id === user.id) {
-        Alert.alert('Absensi Berhasil', 'Kamu sudah absen hari ini');
+    const handleNewAttendance = async (data: any) => {
+      if (user && user.id && data.user_id === user.id) {
+        setAttendanceSuccess(data);
         setLastAttendancePhoto(data.photo);
 
         // Fetch GPS Location
@@ -62,7 +67,7 @@ export default function HomeScreen() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                user_id: user.id,
+                user_id: user?.id,
                 latitude: loc.coords.latitude.toString(),
                 longitude: loc.coords.longitude.toString(),
                 location_name: locName
@@ -73,12 +78,23 @@ export default function HomeScreen() {
           console.error('Location error:', err);
         }
       }
-    });
+    };
+
+    const handleValidation = (data: any) => {
+        if (user && user.id && data.receiver_id === user.id) {
+            const statusMsg = data.approval_status === 'APPROVED' ? 'Telah Disetujui' : `Ditolak: ${data.rejection_reason}`;
+            Alert.alert('Validasi Absensi', `Absensi Anda ${statusMsg}`);
+        }
+    };
+
+    socket.on('ATTENDANCE_SUCCESS', handleNewAttendance);
+    socket.on('ATTENDANCE_VALIDATION', handleValidation);
 
     return () => {
-      socket.disconnect();
+      socket.off('ATTENDANCE_SUCCESS', handleNewAttendance);
+      socket.off('ATTENDANCE_VALIDATION', handleValidation);
     };
-  }, [user]);
+  }, [socket, user]);
 
   // Mock data - replace with real data from backend
   const attendanceData = [
@@ -122,7 +138,7 @@ export default function HomeScreen() {
             <View style={styles.headerRight}>
               <TouchableOpacity 
                 style={[styles.notifBtn, { marginRight: 10, backgroundColor: tokens.iconButtonBg }]} 
-                onPress={() => setShowReportModal(true)}
+                onPress={() => navigation.navigate('LaporanMasalah')}
               >
                 <AlertTriangle color="#FBBF24" size={22} />
               </TouchableOpacity>
@@ -217,6 +233,53 @@ export default function HomeScreen() {
         visible={showReportModal} 
         onClose={() => setShowReportModal(false)} 
       />
+
+      {/* Premium Attendance Success Popup */}
+      <AppModal 
+        visible={!!attendanceSuccess} 
+        onClose={() => setAttendanceSuccess(null)}
+        title="Validasi AI Berhasil"
+      >
+        {attendanceSuccess && (
+          <View style={{ alignItems: 'center' }}>
+            <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <CheckCircle2 size={50} color="#10B981" />
+            </View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: tokens.textColor, marginBottom: 8 }}>Absensi Berhasil</Text>
+            
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+              <RealtimeIndicator label="AI Verified" color="#10B981" />
+              {attendanceSuccess.confidence && (
+                <AIConfidenceBadge confidence={attendanceSuccess.confidence} />
+              )}
+            </View>
+
+            <View style={{ width: '100%', gap: 12, backgroundColor: isLightTheme ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)', padding: 16, borderRadius: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: tokens.subTextColor }}>Waktu</Text>
+                <Text style={{ color: tokens.textColor, fontWeight: 'bold' }}>
+                  {new Date(attendanceSuccess.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: tokens.subTextColor }}>Lokasi</Text>
+                <Text style={{ color: tokens.textColor, fontWeight: 'bold' }}>{userLocation || 'Gedung TI'}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: tokens.subTextColor }}>Status AI</Text>
+                <StatusBadge status={attendanceSuccess.approval_status || 'APPROVED'} size="small" />
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={{ width: '100%', backgroundColor: '#10B981', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 24 }}
+              onPress={() => setAttendanceSuccess(null)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </AppModal>
     </AnimatedBackground>
   );
 }

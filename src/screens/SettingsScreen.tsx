@@ -29,6 +29,8 @@ export default function SettingsScreen() {
     { name: 'Purple', colors: ['#1e1b4b', '#4c1d95', '#7c3aed', '#a78bfa', '#7c3aed', '#4c1d95', '#1e1b4b'] },
     { name: 'Pink', colors: ['#4c0519', '#be123c', '#e11d48', '#fb7185', '#e11d48', '#be123c', '#4c0519'] },
     { name: 'Grey', colors: ['#020617', '#0f172a', '#1e293b', '#334155', '#1e293b', '#0f172a', '#020617'] },
+    { name: 'Putih Tulang', colors: ['#fdfaf5', '#f5f0e6', '#fdfaf5', '#f5f0e6', '#fdfaf5', '#f5f0e6', '#fdfaf5'] },
+    { name: 'Hitam', colors: ['#000000', '#121212', '#000000', '#121212', '#000000', '#121212', '#000000'] },
   ];
 
   const submitReport = async () => {
@@ -36,7 +38,7 @@ export default function SettingsScreen() {
       Alert.alert('Error', 'Pesan tidak boleh kosong');
       return;
     }
-    
+
     setIsSubmittingReport(true);
     try {
       const token = await AsyncStorage.getItem('@attendify_auth_token');
@@ -94,48 +96,48 @@ export default function SettingsScreen() {
   return (
     <AnimatedBackground style={styles.container}>
       <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
-        <TouchableOpacity 
-          onPress={handleBack} 
-          style={[styles.backButton, { backgroundColor: tokens.iconButtonBg }]}
+        <TouchableOpacity
+          onPress={handleBack}
+          style={[styles.backButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
         >
           <ChevronLeft size={28} color={tokens.textColor} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: tokens.textColor }]}>Pengaturan</Text>
         <TouchableOpacity onPress={() => handleDevFeature('Pusat Bantuan')}>
-           <HelpCircle size={24} color={tokens.subTextColor} />
+          <HelpCircle size={24} color={tokens.subTextColor} />
         </TouchableOpacity>
       </Animated.View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        
+
         <View style={styles.settingsGroup}>
           <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Keamanan & Akun</Text>
           <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
-            <TouchableOpacity 
-               style={styles.settingItem}
-               onPress={() => navigation.navigate('ProfileDetails')}
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('ProfileDetails')}
             >
               <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                   <UserCog size={20} color="#38BDF8" />
-                 </View>
-                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Detail Profil</Text>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+                  <UserCog size={20} color="#38BDF8" />
+                </View>
+                <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Detail Profil</Text>
               </View>
               <ChevronRight size={20} color={tokens.subTextColor} />
             </TouchableOpacity>
 
-            <TouchableOpacity 
-               style={[styles.settingItem, styles.noBorder]}
-               onPress={() => navigation.navigate('PrivacySecurity')}
+            <TouchableOpacity
+              style={[styles.settingItem, styles.noBorder]}
+              onPress={() => navigation.navigate('PrivacySecurity')}
             >
               <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                   <Shield size={20} color="#10B981" />
-                 </View>
-                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Privasi & Keamanan</Text>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Shield size={20} color="#10B981" />
+                </View>
+                <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Privasi & Keamanan</Text>
               </View>
               <ChevronRight size={20} color={tokens.subTextColor} />
             </TouchableOpacity>
@@ -147,10 +149,10 @@ export default function SettingsScreen() {
           <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
             <View style={[styles.settingItem, styles.noBorder, { flexDirection: 'column', alignItems: 'flex-start' }]}>
               <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
-                   <Palette size={20} color="#EC4899" />
-                 </View>
-                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Tema Warna</Text>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
+                  <Palette size={20} color="#EC4899" />
+                </View>
+                <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Tema Warna</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16, width: '100%' }}>
                 {gradients.map((grad, index) => {
@@ -199,15 +201,15 @@ export default function SettingsScreen() {
           <View style={styles.settingsGroup}>
             <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Bantuan</Text>
             <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
-              <TouchableOpacity 
-                 style={[styles.settingItem, styles.noBorder]}
-                 onPress={() => setIsReportModalVisible(true)}
+              <TouchableOpacity
+                style={[styles.settingItem, styles.noBorder]}
+                onPress={() => setIsReportModalVisible(true)}
               >
                 <View style={styles.settingItemLeft}>
-                   <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                     <MessageSquare size={20} color="#F59E0B" />
-                   </View>
-                   <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Laporkan Masalah</Text>
+                  <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                    <MessageSquare size={20} color="#F59E0B" />
+                  </View>
+                  <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Laporkan Masalah</Text>
                 </View>
                 <ChevronRight size={20} color={tokens.subTextColor} />
               </TouchableOpacity>
@@ -218,15 +220,15 @@ export default function SettingsScreen() {
         <View style={styles.settingsGroup}>
           <Text style={[styles.groupTitle, { color: tokens.labelColor }]}>Lainnya</Text>
           <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { borderColor: tokens.borderColor }]}>
-            <TouchableOpacity 
-               style={[styles.settingItem, styles.noBorder]}
-               onPress={() => navigation.navigate('AboutAttendify')}
+            <TouchableOpacity
+              style={[styles.settingItem, styles.noBorder]}
+              onPress={() => navigation.navigate('AboutAttendify')}
             >
               <View style={styles.settingItemLeft}>
-                 <View style={[styles.iconBox, { backgroundColor: tokens.iconButtonBg }]}>
-                   <Info size={20} color={tokens.subTextColor} />
-                 </View>
-                 <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Tentang Attendify</Text>
+                <View style={[styles.iconBox, { backgroundColor: tokens.iconButtonBg }]}>
+                  <Info size={20} color={tokens.subTextColor} />
+                </View>
+                <Text style={[styles.settingItemText, { color: tokens.textColor }]}>Tentang Attendify</Text>
               </View>
               <Text style={[styles.versionText, { color: tokens.labelColor }]}>v1.0.4</Text>
             </TouchableOpacity>
@@ -242,25 +244,25 @@ export default function SettingsScreen() {
       <Modal visible={isReportModalVisible} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View style={styles.modalOverlay}>
-            <BlurView intensity={40} tint="dark" style={styles.modalContent}>
+            <BlurView intensity={40} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Laporkan Masalah</Text>
+                <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Laporkan Masalah</Text>
                 <TouchableOpacity onPress={() => setIsReportModalVisible(false)}>
-                  <X size={24} color="#fff" />
+                  <X size={24} color={tokens.textColor} />
                 </TouchableOpacity>
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor, color: tokens.textColor }]}
                 placeholder="Deskripsikan masalah Anda..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={tokens.subTextColor}
                 multiline
                 numberOfLines={5}
                 value={reportMessage}
                 onChangeText={setReportMessage}
                 textAlignVertical="top"
               />
-              <TouchableOpacity 
-                style={styles.submitBtn} 
+              <TouchableOpacity
+                style={styles.submitBtn}
                 onPress={submitReport}
                 disabled={isSubmittingReport}
               >
@@ -283,18 +285,18 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingTop: 60, 
-    paddingHorizontal: 24, 
-    paddingBottom: 24 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 24
   },
-  backButton: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 12, 
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -302,66 +304,66 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff', letterSpacing: 0.5 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 60 },
   settingsGroup: { marginBottom: 32 },
-  groupTitle: { 
-    fontSize: 12, 
-    fontWeight: 'bold', 
-    color: 'rgba(255,255,255,0.4)', 
-    marginBottom: 16, 
-    marginLeft: 4, 
+  groupTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.4)',
+    marginBottom: 16,
+    marginLeft: 4,
     textTransform: 'uppercase',
     letterSpacing: 1.5
   },
-  card: { 
-    borderRadius: 24, 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.1)', 
-    overflow: 'hidden' 
+  card: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden'
   },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 18, 
-    borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(255,255,255,0.05)' 
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)'
   },
   noBorder: { borderBottomWidth: 0 },
   settingItemLeft: { flexDirection: 'row', alignItems: 'center' },
-  iconBox: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginRight: 16 
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16
   },
   settingItemText: { fontSize: 16, color: '#fff', fontWeight: '600' },
   versionText: { fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 'bold' },
-  copyright: { 
-    textAlign: 'center', 
-    color: 'rgba(255,255,255,0.2)', 
-    fontSize: 12, 
+  copyright: {
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: 12,
     marginTop: 10,
     marginBottom: 40
   },
-  logoutBtn: { 
-    marginTop: 32, 
-    marginBottom: 24, 
-    height: 56, 
-    borderRadius: 16, 
-    overflow: 'hidden' 
+  logoutBtn: {
+    marginTop: 32,
+    marginBottom: 24,
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden'
   },
-  logoutGradient: { 
-    flex: 1, 
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    gap: 8 
+  logoutGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8
   },
-  logoutText: { 
-    color: '#fff', 
-    fontSize: 16, 
-    fontWeight: 'bold' 
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold'
   },
   modalOverlay: {
     flex: 1,

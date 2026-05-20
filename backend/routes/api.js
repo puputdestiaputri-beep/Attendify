@@ -26,6 +26,8 @@ const logCtrl = require('../controllers/logController');
 const kelasCtrl = require('../controllers/kelasController');
 const iotCtrl = require('../controllers/iotController');
 const manualScanCtrl = require('../controllers/manualScanController');
+const adminFaceCtrl = require('../controllers/adminFaceController');
+const adminStudentCtrl = require('../controllers/adminStudentController');
 
 // ======================================================
 // 1. AUTH ROUTES
@@ -45,6 +47,12 @@ router.get('/users/:id', auth, userCtrl.getUserById);
 router.put('/users/:id', auth, roleCheck('admin'), userCtrl.updateUser);
 router.delete('/users/:id', auth, roleCheck('admin'), userCtrl.deleteUser);
 
+// --- Admin Student Management ---
+router.get('/admin/students', auth, roleCheck('admin'), adminStudentCtrl.getAllStudents);
+router.post('/admin/students', auth, roleCheck('admin'), adminStudentCtrl.createStudent);
+router.put('/admin/students/:id', auth, roleCheck('admin'), adminStudentCtrl.updateStudent);
+router.delete('/admin/students/:id', auth, roleCheck('admin'), adminStudentCtrl.deleteStudent);
+
 // ======================================================
 // 3. JADWAL ROUTES
 // ======================================================
@@ -60,6 +68,7 @@ router.get('/absensi', auth, absensiCtrl.getAllAbsensi);
 router.get('/absensi/:mahasiswa_id', auth, absensiCtrl.getAbsensiByMahasiswa);
 router.post('/absensi/update', auth, roleCheck('dosen', 'admin'), absensiCtrl.updateAttendanceStatus);
 router.get('/admin/attendance', auth, roleCheck('admin'), absensiCtrl.getAdminAttendance);
+router.put('/absensi/:id/validate', auth, roleCheck('dosen', 'admin'), absensiCtrl.validateAttendance);
 
 // ======================================================
 // 5. REPORT ROUTES (PDF & EXCEL)
@@ -67,7 +76,18 @@ router.get('/admin/attendance', auth, roleCheck('admin'), absensiCtrl.getAdminAt
 router.get('/reports/absensi', auth, roleCheck('admin', 'dosen'), reportCtrl.exportAttendance);
 router.get('/reports/excel', reportCtrl.exportExcel);
 router.get('/reports/pdf', reportCtrl.exportPDF);
-router.post('/reports', auth, reportCtrl.createReport);
+
+// Mahasiswa Facility/Issue Reports
+router.post('/reports/mahasiswa', auth, roleCheck('mahasiswa'), reportCtrl.createReport);
+router.get('/reports/mahasiswa/me', auth, roleCheck('mahasiswa'), reportCtrl.getMyReports);
+
+// Dosen Daily Reports
+router.post('/reports/daily', auth, roleCheck('dosen'), reportCtrl.createDailyReport);
+router.get('/dosen/reports/daily', auth, roleCheck('dosen'), reportCtrl.getDosenDailyReports);
+router.get('/admin/reports/daily', auth, roleCheck('admin'), reportCtrl.getDailyReports);
+router.put('/admin/reports/daily/:id/status', auth, roleCheck('admin'), reportCtrl.updateDailyReportStatus);
+
+// Admin manage Mahasiswa reports
 router.get('/admin/reports', auth, roleCheck('admin'), reportCtrl.getAdminReports);
 router.put('/admin/reports/:id/status', auth, roleCheck('admin'), reportCtrl.updateReportStatus);
 
@@ -90,6 +110,13 @@ router.post('/wajah/start-session', auth, roleCheck('admin'), wajahCtrl.startVal
 router.get('/wajah/status/:user_id', auth, wajahCtrl.getValidationStatus);
 router.post('/wajah/iot-capture', wajahCtrl.uploadIotFaceData);
 
+// --- NEW ADMIN FACE MANAGEMENT ---
+router.get('/admin/face/students', auth, roleCheck('admin'), adminFaceCtrl.getStudentsWithStatus);
+router.get('/admin/face/status/:user_id', auth, roleCheck('admin'), adminFaceCtrl.getFaceStatus);
+router.post('/admin/face/register', auth, roleCheck('admin'), adminFaceCtrl.registerFace);
+router.post('/admin/face/retrain', auth, roleCheck('admin'), adminFaceCtrl.registerFace); // Reuse register logic
+router.delete('/admin/face/delete/:user_id', auth, roleCheck('admin'), adminFaceCtrl.deleteFace);
+
 // ======================================================
 // 8. SYSTEM LOGS & KELAS
 // ======================================================
@@ -104,73 +131,7 @@ router.get('/kelas/:id/mahasiswa', kelasCtrl.getMahasiswaByKelas);
 // ======================================================
 // 9. IoT / ESP32 CORE LOGIC (REAL AI RECOGNITION)
 // ======================================================
-router.post('/iot/recognize', async (req, res) => {
-  try {
-    console.log("ESP32 DATA Received for Recognition");
-    const { device_id, image } = req.body;
-
-    if (!device_id || !image) {
-      return res.status(400).json({ success: false, message: "Missing device_id or image" });
-    }
-
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    const [registeredUsers] = await db.query(
-      'SELECT id_user as user_id, face_descriptor FROM pengguna WHERE face_descriptor IS NOT NULL'
-    );
-
-    const matchResult = await faceService.recognizeFace(buffer, registeredUsers);
-
-    if (!matchResult.success) {
-      return res.status(401).json({ success: false, recognized: false, message: matchResult.message || "Face not recognized" });
-    }
-
-    const matchedUserId = matchResult.user_id;
-    const [users] = await db.query(
-      `SELECT p.id_user as user_id, p.nama as name, IFNULL(k.nama_kelas, '-') as kelas 
-       FROM pengguna p 
-       LEFT JOIN mahasiswa_kelas mk ON p.id_user = mk.mahasiswa_id 
-       LEFT JOIN kelas k ON mk.kelas_id = k.id_kelas 
-       WHERE p.id_user = ?`,
-      [matchedUserId]
-    );
-
-    if (users.length === 0) {
-      return res.status(404).json({ success: false, message: "User found by AI but missing in database" });
-    }
-
-    const user = users[0];
-    const filename = `attendance_${user.user_id}_${Date.now()}.jpg`;
-    const uploadPath = path.join(__dirname, '..', 'uploads', filename);
-    fs.writeFileSync(uploadPath, buffer);
-
-    await db.query(
-      'INSERT INTO attendance (user_id, name, kelas, photo) VALUES (?, ?, ?, ?)',
-      [user.user_id, user.name, user.kelas, filename]
-    );
-
-    const attendanceData = {
-      success: true,
-      recognized: true,
-      user_id: user.user_id,
-      name: user.name,
-      kelas: user.kelas,
-      photo: filename,
-      confidence: matchResult.distance,
-      device_id: device_id,
-      time: new Date()
-    };
-
-    const io = req.app.get('io');
-    if (io) io.emit('new_attendance', attendanceData);
-
-    return res.status(200).json({ success: true, message: "Attendance saved", data: attendanceData });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Server error during recognition" });
-  }
-});
+router.post('/iot/recognize', iotCtrl.recognizeFromIoT);
 
 router.post('/iot/register-face', async (req, res) => {
   try {
@@ -200,17 +161,18 @@ router.post('/iot/register-face', async (req, res) => {
 router.post('/attendance/location', async (req, res) => {
   try {
     const { user_id, latitude, longitude, location_name } = req.body;
-    const [latest] = await db.query('SELECT id FROM attendance WHERE user_id = ? ORDER BY id DESC LIMIT 1', [user_id]);
+    const [latest] = await db.query('SELECT id_absensi FROM absensi WHERE user_id = ? ORDER BY id_absensi DESC LIMIT 1', [user_id]);
     if (latest.length === 0) return res.status(404).json({ success: false, message: 'No attendance' });
 
-    await db.query('UPDATE attendance SET latitude = ?, longitude = ?, location_name = ? WHERE id = ?', 
-      [latitude, longitude, location_name, latest[0].id]);
+    await db.query('UPDATE absensi SET latitude = ?, longitude = ?, location_name = ? WHERE id_absensi = ?', 
+      [latitude, longitude, location_name, latest[0].id_absensi]);
 
     const io = req.app.get('io');
     if (io) io.emit('update_location', { user_id, latitude, longitude, location_name });
 
     return res.status(200).json({ success: true });
   } catch (error) {
+    console.error('[Location] Update error:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });

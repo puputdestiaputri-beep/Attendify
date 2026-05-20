@@ -17,13 +17,13 @@ import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
 import { Platform } from 'react-native';
 
-let RNHTMLtoPDF: any = null;
-if (Platform.OS !== 'web') {
-  RNHTMLtoPDF = require('react-native-html-to-pdf');
-}
+import * as Print from 'expo-print';
 
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useSocket } from '../context/SocketContext';
+import AppModal from '../components/ui/AppModal';
+import StatusBadge from '../components/ui/StatusBadge';
 
 import { useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
@@ -51,6 +51,8 @@ interface AttendanceEntry {
   tanggal: string;
   waktu_datang: string | null;
   status: string;
+  approval_status?: string;
+  rejection_reason?: string;
 }
 
 export default function ManageAttendanceScreen() {
@@ -65,6 +67,7 @@ export default function ManageAttendanceScreen() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const { socket } = useSocket();
   
   const fetchData = async () => {
     try {
@@ -102,7 +105,18 @@ export default function ManageAttendanceScreen() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedClassId]);
+
+    if (socket) {
+      const handleRefresh = () => fetchData();
+      socket.on('new_attendance', handleRefresh);
+      socket.on('ATTENDANCE_VALIDATION', handleRefresh);
+
+      return () => {
+        socket.off('new_attendance', handleRefresh);
+        socket.off('ATTENDANCE_VALIDATION', handleRefresh);
+      }
+    }
+  }, [selectedClassId, socket]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -205,20 +219,18 @@ export default function ManageAttendanceScreen() {
         </html>
       `;
 
-      let options = {
-        html: htmlContent,
-        fileName: 'absensi',
-        directory: 'Documents',
-      };
-
-      let file = await RNHTMLtoPDF.convert(options);
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      // @ts-ignore
+      const newUri = FileSystem.documentDirectory + 'absensi.pdf';
+      await FileSystem.moveAsync({
+        from: uri,
+        to: newUri,
+      });
       
-      if (file.filePath) {
-        await Sharing.shareAsync(file.filePath, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Bagikan PDF Absensi'
-        });
-      }
+      await Sharing.shareAsync(newUri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Bagikan PDF Absensi'
+      });
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Gagal mengekspor file PDF.');
@@ -298,6 +310,34 @@ Terima kasih.`;
     }
   };
 
+  const handleValidation = async (id: number, approval_status: string, rejection_reason?: string) => {
+    setIsUpdating(true);
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/absensi/${id}/validate`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ approval_status, rejection_reason })
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        Alert.alert('Sukses', 'Status absensi berhasil divalidasi');
+        setIsEditModalVisible(false);
+        fetchData();
+      } else {
+        Alert.alert('Error', result.message || 'Gagal memvalidasi absensi');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Terjadi kesalahan jaringan');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const renderAttendanceItem = ({ item }: { item: AttendanceEntry }) => {
     const status = getStatusStyle(item.status);
     return (
@@ -316,6 +356,11 @@ Terima kasih.`;
             <View style={styles.infoCol}>
               <Text style={[styles.studentName, { color: tokens.textColor }]}>{item.name}</Text>
               <Text style={[styles.studentDetails, { color: tokens.subTextColor }]}>{item.nama_kelas} • {item.nama_mk}</Text>
+              {item.approval_status && (
+                <Text style={{ fontSize: 10, marginTop: 4, color: item.approval_status === 'APPROVED' ? Colors.ai.success : item.approval_status === 'REJECTED' ? Colors.ai.error : Colors.ai.warning }}>
+                  Validasi: {item.approval_status}
+                </Text>
+              )}
             </View>
             <View style={styles.statusCol}>
               <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
@@ -424,8 +469,8 @@ Terima kasih.`;
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Users size={48} color="rgba(255,255,255,0.1)" />
-                <Text style={styles.emptyText}>Tidak ada data absensi untuk filter ini.</Text>
+                <Users size={48} color={tokens.subTextColor} opacity={0.3} />
+                <Text style={[styles.emptyText, { color: tokens.subTextColor }]}>Tidak ada data absensi untuk filter ini.</Text>
               </View>
             }
             refreshControl={
@@ -433,13 +478,15 @@ Terima kasih.`;
             }
           />
         )}        {/* Edit Status Modal */}
-        <Modal visible={isEditModalVisible} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <BlurView intensity={40} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
-              <Text style={[styles.modalTitle, { color: tokens.textColor }]}>Ubah Status Absensi</Text>
-              <Text style={[styles.modalSubtitle, { color: tokens.subTextColor }]}>
-                {selectedRecord?.name} - {selectedRecord?.nama_mk}
-              </Text>
+        <AppModal 
+          visible={isEditModalVisible} 
+          onClose={() => setIsEditModalVisible(false)}
+          title="Ubah Status Absensi"
+        >
+          <View>
+            <Text style={[styles.modalSubtitle, { color: tokens.subTextColor }]}>
+              {selectedRecord?.name} - {selectedRecord?.nama_mk}
+            </Text>
               
               <View style={styles.statusOptions}>
                 {['hadir', 'terlambat', 'izin', 'sakit', 'alfa'].map(st => (
@@ -464,17 +511,39 @@ Terima kasih.`;
                 ))}
               </View>
 
-              <TouchableOpacity 
-                style={[styles.cancelModalBtn, { backgroundColor: tokens.iconButtonBg }]}
-                onPress={() => setIsEditModalVisible(false)}
-                disabled={isUpdating}
-              >
-                <Text style={[styles.cancelModalBtnText, { color: tokens.textColor }]}>Batal</Text>
-              </TouchableOpacity>
-            </BlurView>
+              {selectedRecord?.approval_status === 'PENDING' && (
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ color: tokens.textColor, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }}>Validasi Kehadiran</Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity 
+                      style={[styles.statusOptionBtn, { flex: 1, borderColor: Colors.ai.success, backgroundColor: 'rgba(52,211,153,0.1)' }]} 
+                      onPress={() => handleValidation(selectedRecord.id_absensi, 'APPROVED')}
+                      disabled={isUpdating}
+                    >
+                      <Text style={{ color: Colors.ai.success, fontWeight: 'bold' }}>Setujui</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.statusOptionBtn, { flex: 1, borderColor: Colors.ai.error, backgroundColor: 'rgba(248,113,113,0.1)' }]} 
+                      onPress={() => {
+                        Alert.prompt(
+                          'Tolak Absensi',
+                          'Alasan penolakan:',
+                          [
+                            { text: 'Batal', style: 'cancel' },
+                            { text: 'Tolak', onPress: (reason?: string) => handleValidation(selectedRecord.id_absensi, 'REJECTED', reason) }
+                          ],
+                          'plain-text'
+                        );
+                      }}
+                      disabled={isUpdating}
+                    >
+                      <Text style={{ color: Colors.ai.error, fontWeight: 'bold' }}>Tolak</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
           </View>
-        </Modal>
-
+        </AppModal>
       </AnimatedBackground>
   );
 }

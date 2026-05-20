@@ -32,7 +32,7 @@ const char* password = "###HorizonU";
 // BACKEND URL
 // ========================================
 const char* serverUrl =
-  "http://10.149.165.20:5000/api/iot/recognize";
+  "http://10.61.4.23:5000/api/iot/recognize";
 
 // ========================================
 // DEVICE ID
@@ -244,7 +244,7 @@ void sendPhoto() {
 
       case -1:
         Serial.println("ERROR -1: Connection failed");
-        Serial.println("Cek: IP backend 10.149.165.20 benar?");
+        Serial.println("Cek: IP backend 10.61.4.23 benar?");
         Serial.println("Cek: backend npm start sudah jalan?");
         Serial.println("Cek: Firewall Windows port 5000?");
         Serial.println("Cek: ESP32 & laptop 1 WiFi?");

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, TextInput, Modal, Alert, Dimensions, StatusBar
+  TouchableOpacity, TextInput, Modal, Alert, Dimensions, StatusBar, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Student } from './types';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +34,7 @@ const INITIAL_STUDENTS = [
 
 export default function ManageStudentsScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +50,7 @@ export default function ManageStudentsScreen() {
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('@attendify_auth_token');
-      const response = await fetch(`${API_URL}/manual-scan/users`, {
+      const response = await fetch(`${API_URL}/admin/students`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -72,8 +74,8 @@ export default function ManageStudentsScreen() {
   );
 
   const filteredStudents = students.filter((s: Student) => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.nim.includes(searchQuery)
+    (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (s.nim || '').includes(searchQuery)
   );
 
 
@@ -103,7 +105,7 @@ export default function ManageStudentsScreen() {
           onPress: async () => {
             try {
               const token = await AsyncStorage.getItem('@attendify_auth_token');
-              const response = await fetch(`${API_URL}/users/${id}`, {
+              const response = await fetch(`${API_URL}/admin/students/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
               });
@@ -130,7 +132,7 @@ export default function ManageStudentsScreen() {
       let response;
       
       if (editingStudent) {
-        response = await fetch(`${API_URL}/users/${editingStudent.id}`, {
+        response = await fetch(`${API_URL}/admin/students/${editingStudent.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -138,21 +140,26 @@ export default function ManageStudentsScreen() {
           },
           body: JSON.stringify({
             name: formData.name,
+            nim: formData.nim,
             email: formData.email,
-            role: 'mahasiswa'
+            prodi: formData.prodi,
+            kelas: formData.kelas
           })
         });
       } else {
-        response = await fetch(`${API_URL}/register`, {
+        response = await fetch(`${API_URL}/admin/students`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             name: formData.name,
+            nim: formData.nim,
             email: formData.email,
             password: formData.password,
-            role: 'mahasiswa'
+            prodi: formData.prodi,
+            kelas: formData.kelas
           })
         });
       }
@@ -172,31 +179,34 @@ export default function ManageStudentsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isLightTheme ? "dark-content" : "light-content"} />
     <AnimatedBackground style={styles.background}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <ArrowLeft color="#fff" size={24} />
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()} 
+            style={[styles.backBtn, { backgroundColor: tokens.iconButtonBg }]}
+          >
+            <ArrowLeft color={tokens.textColor} size={24} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Basis Data Siswa</Text>
+          <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Basis Data Siswa</Text>
           <View style={{ width: 24 }} />
         </View>
-
+        
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <BlurView intensity={20} tint="dark" style={styles.searchBar}>
-            <Search size={20} color="rgba(255,255,255,0.4)" />
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.searchBar, { borderColor: tokens.borderColor }]}>
+            <Search size={20} color={tokens.subTextColor} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: tokens.textColor }]}
               placeholder="Cari nama atau NIM..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={tokens.subTextColor}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery !== '' && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <X size={18} color="rgba(255,255,255,0.4)" />
+                <X size={18} color={tokens.subTextColor} />
               </TouchableOpacity>
             )}
           </BlurView>
@@ -204,72 +214,94 @@ export default function ManageStudentsScreen() {
 
         {/* Student List */}
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-{filteredStudents.map((student: Student) => (
-
-            <BlurView key={student.id} intensity={15} tint="dark" style={styles.studentCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{student.name.charAt(0)}</Text>
-                </View>
-                <View style={styles.studentInfo}>
-                  <Text style={styles.studentName}>{student.name}</Text>
-                  <Text style={styles.studentNim}>{student.nim || student.username}</Text>
-                </View>
-                <View style={styles.actionRow}>
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, styles.manualBtn]} 
-                    onPress={async () => {
-                      try {
-                        const token = await AsyncStorage.getItem('@attendify_auth_token');
-                        const response = await fetch(`${API_URL}/manual-scan/allow`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({ user_id: student.id })
-                        });
-                        const result = await response.json();
-                        if (result.status === 'success') {
-                          Alert.alert('Sukses', 'Manual scan diizinkan (5 menit)');
-                          fetchStudents(); // Refresh list
+          {isLoading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#3B82F6" />
+              <Text style={[styles.loadingText, { color: tokens.subTextColor }]}>Memuat data...</Text>
+            </View>
+          ) : filteredStudents.length > 0 ? (
+            filteredStudents.map((student: Student) => (
+              <BlurView 
+                key={student.id} 
+                intensity={15} 
+                tint={isLightTheme ? 'light' : 'dark'} 
+                style={[styles.studentCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}
+              >
+                <View style={styles.cardHeader}>
+                  <View style={[styles.avatar, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}>
+                    <Text style={[styles.avatarText, { color: tokens.textColor }]}>{(student.name || '?').charAt(0)}</Text>
+                  </View>
+                  <View style={styles.studentInfo}>
+                    <Text style={[styles.studentName, { color: tokens.textColor }]}>{student.name || 'Unknown'}</Text>
+                    <Text style={[styles.studentNim, { color: tokens.subTextColor }]}>{student.nim || student.username || '-'}</Text>
+                  </View>
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, styles.manualBtn, { backgroundColor: tokens.iconButtonBg }]} 
+                      onPress={async () => {
+                        try {
+                          const token = await AsyncStorage.getItem('@attendify_auth_token');
+                          const response = await fetch(`${API_URL}/manual-scan/allow`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ user_id: student.id })
+                          });
+                          const result = await response.json();
+                          if (result.status === 'success') {
+                            Alert.alert('Sukses', 'Manual scan diizinkan (5 menit)');
+                            fetchStudents(); // Refresh list
+                          }
+                        } catch (err) {
+                          Alert.alert('Error', 'Gagal mengizinkan scan');
                         }
-                      } catch (err) {
-                        Alert.alert('Error', 'Gagal mengizinkan scan');
-                      }
-                    }}
-                  >
-                    <Shield size={16} color="#10B981" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleEditPress(student)} style={styles.actionBtn}>
-                    <Edit3 size={18} color="#3B82F6" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeletePress(student.id)} style={styles.actionBtn}>
-                    <Trash2 size={18} color="#F87171" />
-                  </TouchableOpacity>
+                      }}
+                    >
+                      <Shield size={16} color="#10B981" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => handleEditPress(student)} 
+                      style={[styles.actionBtn, { backgroundColor: tokens.iconButtonBg }]}
+                    >
+                      <Edit3 size={18} color="#3B82F6" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => handleDeletePress(student.id)} 
+                      style={[styles.actionBtn, { backgroundColor: tokens.iconButtonBg }]}
+                    >
+                      <Trash2 size={18} color="#F87171" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-              
-              <View style={styles.cardDivider} />
-              
-              <View style={styles.cardFooter}>
-                <View style={styles.metaItem}>
-                  <GraduationCap size={14} color="rgba(255,255,255,0.4)" />
-                  <Text style={styles.metaText}>{student.prodi}</Text>
+                
+                <View style={[styles.cardDivider, { backgroundColor: tokens.borderColor }]} />
+                
+                <View style={styles.cardFooter}>
+                  <View style={styles.metaItem}>
+                    <GraduationCap size={14} color={tokens.subTextColor} />
+                    <Text style={[styles.metaText, { color: tokens.subTextColor }]}>{student.prodi || '-'}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Users size={14} color={tokens.subTextColor} />
+                    <Text style={[styles.metaText, { color: tokens.subTextColor }]}>{student.kelas || '-'}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Shield size={14} color={student.manual_permission ? '#10B981' : tokens.subTextColor} />
+                    <Text style={[styles.metaText, { color: student.manual_permission ? '#10B981' : tokens.subTextColor }]}>
+                      {student.permission_status === 'active' ? 'Manual OK' : 'Manual Off'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.metaItem}>
-                  <Users size={14} color="rgba(255,255,255,0.4)" />
-                  <Text style={styles.metaText}>{student.kelas}</Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <Shield size={14} color={student.manual_permission ? '#10B981' : '#6B7280'} />
-                  <Text style={[styles.metaText, { color: student.manual_permission ? '#10B981' : '#6B7280' }]}>
-                    {student.permission_status === 'active' ? 'Manual OK' : 'Manual Off'}
-                  </Text>
-                </View>
-              </View>
-            </BlurView>
-          ))}
+              </BlurView>
+            ))
+          ) : (
+            <View style={styles.centerContainer}>
+              <Users size={48} color={tokens.subTextColor} opacity={0.3} />
+              <Text style={[styles.emptyText, { color: tokens.subTextColor }]}>Tidak ada data siswa</Text>
+            </View>
+          )}
         </ScrollView>
 
         {/* FAB */}
@@ -291,89 +323,106 @@ export default function ManageStudentsScreen() {
           transparent={true}
         >
           <View style={styles.modalOverlay}>
-            <BlurView intensity={80} tint="dark" style={styles.modalContent}>
+            <BlurView intensity={80} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: tokens.textColor }]}>
                   {editingStudent ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}
                 </Text>
                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                  <X color="#fff" size={24} />
+                  <X color={tokens.textColor} size={24} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalForm}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Nama Lengkap</Text>
-                  <View style={styles.inputWrap}>
-                    <Users size={20} color="rgba(255,255,255,0.4)" />
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Nama Lengkap</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <Users size={20} color={tokens.subTextColor} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor }]}
                       value={formData.name}
                       onChangeText={text => setFormData({...formData, name: text})}
                       placeholder="Masukkan nama..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                     />
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>NIM / Nomor Induk</Text>
-                  <View style={styles.inputWrap}>
-                    <IdCard size={20} color="rgba(255,255,255,0.4)" />
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>NIM / Nomor Induk</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <IdCard size={20} color={tokens.subTextColor} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor }]}
                       value={formData.nim}
                       onChangeText={text => setFormData({...formData, nim: text})}
                       placeholder="Masukkan NIM..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                       keyboardType="numeric"
                     />
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Program Studi</Text>
-                  <View style={styles.inputWrap}>
-                    <GraduationCap size={20} color="rgba(255,255,255,0.4)" />
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Email</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <Mail size={20} color={tokens.subTextColor} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor }]}
+                      value={formData.email}
+                      onChangeText={text => setFormData({...formData, email: text})}
+                      placeholder="Masukkan email..."
+                      placeholderTextColor={tokens.subTextColor}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Program Studi</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <GraduationCap size={20} color={tokens.subTextColor} />
+                    <TextInput
+                      style={[styles.input, { color: tokens.textColor }]}
                       value={formData.prodi}
                       onChangeText={text => setFormData({...formData, prodi: text})}
                       placeholder="Informatika, SI, dll..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                     />
                   </View>
                 </View>
 
                 <View style={styles.row}>
-  <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-    <Text style={styles.inputLabel}>Kelas</Text>
-    <View style={styles.inputWrap}>
-      <TextInput
-        style={styles.input}
-        value={formData.kelas}
-        onChangeText={text => setFormData({...formData, kelas: text})}
-        placeholder="A Pagi..."
-        placeholderTextColor="rgba(255,255,255,0.3)"
-      />
-    </View>
-  </View>
-                {!editingStudent && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Password Awal</Text>
-                    <View style={styles.inputWrap}>
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Kelas</Text>
+                    <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                      <Users size={20} color={tokens.subTextColor} />
                       <TextInput
-                        style={styles.input}
-                        value={formData.password}
-                        onChangeText={text => setFormData({...formData, password: text})}
-                        placeholder="Password awal..."
-                        placeholderTextColor="rgba(255,255,255,0.3)"
-                        secureTextEntry={true}
+                        style={[styles.input, { color: tokens.textColor }]}
+                        value={formData.kelas}
+                        onChangeText={text => setFormData({...formData, kelas: text})}
+                        placeholder="A Pagi..."
+                        placeholderTextColor={tokens.subTextColor}
                       />
                     </View>
                   </View>
-                )}
-
+                  
+                  {!editingStudent && (
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Password</Text>
+                      <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                        <TextInput
+                          style={[styles.input, { color: tokens.textColor }]}
+                          value={formData.password}
+                          onChangeText={text => setFormData({...formData, password: text})}
+                          placeholder="Password..."
+                          placeholderTextColor={tokens.subTextColor}
+                          secureTextEntry={true}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -612,6 +661,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 16,
+    fontSize: 16,
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

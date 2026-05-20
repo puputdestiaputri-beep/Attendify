@@ -46,5 +46,8 @@ export const Colors = {
     accentGlow: '#6B46C1',
     card: 'rgba(255, 255, 255, 0.1)',
     cardBorder: 'rgba(255, 255, 255, 0.2)',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
   }
 };

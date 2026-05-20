@@ -19,6 +19,7 @@ import { ArrowLeft, User, Mail, Briefcase, Camera, IdCard, Phone, BookOpen, Grad
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from '../components/CustomAlert';
@@ -29,6 +30,7 @@ import * as FileSystem from 'expo-file-system';
 export default function ProfileDetailsScreen() {
   const navigation = useNavigation<any>();
   const { user, login, role } = useAuth();
+  const { tokens, isLightTheme } = useTheme();
 
   const [name, setName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -164,12 +166,12 @@ export default function ProfileDetailsScreen() {
             style={styles.header}
           >
             <TouchableOpacity
-              style={styles.backButton}
+              style={[styles.backButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
               onPress={() => navigation.goBack()}
             >
-              <ChevronLeft color="#fff" size={28} />
+              <ChevronLeft color={tokens.textColor} size={28} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Ubah Profil</Text>
+            <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Ubah Profil</Text>
             <View style={{ width: 44 }} />
           </Animated.View>
 
@@ -177,45 +179,45 @@ export default function ProfileDetailsScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickImage} activeOpacity={0.8} style={{ alignItems: 'center' }}>
               {avatar ? (
-                <Image source={{ uri: avatar }} style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)' }} />
+                <Image source={{ uri: avatar }} style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: tokens.borderColor }} />
               ) : (
                 <LinearGradient
-                  colors={['#3B82F6', '#8B5CF6']}
+                  colors={isLightTheme ? ['#1E4FA8', '#2D6CDF'] : ['#3B82F6', '#8B5CF6']}
                   style={styles.avatarGradient}
                 >
                   <User size={80} color="#fff" />
                 </LinearGradient>
               )}
               
-              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: '#3B82F6', padding: 8, borderRadius: 20 }}>
+              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: isLightTheme ? '#1E4FA8' : '#3B82F6', padding: 8, borderRadius: 20 }}>
                 <Camera size={16} color="#fff" />
               </View>
             </TouchableOpacity>
             
             <View style={[styles.statusBadge, { marginTop: 16 }]}>
-              <Text style={styles.statusText}>{avatar ? 'Edit Foto' : 'Pilih Foto'}</Text>
+              <Text style={[styles.statusText, { color: isLightTheme ? '#1E4FA8' : Colors.ai.primary }]}>{avatar ? 'Edit Foto' : 'Pilih Foto'}</Text>
             </View>
           </View>
 
           {/* Card */}
-          <BlurView intensity={20} tint="dark" style={styles.card}>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
             <View style={styles.fieldsContainer}>
               {/* Nama */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
-                  <User size={18} color={Colors.ai.primary} />
-                  <Text style={styles.fieldLabel}>Nama Lengkap</Text>
+                  <User size={18} color={isLightTheme ? '#1E4FA8' : Colors.ai.primary} />
+                  <Text style={[styles.fieldLabel, { color: tokens.labelColor }]}>Nama Lengkap</Text>
                 </View>
                 <View style={styles.fieldContent}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: tokens.textColor, borderBottomColor: tokens.borderColor }]}
                     value={name}
                     onChangeText={(t) => {
                       setName(t);
                       setChanged(true);
                     }}
                     placeholder="Masukkan nama lengkap"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={tokens.subTextColor}
                     editable={!saving}
                   />
                 </View>
@@ -224,19 +226,19 @@ export default function ProfileDetailsScreen() {
               {/* Email */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
-                  <Mail size={18} color={Colors.ai.primary} />
-                  <Text style={styles.fieldLabel}>Email</Text>
+                  <Mail size={18} color={isLightTheme ? '#1E4FA8' : Colors.ai.primary} />
+                  <Text style={[styles.fieldLabel, { color: tokens.labelColor }]}>Email</Text>
                 </View>
                 <View style={styles.fieldContent}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: tokens.textColor, borderBottomColor: tokens.borderColor }]}
                     value={email}
                     onChangeText={(t) => {
                       setEmail(t);
                       setChanged(true);
                     }}
                     placeholder="email@example.com"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={tokens.subTextColor}
                     keyboardType="email-address"
                     editable={!saving}
                   />
@@ -246,21 +248,21 @@ export default function ProfileDetailsScreen() {
               {/* NIM / NIP */}
               <View style={styles.field}>
                 <View style={styles.fieldHeader}>
-                  <IdCard size={18} color={Colors.ai.primary} />
-                  <Text style={styles.fieldLabel}>
+                  <IdCard size={18} color={isLightTheme ? '#1E4FA8' : Colors.ai.primary} />
+                  <Text style={[styles.fieldLabel, { color: tokens.labelColor }]}>
                     {role === 'dosen' ? 'NIP' : role === 'admin' ? 'Admin ID' : 'NIM'}
                   </Text>
                 </View>
                 <View style={styles.fieldContent}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: tokens.textColor, borderBottomColor: tokens.borderColor }]}
                     value={idNumber}
                     onChangeText={(t) => {
                       setIdNumber(t);
                       setChanged(true);
                     }}
                     placeholder={role === 'dosen' ? 'NIP' : role === 'admin' ? 'Admin ID' : 'NIM'}
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={tokens.subTextColor}
                     editable={!saving}
                   />
                 </View>
@@ -271,19 +273,19 @@ export default function ProfileDetailsScreen() {
                 <>
                   <View style={styles.field}>
                     <View style={styles.fieldHeader}>
-                      <BookOpen size={18} color={Colors.ai.primary} />
-                      <Text style={styles.fieldLabel}>Program Studi</Text>
+                      <BookOpen size={18} color={isLightTheme ? '#1E4FA8' : Colors.ai.primary} />
+                      <Text style={[styles.fieldLabel, { color: tokens.labelColor }]}>Program Studi</Text>
                     </View>
                     <View style={styles.fieldContent}>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: tokens.textColor, borderBottomColor: tokens.borderColor }]}
                         value={prodi}
                         onChangeText={(t) => {
                           setProdi(t);
                           setChanged(true);
                         }}
                         placeholder="Program Studi"
-                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        placeholderTextColor={tokens.subTextColor}
                         editable={!saving}
                       />
                     </View>
@@ -291,19 +293,19 @@ export default function ProfileDetailsScreen() {
 
                   <View style={styles.field}>
                     <View style={styles.fieldHeader}>
-                      <GraduationCap size={18} color={Colors.ai.primary} />
-                      <Text style={styles.fieldLabel}>Kelas</Text>
+                      <GraduationCap size={18} color={isLightTheme ? '#1E4FA8' : Colors.ai.primary} />
+                      <Text style={[styles.fieldLabel, { color: tokens.labelColor }]}>Kelas</Text>
                     </View>
                     <View style={styles.fieldContent}>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: tokens.textColor, borderBottomColor: tokens.borderColor }]}
                         value={kelas}
                         onChangeText={(t) => {
                           setKelas(t);
                           setChanged(true);
                         }}
                         placeholder="Kelas"
-                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        placeholderTextColor={tokens.subTextColor}
                         editable={!saving}
                       />
                     </View>
@@ -315,19 +317,19 @@ export default function ProfileDetailsScreen() {
               {role === 'dosen' && (
                 <View style={styles.field}>
                   <View style={styles.fieldHeader}>
-                    <Phone size={18} color={Colors.ai.primary} />
-                    <Text style={styles.fieldLabel}>Nomor Telepon</Text>
+                    <Phone size={18} color={isLightTheme ? '#1E4FA8' : Colors.ai.primary} />
+                    <Text style={[styles.fieldLabel, { color: tokens.labelColor }]}>Nomor Telepon</Text>
                   </View>
                   <View style={styles.fieldContent}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor, borderBottomColor: tokens.borderColor }]}
                       value={phone}
                       onChangeText={(t) => {
                         setPhone(t);
                         setChanged(true);
                       }}
                       placeholder="Nomor Telepon"
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                       editable={!saving}
                     />
                   </View>
@@ -335,8 +337,8 @@ export default function ProfileDetailsScreen() {
               )}
             </View>
 
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
+            <View style={[styles.infoBox, { backgroundColor: isLightTheme ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)' }]}>
+              <Text style={[styles.infoText, { color: tokens.labelColor }]}>
                 ⚠️ Perubahan data akan tersimpan di profil akun Anda.
               </Text>
             </View>
@@ -345,10 +347,10 @@ export default function ProfileDetailsScreen() {
           {/* Button */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={[styles.secondaryButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.secondaryButtonText}>Kembali</Text>
+              <Text style={[styles.secondaryButtonText, { color: tokens.textColor }]}>Kembali</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

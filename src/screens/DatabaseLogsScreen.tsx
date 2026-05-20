@@ -16,6 +16,8 @@ import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
 import { API_URL } from '@/constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useTheme } from '../context/ThemeContext';
 
 interface LogEntry {
   id_log: number;
@@ -30,6 +32,7 @@ interface LogEntry {
 
 export default function DatabaseLogsScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'logs' | 'attendance'>('logs');
@@ -135,11 +138,11 @@ export default function DatabaseLogsScreen() {
 
     return (
       <View style={styles.logCardWrapper}>
-        <BlurView intensity={20} tint="dark" style={styles.logCard}>
+        <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.logCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
           <View style={styles.logHeader}>
-            <View style={styles.cameraTag}>
+            <View style={[styles.cameraTag, { backgroundColor: tokens.iconButtonBg }]}>
               <Camera size={14} color={Colors.ai.primary} />
-              <Text style={styles.cameraTagName}>{item.nama_kamera || 'Unknown Cam'}</Text>
+              <Text style={[styles.cameraTagName, { color: tokens.subTextColor }]}>{item.nama_kamera || 'Unknown Cam'}</Text>
             </View>
             <View style={[styles.confidenceBadge, { backgroundColor: `${confidenceColor}20` }]}>
               <Text style={[styles.confidenceText, { color: confidenceColor }]}>
@@ -154,23 +157,23 @@ export default function DatabaseLogsScreen() {
                 <User size={18} color="#fff" />
               </View>
               <View>
-                <Text style={styles.userName}>{item.user_name || 'Unidentified'}</Text>
-                <Text style={styles.userRole}>{item.user_role ? item.user_role.toUpperCase() : 'UNKNOWN'}</Text>
+                <Text style={[styles.userName, { color: tokens.textColor }]}>{item.user_name || 'Unidentified'}</Text>
+                <Text style={[styles.userRole, { color: tokens.subTextColor }]}>{item.user_role ? item.user_role.toUpperCase() : 'UNKNOWN'}</Text>
               </View>
             </View>
 
             <View style={styles.detailsGrid}>
               <View style={styles.detailItem}>
-                <Calendar size={14} color="rgba(255,255,255,0.4)" />
-                <Text style={styles.detailText}>{dt.date}</Text>
+                <Calendar size={14} color={tokens.subTextColor} />
+                <Text style={[styles.detailText, { color: tokens.subTextColor }]}>{dt.date}</Text>
               </View>
               <View style={styles.detailItem}>
-                <Clock size={14} color="rgba(255,255,255,0.4)" />
-                <Text style={styles.detailText}>{dt.time}</Text>
+                <Clock size={14} color={tokens.subTextColor} />
+                <Text style={[styles.detailText, { color: tokens.subTextColor }]}>{dt.time}</Text>
               </View>
               <View style={[styles.detailItem, { width: '100%', marginTop: 8 }]}>
-                <MapPin size={14} color="rgba(255,255,255,0.4)" />
-                <Text style={styles.detailText} numberOfLines={1}>
+                <MapPin size={14} color={tokens.subTextColor} />
+                <Text style={[styles.detailText, { color: tokens.subTextColor }]} numberOfLines={1}>
                   {item.camera_location || 'No location set'}
                 </Text>
               </View>
@@ -183,51 +186,48 @@ export default function DatabaseLogsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-        style={styles.background}
-      >
+      <StatusBar barStyle={isLightTheme ? "dark-content" : "light-content"} />
+      <AnimatedBackground style={styles.background}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: tokens.iconButtonBg }]}
             onPress={() => navigation.goBack()}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={tokens.textColor} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Database size={20} color={Colors.ai.primary} />
-            <Text style={styles.headerTitle}>Database Logs</Text>
+            <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Database Logs</Text>
           </View>
           <TouchableOpacity 
-            style={styles.actionButton}
+            style={[styles.actionButton, { backgroundColor: tokens.iconButtonBg }]}
             onPress={onRefresh}
           >
-            <RefreshCw size={20} color="#fff" />
+            <RefreshCw size={20} color={tokens.textColor} />
           </TouchableOpacity>
         </View>
 
         {/* Tab Selector */}
         <View style={styles.tabContainer}>
           <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'logs' && styles.tabActive]}
+            style={[styles.tabButton, { backgroundColor: tokens.iconButtonBg }, activeTab === 'logs' && styles.tabActive]}
             onPress={() => setActiveTab('logs')}
           >
-            <Text style={[styles.tabText, activeTab === 'logs' && styles.tabTextActive]}>System Logs</Text>
+            <Text style={[styles.tabText, activeTab === 'logs' ? styles.tabTextActive : { color: tokens.subTextColor }]}>System Logs</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'attendance' && styles.tabActive]}
+            style={[styles.tabButton, { backgroundColor: tokens.iconButtonBg }, activeTab === 'attendance' && styles.tabActive]}
             onPress={() => setActiveTab('attendance')}
           >
-            <Text style={[styles.tabText, activeTab === 'attendance' && styles.tabTextActive]}>Absensi Dosen</Text>
+            <Text style={[styles.tabText, activeTab === 'attendance' ? styles.tabTextActive : { color: tokens.subTextColor }]}>Absensi Dosen</Text>
           </TouchableOpacity>
         </View>
 
         {isLoading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={Colors.ai.primary} />
-            <Text style={styles.loadingText}>Loading activity logs...</Text>
+            <Text style={[styles.loadingText, { color: tokens.subTextColor }]}>Loading activity logs...</Text>
           </View>
         ) : error ? (
           <View style={styles.centerContainer}>
@@ -247,11 +247,11 @@ export default function DatabaseLogsScreen() {
                 const dt = formatDateTime(item.tanggal);
                 return (
                   <View style={styles.logCardWrapper}>
-                    <BlurView intensity={20} tint="dark" style={styles.logCard}>
+                    <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.logCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
                       <View style={styles.logHeader}>
-                        <View style={styles.cameraTag}>
+                        <View style={[styles.cameraTag, { backgroundColor: tokens.iconButtonBg }]}>
                           <User size={14} color={Colors.ai.primary} />
-                          <Text style={styles.cameraTagName}>{item.name}</Text>
+                          <Text style={[styles.cameraTagName, { color: tokens.subTextColor }]}>{item.name}</Text>
                         </View>
                         <View style={[styles.confidenceBadge, { backgroundColor: item.status === 'hadir' ? '#34D39920' : '#FBBF2420' }]}>
                           <Text style={[styles.confidenceText, { color: item.status === 'hadir' ? '#34D399' : '#FBBF24' }]}>
@@ -261,15 +261,15 @@ export default function DatabaseLogsScreen() {
                       </View>
                       <View style={styles.detailsGrid}>
                         <View style={styles.detailItem}>
-                          <Calendar size={14} color="rgba(255,255,255,0.4)" />
-                          <Text style={styles.detailText}>{dt.date}</Text>
+                          <Calendar size={14} color={tokens.subTextColor} />
+                          <Text style={[styles.detailText, { color: tokens.subTextColor }]}>{dt.date}</Text>
                         </View>
                         <View style={styles.detailItem}>
-                          <Clock size={14} color="rgba(255,255,255,0.4)" />
-                          <Text style={styles.detailText}>{item.waktu_datang || '-'}</Text>
+                          <Clock size={14} color={tokens.subTextColor} />
+                          <Text style={[styles.detailText, { color: tokens.subTextColor }]}>{item.waktu_datang || '-'}</Text>
                         </View>
                         <View style={[styles.detailItem, { width: '100%', marginTop: 8 }]}>
-                          <Text style={styles.detailText}>{item.subject} - {item.class_name}</Text>
+                          <Text style={[styles.detailText, { color: tokens.subTextColor }]}>{item.subject} - {item.class_name}</Text>
                         </View>
                       </View>
                     </BlurView>
@@ -289,13 +289,13 @@ export default function DatabaseLogsScreen() {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Database size={64} color="rgba(255,255,255,0.1)" />
-                <Text style={styles.emptyText}>Tidak ada data</Text>
+                <Database size={64} color={tokens.subTextColor} opacity={0.3} />
+                <Text style={[styles.emptyText, { color: tokens.subTextColor }]}>Tidak ada data</Text>
               </View>
             }
           />
         )}
-      </LinearGradient>
+      </AnimatedBackground>
     </View>
   );
 }

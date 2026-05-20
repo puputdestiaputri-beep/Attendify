@@ -11,19 +11,22 @@ import {
   CheckCircle2, XCircle, Clock,
   Users, RefreshCw, Radio,
   AlertTriangle, ShieldCheck, Zap, MapPin,
-  Wifi, WifiOff, Clock3, Bell
+  Wifi, WifiOff, Clock3, Bell, FileText
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
-import io from 'socket.io-client';
-import ReportIssueModal from '../components/ReportIssueModal';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { BlurView } from 'expo-blur';
+import { Colors } from '../../constants/Colors';
+import { useSocket } from '../context/SocketContext';
+import ReportIssueModal from '../components/ReportIssueModal';
 
 export default function DosenDashboardScreen() {
   const navigation = useNavigation<any>();
   const { tokens, isLightTheme } = useTheme();
   
   // States
+  const { socket } = useSocket();
   const [showReportModal, setShowReportModal] = useState(false);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
@@ -57,22 +60,30 @@ export default function DosenDashboardScreen() {
 
   // Socket.io Realtime
   useEffect(() => {
-    const socket = io(API_URL);
-    socket.on('new_attendance', (data: any) => {
+    if (!socket) return;
+    
+    const handleNewAttendance = (data: any) => {
       setStudents(prev => prev.map(s => 
         (s.name === data.name || s.id === data.user_id) ? { ...s, status: 'HADIR' } : s
       ));
-    });
-    return () => { socket.disconnect(); };
-  }, []);
+    };
+
+    socket.on('new_attendance', handleNewAttendance);
+    
+    return () => { 
+      socket.off('new_attendance', handleNewAttendance); 
+    };
+  }, [socket]);
 
   const fetchSchedules = async () => {
     try {
       const response = await fetch(`${API_URL}/jadwal?dosen_id=${dosenId}`);
       const data = await response.json();
-      if (data?.data) {
+      if (data?.data && Array.isArray(data.data)) {
         setSchedules(data.data);
         if (data.data.length > 0) setNamaDosen(data.data[0].dosen_name || "Bapak/Ibu Dosen");
+      } else {
+        setSchedules([]);
       }
     } catch (error) { console.log('FETCH JADWAL ERROR'); }
   };
@@ -91,15 +102,17 @@ export default function DosenDashboardScreen() {
     try {
       const response = await fetch(`${API_URL}/kelas/${item.kelas_id}/mahasiswa`);
       const data = await response.json();
-      if (data?.students) {
+      if (data?.students && Array.isArray(data.students)) {
         const formatted = data.students.map((student: any, index: number) => ({
           id: student.id || student.user_id || index, 
-          name: student.nama, 
+          name: student.nama || "Unknown", 
           status: 'BELUM HADIR',
           nomor_ortu: student.nomor_ortu || "6285775607738",
           prodi: student.prodi || "Teknik Informatika"
         }));
         setStudents(formatted);
+      } else {
+        setStudents([]);
       }
     } catch (error) { console.log("START SESSION ERROR"); }
   };
@@ -158,72 +171,151 @@ Terima kasih.`;
     else Linking.openURL(urlWa);
   };
 
-  const finishSession = () => {
-    setActiveSessionId(null);
-    setStudents([]);
-    setSessionDuration(0);
+  const finishSession = async () => {
+    // Calculate attendance summary
+    const presentCount = students.filter(s => s.status === 'HADIR').length;
+    const absentCount = students.filter(s => s.status !== 'HADIR').length;
+    const totalCount = presentCount + absentCount;
+    const percentage = totalCount > 0 ? (presentCount / totalCount) * 100 : 0;
+    
+    const activeSchedule = schedules.find(s => s.id === activeSessionId);
+
+    const cleanup = () => {
+      setActiveSessionId(null);
+      setStudents([]);
+      setSessionDuration(0);
+    };
+
+    const sendToAdminWA = () => {
+      const linkPdf = `${API_URL}/reports/pdf?jadwal_id=${activeSchedule?.id}`;
+      const pesan = `Assalamu'alaikum Admin,
+Berikut adalah laporan absensi untuk sesi kelas yang baru saja diselesaikan:
+
+◈ *Mata Kuliah:* ${activeSchedule?.subject || '-'}
+◈ *Dosen:* ${namaDosen}
+◈ *Kelas:* ${activeSchedule?.class_name || '-'}
+◈ *Waktu:* ${activeSchedule?.jam_mulai} - ${activeSchedule?.jam_selesai}
+◈ *Kehadiran:* ${presentCount} dari ${totalCount} Mahasiswa (${percentage.toFixed(0)}%)
+
+Mohon bantuannya untuk meninjau data ini dan meneruskannya kepada Kaprodi serta pihak terkait.
+Link Laporan PDF: ${linkPdf}
+
+Terima kasih.`;
+
+      // Gunakan nomor WhatsApp Admin (contoh: 6281234567890, sesuaikan dengan nomor asli)
+      const adminNumber = '6282124247810'; 
+      const urlWa = `https://wa.me/${adminNumber}?text=${encodeURIComponent(pesan)}`;
+      if (Platform.OS === 'web') window.open(urlWa, '_blank');
+      else Linking.openURL(urlWa);
+    };
+
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      // Kirim laporan harian ke admin secara otomatis
+      await fetch(`${API_URL}/reports/daily`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          class_id: activeSchedule?.kelas_id || '1',
+          report_date: new Date().toISOString().split('T')[0],
+          total_present: presentCount,
+          total_late: 0,
+          total_absent: absentCount,
+          attendance_percentage: percentage,
+          notes: "Laporan otomatis dikirim saat sesi kelas diselesaikan."
+        })
+      });
+
+      if (Platform.OS === 'web') {
+        const confirmSend = window.confirm("Sesi diselesaikan dan data absen berhasil dikirim ke Admin. Apakah Anda ingin mengirim pesan WhatsApp ke Admin untuk diteruskan ke Kaprodi?");
+        if (confirmSend) {
+          sendToAdminWA();
+        }
+        cleanup();
+      } else {
+        Alert.alert(
+          "Sukses",
+          "Sesi diselesaikan dan data absen berhasil dikirim ke sistem Admin. Apakah Anda ingin mengirimkan laporan via WhatsApp ke Admin?",
+          [
+            { text: "Tidak", style: "cancel", onPress: cleanup },
+            { text: "Kirim WA", onPress: () => { sendToAdminWA(); cleanup(); } }
+          ]
+        );
+      }
+    } catch (error) {
+      console.log('Error auto-sending report', error);
+      showAlert("Info", "Sesi diselesaikan, namun gagal mengirim laporan otomatis.");
+      cleanup();
+    }
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isLightTheme ? "dark-content" : "light-content"} />
       <AnimatedBackground style={styles.background}>
         <ScrollView contentContainerStyle={styles.scroll}>
           
           {/* HEADER */}
           <View style={styles.topHeader}>
-            <View style={styles.headerRow}>
-              <View>
-                <Text style={styles.headerSub}>Selamat datang,</Text>
-                <Text style={styles.headerTitle}>{namaDosen}</Text>
+            <View style={[styles.headerRow, { flexWrap: 'wrap', gap: 10 }]}>
+              <View style={{ flex: 1, minWidth: 150 }}>
+                <Text style={[styles.headerSub, { color: tokens.subTextColor }]}>Selamat datang,</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textColor }]} numberOfLines={1} adjustsFontSizeToFit>{namaDosen}</Text>
               </View>
               
               <View style={styles.actionHeader}>
-                {/* LONCENG NOTIFIKASI BERPINDAH KE SCREEN NOTIFIKASI */}
                 <TouchableOpacity 
-                  style={styles.notifBtn} 
-                  onPress={() => navigation.navigate('Notification')} // <--- Jika error ganti ke 'Notifikasi' sesuai nama di App.tsx/RootNavigator
+                  style={[styles.notifBtn, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]} 
+                  onPress={() => navigation.navigate('Notification')}
                 >
-                   <Bell size={20} color="white" />
+                   <Bell size={20} color={tokens.textColor} />
                    <View style={styles.notifBadge} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReportModal(true)}>
-                  <AlertTriangle size={18} color="#FBBF24" />
-                  <Text style={styles.reportText}>Lapor</Text>
+                <TouchableOpacity style={[styles.reportBtn, { borderColor: isLightTheme ? '#1E4FA8' : '#FBBF24' }]} onPress={() => navigation.navigate('DosenDailyReport')}>
+                  <FileText size={18} color={isLightTheme ? '#1E4FA8' : '#FBBF24'} />
+                  <Text style={[styles.reportText, { color: isLightTheme ? '#1E4FA8' : '#FBBF24' }]}>Harian</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.reportBtn, { borderColor: isLightTheme ? '#EF4444' : '#FCA5A5', marginLeft: 5 }]} onPress={() => setShowReportModal(true)}>
+                  <AlertTriangle size={18} color={isLightTheme ? '#EF4444' : '#FCA5A5'} />
+                  <Text style={[styles.reportText, { color: isLightTheme ? '#EF4444' : '#FCA5A5' }]}>Lapor</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
           {/* IOT STATUS */}
-          <View style={styles.iotCard}>
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.iotCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               {iotOnline ? <Wifi size={20} color="#4ADE80" /> : <WifiOff size={20} color="#EF4444" />}
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>ESP32 Status</Text>
+              <Text style={{ color: tokens.textColor, fontWeight: 'bold' }}>ESP32 Status</Text>
             </View>
             <Text style={{ color: iotOnline ? '#4ADE80' : '#EF4444', marginTop: 5, fontSize: 12 }}>
               {iotOnline ? '🟢 ONLINE' : '🔴 OFFLINE'}
             </Text>
-          </View>
+          </BlurView>
 
           {/* JADWAL LIST */}
           <View style={styles.scheduleContainer}>
-            <Text style={styles.sectionTitle}>Jadwal Hari Ini</Text>
+            <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>Jadwal Hari Ini</Text>
             {schedules.map((item: any) => (
-              <View key={item.id} style={styles.scheduleCard}>
-                <Text style={styles.subject}>{item.subject}</Text>
-                <Text style={styles.meta}>{item.class_name} | Ruang: {item.ruang}</Text>
-                <Text style={styles.time}>{item.jam_mulai} - {item.jam_selesai}</Text>
+              <BlurView key={item.id} intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.scheduleCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
+                <Text style={[styles.subject, { color: tokens.textColor }]}>{item.subject || 'Mata Kuliah'}</Text>
+                <Text style={[styles.meta, { color: tokens.subTextColor }]}>{item.class_name || '-'} | Ruang: {item.ruang || '-'}</Text>
+                <Text style={[styles.time, { color: isLightTheme ? '#1E4FA8' : '#60A5FA' }]}>{(item.jam_mulai || '00:00')} - {(item.jam_selesai || '00:00')}</Text>
 
                 {activeSessionId === item.id ? (
                   <View style={{ marginTop: 15 }}>
-                    <View style={styles.timerCard}>
-                      <Clock3 size={18} color="#FACC15" />
-                      <Text style={{ color: 'white', marginLeft: 10 }}>Durasi: {sessionDuration}s</Text>
+                    <View style={[styles.timerCard, { backgroundColor: tokens.inputBg }]}>
+                      <Clock3 size={18} color={isLightTheme ? '#1E4FA8' : '#FACC15'} />
+                      <Text style={{ color: tokens.textColor, marginLeft: 10 }}>Durasi: {sessionDuration}s</Text>
                     </View>
 
-                    <TouchableOpacity style={styles.scanBtn} onPress={fetchRealtimeScan} disabled={isScanning}>
+                    <TouchableOpacity style={[styles.scanBtn, { backgroundColor: isLightTheme ? '#1E4FA8' : '#2563EB' }]} onPress={fetchRealtimeScan} disabled={isScanning}>
                       <Text style={styles.scanBtnText}>{isScanning ? 'Scanning...' : 'Trigger IoT Scan'}</Text>
                     </TouchableOpacity>
 
@@ -243,11 +335,11 @@ Terima kasih.`;
                     </TouchableOpacity>
 
                     <View style={{ marginTop: 20 }}>
-                      <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 10 }}>Daftar Mahasiswa:</Text>
+                      <Text style={{ color: tokens.textColor, fontWeight: 'bold', marginBottom: 10 }}>Daftar Mahasiswa:</Text>
                       {students.map((s) => (
-                        <View key={s.id} style={styles.studentCard}>
+                        <View key={s.id} style={[styles.studentCard, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>{s.name}</Text>
+                            <Text style={{ color: tokens.textColor, fontWeight: 'bold' }}>{s.name}</Text>
                             <Text style={{ color: s.status === 'HADIR' ? '#4ADE80' : '#EF4444', fontSize: 12 }}>{s.status}</Text>
                           </View>
                           <View style={{ flexDirection: 'row', gap: 5 }}>
@@ -255,7 +347,7 @@ Terima kasih.`;
                               <Text style={styles.smallBtnText}>WA</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => allowManualScan(s.id)} 
-                              style={[styles.smallBtnManual, { opacity: s.status === 'HADIR' ? 0.5 : 1 }]} 
+                              style={[styles.smallBtnManual, { opacity: s.status === 'HADIR' ? 0.5 : 1, backgroundColor: isLightTheme ? '#1E4FA8' : '#3B82F6' }]} 
                               disabled={s.status === 'HADIR'}>
                               <Text style={styles.smallBtnText}>Manual</Text>
                             </TouchableOpacity>
@@ -265,11 +357,11 @@ Terima kasih.`;
                     </View>
                   </View>
                 ) : (
-                  <TouchableOpacity style={styles.startBtn} onPress={() => startSession(item)}>
+                  <TouchableOpacity style={[styles.startBtn, { backgroundColor: isLightTheme ? '#1E4FA8' : '#3B82F6' }]} onPress={() => startSession(item)}>
                     <Text style={styles.startBtnText}>Mulai Sesi</Text>
                   </TouchableOpacity>
                 )}
-              </View>
+              </BlurView>
             ))}
           </View>
         </ScrollView>
@@ -286,29 +378,29 @@ const styles = StyleSheet.create({
   topHeader: { paddingTop: 50, paddingHorizontal: 20, marginBottom: 20 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   actionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white' }, 
-  headerSub: { color: '#CBD5E1' },
-  notifBtn: { padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, position: 'relative' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold' }, 
+  headerSub: { fontSize: 14 },
+  notifBtn: { padding: 8, borderRadius: 10, position: 'relative', borderWidth: 1 },
   notifBadge: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, backgroundColor: '#EF4444', borderRadius: 4, borderWidth: 1, borderColor: '#1E293B' },
-  reportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: '#FBBF24', padding: 8, borderRadius: 10 },
-  reportText: { color: '#FBBF24', fontSize: 12, fontWeight: 'bold' },
-  iotCard: { backgroundColor: '#1E293B', marginHorizontal: 20, padding: 15, borderRadius: 15, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#3B82F6' },
+  reportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, padding: 8, borderRadius: 10 },
+  reportText: { fontSize: 12, fontWeight: 'bold' },
+  iotCard: { marginHorizontal: 20, padding: 15, borderRadius: 15, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#3B82F6', borderWidth: 1 },
   scheduleContainer: { paddingHorizontal: 20 }, 
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: 'white', marginBottom: 15 },
-  scheduleCard: { backgroundColor: '#334155', padding: 20, borderRadius: 20, marginBottom: 15 },
-  subject: { fontSize: 18, fontWeight: 'bold', color: 'white' }, 
-  meta: { color: '#94A3B8', fontSize: 14 },
-  time: { color: '#60A5FA', marginTop: 5, fontWeight: 'bold' },
-  startBtn: { backgroundColor: '#3B82F6', marginTop: 15, padding: 12, borderRadius: 12, alignItems: 'center' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
+  scheduleCard: { padding: 20, borderRadius: 20, marginBottom: 15, borderWidth: 1, overflow: 'hidden' },
+  subject: { fontSize: 18, fontWeight: 'bold' }, 
+  meta: { fontSize: 14 },
+  time: { marginTop: 5, fontWeight: 'bold' },
+  startBtn: { marginTop: 15, padding: 12, borderRadius: 12, alignItems: 'center' },
   startBtnText: { color: 'white', fontWeight: 'bold' },
-  timerCard: { backgroundColor: '#0F172A', padding: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  scanBtn: { backgroundColor: '#2563EB', padding: 12, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+  timerCard: { padding: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  scanBtn: { padding: 12, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   scanBtnText: { color: 'white', fontWeight: 'bold' },
   exportBtn: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
   finishBtn: { backgroundColor: '#EF4444', padding: 12, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   btnText: { color: 'white', fontWeight: 'bold' },
-  studentCard: { backgroundColor: '#1E293B', padding: 12, borderRadius: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center' },
+  studentCard: { padding: 12, borderRadius: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
   smallBtnWa: { backgroundColor: '#25D366', padding: 8, borderRadius: 8 },
-  smallBtnManual: { backgroundColor: '#3B82F6', padding: 8, borderRadius: 8 },
+  smallBtnManual: { padding: 8, borderRadius: 8 },
   smallBtnText: { color: 'white', fontSize: 11, fontWeight: 'bold' }
-});
+});

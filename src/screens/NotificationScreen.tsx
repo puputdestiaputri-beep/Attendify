@@ -25,11 +25,13 @@ import {
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
+import { useSocket } from '../context/SocketContext';
 
 const { width } = Dimensions.get('window');
 
@@ -38,7 +40,7 @@ interface Notification {
   title: string;
   message: string;
   time: string;
-  type: 'info' | 'warning' | 'success' | 'error';
+  type: string;
   read: boolean;
   isReport?: boolean;
 }
@@ -46,6 +48,7 @@ interface Notification {
 export default function NotificationScreen() {
   const navigation = useNavigation<any>();
   const { role } = useAuth();
+  const { tokens, isLightTheme } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,9 +104,31 @@ export default function NotificationScreen() {
     }
   };
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     fetchNotifications();
-  }, []);
+
+    if (socket) {
+      const handleNewNotification = () => {
+        fetchNotifications();
+      };
+      
+      socket.on('NEW_REPORT', handleNewNotification);
+      socket.on('ATTENDANCE_SUCCESS', handleNewNotification);
+      socket.on('DAILY_REPORT', handleNewNotification);
+      socket.on('REPORT_STATUS_UPDATE', handleNewNotification);
+      socket.on('ATTENDANCE_VALIDATION', handleNewNotification);
+
+      return () => {
+        socket.off('NEW_REPORT', handleNewNotification);
+        socket.off('ATTENDANCE_SUCCESS', handleNewNotification);
+        socket.off('DAILY_REPORT', handleNewNotification);
+        socket.off('REPORT_STATUS_UPDATE', handleNewNotification);
+        socket.off('ATTENDANCE_VALIDATION', handleNewNotification);
+      }
+    }
+  }, [socket]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -112,45 +137,53 @@ export default function NotificationScreen() {
 
   const getTypeColors = (type: string) => {
     switch (type) {
+      case 'ATTENDANCE_SUCCESS':
       case 'success':
         return {
-          bg: 'rgba(34, 197, 94, 0.15)',
-          border: 'rgba(34, 197, 94, 0.3)',
+          bg: isLightTheme ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.15)',
+          border: isLightTheme ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.3)',
           icon: '#22C55E',
         };
+      case 'REPORT_STATUS_UPDATE':
       case 'warning':
         return {
-          bg: 'rgba(234, 179, 8, 0.15)',
-          border: 'rgba(234, 179, 8, 0.3)',
+          bg: isLightTheme ? 'rgba(234, 179, 8, 0.1)' : 'rgba(234, 179, 8, 0.15)',
+          border: isLightTheme ? 'rgba(234, 179, 8, 0.2)' : 'rgba(234, 179, 8, 0.3)',
           icon: '#EAB308',
         };
+      case 'INFO':
+      case 'NEW_REPORT':
       case 'info':
         return {
-          bg: 'rgba(59, 130, 246, 0.15)',
-          border: 'rgba(59, 130, 246, 0.3)',
+          bg: isLightTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
+          border: isLightTheme ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.3)',
           icon: '#3B82F6',
         };
+      case 'ATTENDANCE_VALIDATION':
       case 'error':
         return {
-          bg: 'rgba(239, 68, 68, 0.15)',
-          border: 'rgba(239, 68, 68, 0.3)',
+          bg: isLightTheme ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+          border: isLightTheme ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.3)',
           icon: '#EF4444',
         };
       default:
         return {
-          bg: 'rgba(255, 255, 255, 0.1)',
-          border: 'rgba(255, 255, 255, 0.2)',
-          icon: '#FFFFFF',
+          bg: isLightTheme ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
+          border: isLightTheme ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
+          icon: tokens.textColor,
         };
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
+      case 'ATTENDANCE_SUCCESS':
       case 'success':
         return <CheckCircle2 size={20} color={getTypeColors(type).icon} />;
+      case 'REPORT_STATUS_UPDATE':
       case 'warning':
         return <AlertCircle size={20} color={getTypeColors(type).icon} />;
+      case 'ATTENDANCE_VALIDATION':
       case 'error':
         return <AlertCircle size={20} color={getTypeColors(type).icon} />;
       default:
@@ -193,7 +226,7 @@ export default function NotificationScreen() {
 
   return (
     <AnimatedBackground style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isLightTheme ? "dark-content" : "light-content"} />
       {/* Header */}
       <Animated.View 
         entering={FadeInDown.duration(600).springify()}
@@ -202,13 +235,13 @@ export default function NotificationScreen() {
         <View style={styles.headerTop}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.backBtn}
+            style={[styles.backBtn, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
           >
-            <ArrowLeft color="#fff" size={24} />
+            <ArrowLeft color={tokens.textColor} size={24} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.title}>Notifikasi</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: tokens.textColor }]}>Notifikasi</Text>
+            <Text style={[styles.subtitle, { color: tokens.subTextColor }]}>
               {unreadCount > 0 ? `${unreadCount} pesan belum dibaca` : 'Semua pesan sudah dibaca'}
             </Text>
           </View>
@@ -225,7 +258,7 @@ export default function NotificationScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.textColor} />
         }
       >
         {isLoading ? (
@@ -238,8 +271,8 @@ export default function NotificationScreen() {
               <Animated.View key={item.id} entering={SlideInUp.delay(index * 100).springify()}>
                 <BlurView
                   intensity={20}
-                  tint="dark"
-                  style={[styles.notificationCard, !item.read && styles.unreadCard]}
+                  tint={isLightTheme ? 'light' : 'dark'}
+                  style={[styles.notificationCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }, !item.read && styles.unreadCard]}
                 >
                   <TouchableOpacity
                     activeOpacity={0.7}
@@ -263,6 +296,7 @@ export default function NotificationScreen() {
                         <Text
                           style={[
                             styles.notifTitle,
+                            { color: tokens.textColor },
                             !item.read && styles.titleBold,
                           ]}
                         >
@@ -271,13 +305,13 @@ export default function NotificationScreen() {
                         {!item.read && <View style={styles.unreadDot} />}
                       </View>
 
-                      <Text style={styles.message} numberOfLines={3}>
+                      <Text style={[styles.message, { color: tokens.subTextColor }]} numberOfLines={3}>
                         {item.message}
                       </Text>
 
                       <View style={styles.timeRow}>
-                        <Clock size={12} color="rgba(255, 255, 255, 0.5)" />
-                        <Text style={styles.time}>{formatTime(item.time)}</Text>
+                        <Clock size={12} color={tokens.subTextColor} />
+                        <Text style={[styles.time, { color: tokens.subTextColor }]}>{formatTime(item.time)}</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -286,9 +320,9 @@ export default function NotificationScreen() {
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <Bell color="rgba(255,255,255,0.2)" size={64} />
-              <Text style={styles.emptyText}>Tidak ada notifikasi</Text>
-              <Text style={styles.emptySubtext}>
+              <Bell color={tokens.subTextColor} size={64} opacity={0.2} />
+              <Text style={[styles.emptyText, { color: tokens.textColor }]}>Tidak ada notifikasi</Text>
+              <Text style={[styles.emptySubtext, { color: tokens.subTextColor }]}>
                 Laporan dari mahasiswa atau dosen akan muncul di sini.
               </Text>
             </View>
@@ -312,24 +346,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   backBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   headerInfo: { flex: 1 },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
   },
   subtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 2,
   },
   readAllText: {
@@ -345,12 +375,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
     overflow: 'hidden',
   },
   unreadCard: {
     borderColor: 'rgba(96, 165, 250, 0.3)',
-    backgroundColor: 'rgba(96, 165, 250, 0.05)',
   },
   notificationContent: {
     flexDirection: 'row',
@@ -376,7 +404,6 @@ const styles = StyleSheet.create({
   titleBold: { fontWeight: '700' },
   notifTitle: {
     fontSize: 14,
-    color: '#fff',
   },
   unreadDot: {
     width: 8,
@@ -386,7 +413,6 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
     lineHeight: 18,
     marginBottom: 8,
   },
@@ -397,7 +423,6 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
   },
   centerContainer: {
     marginTop: 100,
@@ -412,12 +437,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
     marginTop: 20,
   },
   emptySubtext: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.4)',
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 40,

@@ -3,10 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Shield, Lock, CheckCircle2, Bell } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 
 export default function PrivacySecurityScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
 
   const features = [
     { icon: '🔐', title: 'Enkripsi Data', description: 'Data Anda terenkripsi end-to-end' },
@@ -15,73 +19,68 @@ export default function PrivacySecurityScreen() {
   ];
 
   return (
-    <LinearGradient
-      colors={[Colors.attendify.primary, Colors.attendify.tertiary, Colors.attendify.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <AnimatedBackground style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
             onPress={() => navigation.goBack()}
           >
-            <ArrowLeft color="#fff" size={24} />
+            <ArrowLeft color={tokens.textColor} size={24} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Privasi & Keamanan</Text>
+          <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Privasi & Keamanan</Text>
           <View style={{ width: 44 }} />
         </View>
 
         {/* Icon */}
         <View style={styles.iconContainer}>
-          <View style={styles.shieldIcon}>
-            <Shield size={60} color="#fff" strokeWidth={1.5} />
+          <View style={[styles.shieldIcon, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}>
+            <Shield size={60} color={tokens.textColor} strokeWidth={1.5} />
           </View>
         </View>
 
         {/* Main Card */}
-        <View style={styles.cardContainer}>
+        <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.cardContainer, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
           {/* Title */}
-          <Text style={styles.cardTitle}>Fitur Segera Hadir 🔒</Text>
+          <Text style={[styles.cardTitle, { color: tokens.textColor }]}>Fitur Segera Hadir 🔒</Text>
 
           {/* Description */}
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: tokens.subTextColor }]}>
             Kami sedang menyiapkan sistem keamanan terbaik untuk melindungi data Anda.
           </Text>
 
           {/* Features List */}
           <View style={styles.featuresList}>
             {features.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
+              <View key={index} style={[styles.featureItem, { borderBottomColor: tokens.borderColor }]}>
                 <Text style={styles.featureIcon}>{feature.icon}</Text>
                 <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                  <Text style={[styles.featureTitle, { color: tokens.textColor }]}>{feature.title}</Text>
+                  <Text style={[styles.featureDescription, { color: tokens.subTextColor }]}>{feature.description}</Text>
                 </View>
               </View>
             ))}
           </View>
 
           {/* Status Badge */}
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>✨ Coming Soon</Text>
+          <View style={[styles.statusBadge, { backgroundColor: isLightTheme ? 'rgba(30, 79, 168, 0.1)' : 'rgba(45, 108, 223, 0.1)' }]}>
+            <Text style={[styles.statusText, { color: isLightTheme ? '#1E4FA8' : Colors.attendify.secondary }]}>✨ Coming Soon</Text>
           </View>
-        </View>
+        </BlurView>
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.secondaryButtonText}>Kembali</Text>
+            <Text style={[styles.secondaryButtonText, { color: tokens.textColor }]}>Kembali</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.primaryButton}>
             <LinearGradient
-              colors={[Colors.attendify.primary, Colors.attendify.secondary]}
+              colors={isLightTheme ? ['#1E4FA8', '#2D6CDF'] : [Colors.attendify.primary, Colors.attendify.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
@@ -92,7 +91,7 @@ export default function PrivacySecurityScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </AnimatedBackground>
   );
 }
 
@@ -108,21 +107,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 20,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
   },
   iconContainer: {
     alignItems: 'center',
@@ -132,34 +130,26 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   cardContainer: {
     marginHorizontal: 20,
-    backgroundColor: Colors.attendify.surface,
     borderRadius: 24,
     padding: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
     marginBottom: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   cardTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.attendify.primary,
     marginBottom: 12,
     textAlign: 'center',
   },
   description: {
     fontSize: 15,
-    color: Colors.attendify.neutral,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
@@ -173,7 +163,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(11,30,95,0.1)',
   },
   featureIcon: {
     fontSize: 28,
@@ -185,16 +174,13 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.attendify.primary,
     marginBottom: 4,
   },
   featureDescription: {
     fontSize: 13,
-    color: Colors.attendify.neutral,
     lineHeight: 18,
   },
   statusBadge: {
-    backgroundColor: 'rgba(45, 108, 223, 0.1)',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -202,7 +188,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.attendify.secondary,
     textAlign: 'center',
   },
   buttonContainer: {
@@ -229,16 +214,13 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   secondaryButtonText: {
-    color: '#fff',
     fontSize: 15,
     fontWeight: '600',
   },

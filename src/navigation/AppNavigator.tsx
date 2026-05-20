@@ -26,6 +26,11 @@ import DatabaseLogsScreen from '../screens/DatabaseLogsScreen';
 import ManageAttendanceScreen from '../screens/ManageAttendanceScreen';
 import ESP32CameraScreen from '../screens/ESP32CameraScreen';
 import AdminReportsScreen from '../screens/AdminReportsScreen';
+import AdminFaceRegistrationScreen from '../screens/AdminFaceRegistrationScreen';
+import LaporanMasalahScreen from '../screens/LaporanMasalahScreen';
+import DosenDailyReportScreen from '../screens/DosenDailyReportScreen';
+import LiveMapScreen from '../screens/LiveMapScreen';
+import AnalyticsCommandCenterScreen from '../screens/AnalyticsCommandCenterScreen';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '../context/ThemeContext';
 
@@ -208,6 +213,7 @@ function MahasiswaNavigator() {
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
       <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
       <Stack.Screen name="ESP32Camera" component={ESP32CameraScreen} />
+      <Stack.Screen name="LaporanMasalah" component={LaporanMasalahScreen} />
     </Stack.Navigator>
   );
 }
@@ -250,6 +256,15 @@ function DosenNavigator() {
         name="Notification" 
         component={NotificationScreen} 
       />
+
+      <Stack.Screen
+        name="DosenDailyReport"
+        component={DosenDailyReportScreen}
+      />
+      <Stack.Screen
+        name="LiveMap"
+        component={LiveMapScreen}
+      />
     </Stack.Navigator>
   );
 }
@@ -267,8 +282,13 @@ function AdminNavigator() {
       <Stack.Screen name="ManageAttendance" component={ManageAttendanceScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
+      <Stack.Screen name="AdminFaceRegistration" component={AdminFaceRegistrationScreen} />
       <Stack.Screen name="ProfileDetails" component={ProfileDetailsScreen} />
+      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+      <Stack.Screen name="AboutAttendify" component={AboutAttendifyScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
+      <Stack.Screen name="LiveMap" component={LiveMapScreen} />
+      <Stack.Screen name="AnalyticsCommandCenter" component={AnalyticsCommandCenterScreen} />
     </Stack.Navigator>
   );
 }

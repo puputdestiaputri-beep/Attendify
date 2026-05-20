@@ -52,10 +52,7 @@ import { API_URL } from '@/constants/Config';
 import * as XLSX from 'xlsx';
 import { useTheme } from '../context/ThemeContext';
 
-let RNHTMLtoPDF: any = null;
-if (Platform.OS !== 'web') {
-  RNHTMLtoPDF = require('react-native-html-to-pdf');
-}
+import * as Print from 'expo-print';
 
 const { width, height } = Dimensions.get('window');
 
@@ -544,21 +541,21 @@ export default function AdminJadwalScreen() {
           }, 2000);
         }, 500);
       } else {
-        let options = {
-          html: htmlContent,
-          fileName: selectedKelas ? `absensi_kelas_${selectedKelas}` : 'absensi',
-          directory: 'Documents',
-        };
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        const pdfName = selectedKelas ? `absensi_kelas_${selectedKelas}.pdf` : 'absensi.pdf';
+        // @ts-ignore
+        const newUri = FileSystem.documentDirectory + pdfName;
+        
+        await FileSystem.moveAsync({
+          from: uri,
+          to: newUri,
+        });
 
-        let file = await RNHTMLtoPDF.convert(options);
-
-        if (file.filePath) {
-          await Sharing.shareAsync(file.filePath, {
-            mimeType: 'application/pdf',
-            dialogTitle: 'Bagikan PDF Absensi'
-          });
-          showToast('Berhasil export PDF', 'success');
-        }
+        await Sharing.shareAsync(newUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Bagikan PDF Absensi'
+        });
+        showToast('Berhasil export PDF', 'success');
       }
     } catch (err: any) {
       console.error('PDF Error:', err);
@@ -684,7 +681,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   <ArrowLeft color="#60a5fa" size={24} />
                 </LinearGradient>
               </TouchableOpacity>
-              <Text style={styles.title}>{selectedJadwal?.class_name || 'Detail Jadwal'}</Text>
+              <Text style={[styles.title, { color: tokens.textColor }]}>{selectedJadwal?.class_name || 'Detail Jadwal'}</Text>
               {/* @ts-ignore */}
               <Sparkles color="#60a5fa" size={20} />
             </View>
@@ -774,7 +771,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
               <View style={[styles.progressBar, { borderTopColor: tokens.borderColor }]}>
                 <View style={styles.progressLabelContainer}>
                   <Text style={[styles.progressLabel, { color: tokens.subTextColor }]}>Total Kehadiran</Text>
-                  <Text style={styles.progressPercentage}>{persentaseKehadiran}%</Text>
+                  <Text style={[styles.progressPercentage, { color: tokens.textColor }]}>{persentaseKehadiran}%</Text>
                 </View>
                 <LinearGradient
                   colors={['rgba(34, 197, 94, 0.2)', 'rgba(34, 197, 94, 0.05)']}
@@ -800,15 +797,15 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
           {Array.from(new Set(absensiData.map(item => item.nama_kelas || item.kelas).filter(Boolean))).length > 0 && (
             <AnimatedInfoCard delay={150}>
               <View style={styles.filterKelasContainer}>
-                <Text style={styles.filterKelasLabel}>Filter Kelas:</Text>
+                <Text style={[styles.filterKelasLabel, { color: tokens.textColor }]}>Filter Kelas:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kelasScroll}>
                   {Array.from(new Set(absensiData.map(item => item.nama_kelas || item.kelas).filter(Boolean))).map((kls: any, idx: number) => (
                     <TouchableOpacity
                       key={idx}
-                      style={[styles.kelasChip, selectedKelas === kls && styles.kelasChipActive]}
+                      style={[styles.kelasChip, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }, selectedKelas === kls && styles.kelasChipActive]}
                       onPress={() => setSelectedKelas(kls)}
                     >
-                      <Text style={[styles.kelasChipText, selectedKelas === kls && styles.kelasChipTextActive]}>
+                      <Text style={[styles.kelasChipText, { color: tokens.subTextColor }, selectedKelas === kls && styles.kelasChipTextActive]}>
                         Kelas {kls}
                       </Text>
                     </TouchableOpacity>
@@ -820,7 +817,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
 
           {/* DAFTAR ABSENSI */}
           <AnimatedInfoCard delay={200}>
-            <BlurView intensity={20} tint="dark" style={styles.card}>
+            <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.card, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={['#ec4899', '#db2777']}
@@ -831,7 +828,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   {/* @ts-ignore */}
                   <FileText size={20} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.section}>Daftar Absensi ({filteredAbsensi.length})</Text>
+                <Text style={[styles.section, { color: tokens.textColor }]}>Daftar Absensi ({filteredAbsensi.length})</Text>
               </View>
 
               {/* SEARCH & FILTER */}
@@ -1025,7 +1022,7 @@ Wassalamu’alaikum Warahmatullahi Wabarakatuh.`;
                   </Pressable>
                 ))
               ) : (
-                <Text style={styles.emptyText}>Tidak ada jadwal</Text>
+                <Text style={[styles.emptyText, { color: tokens.subTextColor }]}>Tidak ada jadwal</Text>
               )
             )}
           </ScrollView>

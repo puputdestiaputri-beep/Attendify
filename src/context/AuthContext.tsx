@@ -7,6 +7,7 @@ import { performLogout, saveAuthState, loadAuthState, getAuthToken } from '../se
 type Role = 'mahasiswa' | 'dosen' | 'admin' | null;
 
 interface UserData {
+  id?: number;
   fullName: string;
   email?: string;
   avatar?: string;

@@ -15,15 +15,17 @@ import {
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';
+import StatusBadge from '../components/ui/StatusBadge';
+import DebugPanel from '../components/ui/DebugPanel';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/Config';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import { useTheme } from '../context/ThemeContext';
-import io from 'socket.io-client';
+import { useSocket } from '../context/SocketContext';
 import { LineChart, PieChart } from 'react-native-chart-kit';
-import { Zap, TrendingUp, PieChart as PieChartIcon } from 'lucide-react-native';
+import { Zap, TrendingUp, PieChart as PieChartIcon, BrainCircuit, ShieldAlert, EyeOff } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -32,11 +34,14 @@ export default function AdminDashboardScreen() {
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
   const { tokens, isLightTheme } = useTheme();
+  const { socket } = useSocket();
   const [unreadCount, setUnreadCount] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [liveAttendances, setLiveAttendances] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [aiHealth, setAiHealth] = useState<any>(null);
+  const [suspiciousLogs, setSuspiciousLogs] = useState<any[]>([]);
   // Use centralized API_URL from Config.ts
 
 
@@ -54,23 +59,57 @@ export default function AdminDashboardScreen() {
     const interval = setInterval(() => {
       fetchUnreadCount();
       fetchAnalytics();
+      fetchAiHealth();
+      fetchSuspiciousLogs();
     }, 30000); // Check every 30s
-    
-    // Socket.io for live attendance
-    const socket = io(API_URL);
-    socket.on('new_attendance', (data: any) => {
-      setLiveAttendances(prev => [data, ...prev].slice(0, 5)); // Keep last 5
-      fetchAnalytics(); // Refresh charts on new attendance
-    });
-    socket.on('update_location', (data: any) => {
-      setLiveAttendances(prev => prev.map(item => item.user_id === data.user_id ? { ...item, location_name: data.location_name } : item));
-    });
 
     return () => {
       clearInterval(interval);
-      socket.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (socket) {
+      const handleNewAttendance = (data: any) => {
+        setLiveAttendances(prev => [data, ...prev].slice(0, 5)); // Keep last 5
+        fetchAnalytics(); // Refresh charts on new attendance
+      };
+      
+      const handleUpdateLocation = (data: any) => {
+        setLiveAttendances(prev => prev.map(item => item.user_id === data.user_id ? { ...item, location_name: data.location_name } : item));
+      };
+
+      const handleRefresh = () => {
+        fetchUnreadCount();
+      };
+      
+      const handleSpoofAttempt = (data: any) => {
+        setSuspiciousLogs(prev => [data, ...prev].slice(0, 10)); // Keep last 10
+      };
+
+      const handleAiHealth = (data: any) => {
+        setAiHealth((prev: any) => ({ ...prev, ...data }));
+      };
+
+      socket.on('new_attendance', handleNewAttendance);
+      socket.on('update_location', handleUpdateLocation);
+      socket.on('NEW_REPORT', handleRefresh);
+      socket.on('DAILY_REPORT', handleRefresh);
+      socket.on('ATTENDANCE_VALIDATION', handleRefresh);
+      socket.on('SPOOF_ATTEMPT', handleSpoofAttempt);
+      socket.on('AI_HEALTH_UPDATE', handleAiHealth);
+
+      return () => {
+        socket.off('new_attendance', handleNewAttendance);
+        socket.off('update_location', handleUpdateLocation);
+        socket.off('NEW_REPORT', handleRefresh);
+        socket.off('DAILY_REPORT', handleRefresh);
+        socket.off('ATTENDANCE_VALIDATION', handleRefresh);
+        socket.off('SPOOF_ATTEMPT', handleSpoofAttempt);
+        socket.off('AI_HEALTH_UPDATE', handleAiHealth);
+      };
+    }
+  }, [socket]);
 
   const fetchAnalytics = async () => {
     try {
@@ -100,8 +139,39 @@ export default function AdminDashboardScreen() {
     }
   };
 
+  const fetchAiHealth = async () => {
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/api/analytics/ai-health`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (result.success) setAiHealth(result.data);
+    } catch (err) {
+      console.error('Fetch AI health error:', err);
+    }
+  };
+
+  const fetchSuspiciousLogs = async () => {
+    try {
+      const token = await AsyncStorage.getItem('@attendify_auth_token');
+      const response = await fetch(`${API_URL}/api/analytics/suspicious-logs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (result.success) setSuspiciousLogs(result.data);
+    } catch (err) {
+      console.error('Fetch suspicious logs error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAiHealth();
+    fetchSuspiciousLogs();
+  }, []);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
 const handleLogout = () => {
   setShowLogoutModal(true);
@@ -152,10 +222,14 @@ const confirmLogout = () => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.topRow}>
-              <View style={styles.greetingBox}>
+              <TouchableOpacity 
+                style={styles.greetingBox} 
+                onLongPress={() => setShowDebugPanel(true)}
+                delayLongPress={1000}
+              >
                 <Text style={[styles.welcomeText, { color: tokens.subTextColor }]}>Hello, Admin Panel</Text>
                 <Text style={[styles.nameText, { color: tokens.textColor }]}>Admin Attendify</Text>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.headerRight}>
                 <TouchableOpacity 
@@ -306,6 +380,36 @@ const confirmLogout = () => {
             </View>
           )}
 
+          {/* AI Monitoring Panel */}
+          {aiHealth && (
+            <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+              <View style={styles.sectionHeader}>
+                <BrainCircuit size={20} color={tokens.textColor} />
+                <Text style={[styles.sectionTitle, { color: tokens.textColor, marginHorizontal: 10, marginBottom: 0 }]}>AI Monitoring Panel</Text>
+              </View>
+              <View style={styles.statsGrid}>
+                <StatItem label="Spoof Attempts" value={aiHealth.spoofAttempts} icon={ShieldAlert} color="#EF4444" />
+                <StatItem label="Unknown Faces" value={aiHealth.unknownFaces} icon={EyeOff} color="#F59E0B" />
+                <StatItem label="Avg Confidence" value={aiHealth.averageSuspiciousConfidence + "%"} icon={BrainCircuit} color="#10B981" />
+              </View>
+
+              {suspiciousLogs.length > 0 && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={[styles.sectionTitle, { color: tokens.textColor, fontSize: 14, marginBottom: 8 }]}>Suspicious Activity Logs</Text>
+                  {suspiciousLogs.slice(0, 3).map((log, idx) => (
+                    <BlurView key={idx} intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.logCard, { borderColor: tokens.borderColor }]}>
+                      <AlertTriangle size={18} color="#EF4444" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.logTitle, { color: tokens.textColor }]}>{log.event_type.replace('_', ' ')}</Text>
+                        <Text style={[styles.logSub, { color: tokens.subTextColor }]}>{log.notes || `Confidence: ${log.confidence}%`}</Text>
+                      </View>
+                    </BlurView>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Management Menu */}
           <Text style={[styles.sectionTitle, { color: tokens.textColor }]}>System Management</Text>
           <View style={styles.menuContainer}>
@@ -331,6 +435,13 @@ const confirmLogout = () => {
               onPress={() => navigation.navigate('IoTSensor')}
             />
             <AdminCard 
+              title="Face Management" 
+              subtitle="Register & manage student face data"
+              icon={UserCheck} 
+              color="#3B82F6"
+              onPress={() => navigation.navigate('AdminFaceRegistration')}
+            />
+            <AdminCard 
               title="Database Logs" 
               subtitle="System activity & audit trails"
               icon={Database} 
@@ -344,6 +455,20 @@ const confirmLogout = () => {
               color="#F59E0B"
               onPress={() => navigation.navigate('AdminReports')}
             />
+            <AdminCard 
+              title="Live Attendance Map" 
+              subtitle="Realtime geospatial monitoring"
+              icon={MapPin} 
+              color="#10B981"
+              onPress={() => navigation.navigate('LiveMap')}
+            />
+            <AdminCard 
+              title="Analytics Command Center" 
+              subtitle="Heatmaps & advanced insights"
+              icon={TrendingUp} 
+              color="#8B5CF6"
+              onPress={() => navigation.navigate('AnalyticsCommandCenter')}
+            />
           </View>
 
         </ScrollView>
@@ -356,6 +481,8 @@ const confirmLogout = () => {
         tokens={tokens}
         isLightTheme={isLightTheme}
       />
+
+      <DebugPanel visible={showDebugPanel} onClose={() => setShowDebugPanel(false)} />
     </View>
   );
 }
@@ -706,5 +833,22 @@ const styles = StyleSheet.create({
   },
   liveClass: {
     fontSize: 11,
+  },
+  logCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    gap: 12,
+  },
+  logTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  logSub: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

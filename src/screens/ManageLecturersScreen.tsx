@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, TextInput, Modal, Alert, Dimensions, StatusBar
+  TouchableOpacity, TextInput, Modal, Alert, Dimensions, StatusBar, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
@@ -15,11 +15,14 @@ import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { API_URL } from '@/constants/Config';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ManageLecturersScreen() {
   const navigation = useNavigation<any>();
+  const { tokens, isLightTheme } = useTheme();
   const [lecturers, setLecturers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,9 +42,11 @@ export default function ManageLecturersScreen() {
         }
       });
       const result = await response.json();
-      if (result.status === 'success') {
+      if (result.status === 'success' && Array.isArray(result.data)) {
         const dosenOnly = result.data.filter((u: any) => u.role === 'dosen');
         setLecturers(dosenOnly);
+      } else {
+        setLecturers([]);
       }
     } catch (error) {
       console.error('Fetch lecturers error:', error);
@@ -59,8 +64,8 @@ export default function ManageLecturersScreen() {
 
 
   const filteredLecturers = lecturers.filter(l => 
-    l.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    l.nip.includes(searchQuery)
+    (l.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (l.nip || '').includes(searchQuery)
   );
 
   const handleAddPress = () => {
@@ -163,34 +168,34 @@ export default function ManageLecturersScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={[Colors.ai.gradientStart, Colors.ai.gradientMiddle, Colors.ai.gradientEnd]}
-        style={styles.background}
-      >
+      <StatusBar barStyle={isLightTheme ? "dark-content" : "light-content"} />
+      <AnimatedBackground style={styles.background}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <ArrowLeft color="#fff" size={24} />
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()} 
+            style={[styles.backBtn, { backgroundColor: tokens.iconButtonBg }]}
+          >
+            <ArrowLeft color={tokens.textColor} size={24} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Basis Data Dosen</Text>
+          <Text style={[styles.headerTitle, { color: tokens.textColor }]}>Basis Data Dosen</Text>
           <View style={{ width: 24 }} />
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <BlurView intensity={20} tint="dark" style={styles.searchBar}>
-            <Search size={20} color="rgba(255,255,255,0.4)" />
+          <BlurView intensity={20} tint={isLightTheme ? 'light' : 'dark'} style={[styles.searchBar, { borderColor: tokens.borderColor }]}>
+            <Search size={20} color={tokens.subTextColor} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: tokens.textColor }]}
               placeholder="Cari nama atau NIP..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={tokens.subTextColor}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery !== '' && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <X size={18} color="rgba(255,255,255,0.4)" />
+                <X size={18} color={tokens.subTextColor} />
               </TouchableOpacity>
             )}
           </BlurView>
@@ -198,40 +203,63 @@ export default function ManageLecturersScreen() {
 
         {/* Lecturer List */}
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {filteredLecturers.map(lecturer => (
-            <BlurView key={lecturer.id} intensity={15} tint="dark" style={styles.lecturerCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.avatar}>
-                  <ShieldCheck size={24} color="#fff" />
+          {isLoading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#A78BFA" />
+              <Text style={[styles.loadingText, { color: tokens.subTextColor }]}>Memuat data...</Text>
+            </View>
+          ) : filteredLecturers.length > 0 ? (
+            filteredLecturers.map(lecturer => (
+              <BlurView 
+                key={lecturer.id} 
+                intensity={15} 
+                tint={isLightTheme ? 'light' : 'dark'} 
+                style={[styles.lecturerCard, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}
+              >
+                <View style={styles.cardHeader}>
+                  <View style={[styles.avatar, { backgroundColor: tokens.iconButtonBg, borderColor: tokens.borderColor }]}>
+                    <ShieldCheck size={24} color={tokens.textColor} />
+                  </View>
+                  <View style={styles.info}>
+                    <Text style={[styles.name, { color: tokens.textColor }]}>{lecturer.name || 'Unknown'}</Text>
+                    <Text style={[styles.nip, { color: tokens.subTextColor }]}>{lecturer.nip || '-'}</Text>
+                  </View>
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity 
+                      onPress={() => handleEditPress(lecturer)} 
+                      style={[styles.actionBtn, { backgroundColor: tokens.iconButtonBg }]}
+                    >
+                      <Edit3 size={18} color={Colors.ai.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => handleDeletePress(lecturer.id)} 
+                      style={[styles.actionBtn, { backgroundColor: tokens.iconButtonBg }]}
+                    >
+                      <Trash2 size={18} color="#F87171" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={styles.info}>
-                  <Text style={styles.name}>{lecturer.name}</Text>
-                  <Text style={styles.nip}>{lecturer.nip}</Text>
+                
+                <View style={[styles.cardDivider, { backgroundColor: tokens.borderColor }]} />
+                
+                <View style={styles.cardFooter}>
+                  <View style={styles.metaItem}>
+                    <Briefcase size={14} color={tokens.subTextColor} />
+                    <Text style={[styles.metaText, { color: tokens.subTextColor }]}>{lecturer.jabatan || '-'}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Mail size={14} color={tokens.subTextColor} />
+                    <Text style={[styles.metaText, { color: tokens.subTextColor }]} numberOfLines={1}>{lecturer.email || '-'}</Text>
+                  </View>
                 </View>
-                <View style={styles.actionRow}>
-                  <TouchableOpacity onPress={() => handleEditPress(lecturer)} style={styles.actionBtn}>
-                    <Edit3 size={18} color={Colors.ai.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeletePress(lecturer.id)} style={styles.actionBtn}>
-                    <Trash2 size={18} color="#F87171" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              <View style={styles.cardDivider} />
-              
-              <View style={styles.cardFooter}>
-                <View style={styles.metaItem}>
-                  <Briefcase size={14} color="rgba(255,255,255,0.4)" />
-                  <Text style={styles.metaText}>{lecturer.jabatan}</Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <Mail size={14} color="rgba(255,255,255,0.4)" />
-                  <Text style={styles.metaText} numberOfLines={1}>{lecturer.email}</Text>
-                </View>
-              </View>
-            </BlurView>
-          ))}
+              </BlurView>
+            ))
+          ) : (
+            <View style={styles.centerContainer}>
+              <Briefcase size={48} color={tokens.subTextColor} opacity={0.3} />
+              <Text style={[styles.emptyText, { color: tokens.subTextColor }]}>Tidak ada data dosen</Text>
+            </View>
+          )}
         </ScrollView>
 
         {/* FAB */}
@@ -253,71 +281,71 @@ export default function ManageLecturersScreen() {
           transparent={true}
         >
           <View style={styles.modalOverlay}>
-            <BlurView intensity={80} tint="dark" style={styles.modalContent}>
+            <BlurView intensity={80} tint={isLightTheme ? 'light' : 'dark'} style={[styles.modalContent, { backgroundColor: tokens.cardBg, borderColor: tokens.borderColor }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: tokens.textColor }]}>
                   {editingLecturer ? 'Edit Data Dosen' : 'Tambah Dosen Baru'}
                 </Text>
                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                  <X color="#fff" size={24} />
+                  <X color={tokens.textColor} size={24} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalForm}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Nama Lengkap (Gelar)</Text>
-                  <View style={styles.inputWrap}>
-                    <UserCheck size={20} color="rgba(255,255,255,0.4)" />
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Nama Lengkap (Gelar)</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <UserCheck size={20} color={tokens.subTextColor} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor }]}
                       value={formData.name}
                       onChangeText={text => setFormData({...formData, name: text})}
                       placeholder="Contoh: Dr. John Doe, M.Kom"
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                     />
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>NIP / Nomor Induk</Text>
-                  <View style={styles.inputWrap}>
-                    <IdCard size={20} color="rgba(255,255,255,0.4)" />
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>NIP / Nomor Induk</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <IdCard size={20} color={tokens.subTextColor} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor }]}
                       value={formData.nip}
                       onChangeText={text => setFormData({...formData, nip: text})}
                       placeholder="Masukkan NIP..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                       keyboardType="numeric"
                     />
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Jabatan Akademik</Text>
-                  <View style={styles.inputWrap}>
-                    <Briefcase size={20} color="rgba(255,255,255,0.4)" />
+                  <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Jabatan Akademik</Text>
+                  <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                    <Briefcase size={20} color={tokens.subTextColor} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: tokens.textColor }]}
                       value={formData.jabatan}
                       onChangeText={text => setFormData({...formData, jabatan: text})}
                       placeholder="Lektor, Asisten Ahli, dll..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={tokens.subTextColor}
                     />
                   </View>
                 </View>
 
                 <View style={styles.row}>
                   <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                    <Text style={styles.inputLabel}>Email</Text>
-                    <View style={styles.inputWrap}>
-                      <Mail size={18} color="rgba(255,255,255,0.4)" />
+                    <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Email</Text>
+                    <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                      <Mail size={18} color={tokens.subTextColor} />
                       <TextInput
-                        style={[styles.input, { marginLeft: 8 }]}
+                        style={[styles.input, { marginLeft: 8, color: tokens.textColor }]}
                         value={formData.email}
                         onChangeText={text => setFormData({...formData, email: text})}
                         placeholder="email@..."
-                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        placeholderTextColor={tokens.subTextColor}
                         keyboardType="email-address"
                       />
                     </View>
@@ -327,15 +355,15 @@ export default function ManageLecturersScreen() {
                 {!editingLecturer && (
                   <>
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Password Awal</Text>
-                      <View style={styles.inputWrap}>
-                        <ShieldCheck size={18} color="rgba(255,255,255,0.4)" />
+                      <Text style={[styles.inputLabel, { color: tokens.subTextColor }]}>Password Awal</Text>
+                      <View style={[styles.inputWrap, { backgroundColor: tokens.inputBg, borderColor: tokens.borderColor }]}>
+                        <ShieldCheck size={18} color={tokens.subTextColor} />
                         <TextInput
-                          style={[styles.input, { marginLeft: 8 }]}
+                          style={[styles.input, { marginLeft: 8, color: tokens.textColor }]}
                           value={formData.password}
                           onChangeText={text => setFormData({...formData, password: text})}
                           placeholder="Password untuk dosen ini..."
-                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          placeholderTextColor={tokens.subTextColor}
                           secureTextEntry={true}
                         />
                       </View>
@@ -368,7 +396,7 @@ export default function ManageLecturersScreen() {
             </BlurView>
           </View>
         </Modal>
-      </LinearGradient>
+      </AnimatedBackground>
     </View>
   );
 }
@@ -388,12 +416,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -408,13 +434,11 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
     gap: 12,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
     fontSize: 16,
   },
   listContent: {
@@ -426,7 +450,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
   },
   cardHeader: {
@@ -437,23 +460,19 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 18,
-    backgroundColor: 'rgba(167, 139, 250, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.4)',
   },
   info: {
     flex: 1,
   },
   name: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   nip: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
     marginTop: 2,
   },
@@ -465,13 +484,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardDivider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     marginVertical: 16,
   },
   cardFooter: {
@@ -485,7 +502,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
   },
   fab: {
@@ -496,6 +512,10 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   fabGradient: {
     flex: 1,
@@ -515,7 +535,8 @@ const styles = StyleSheet.create({
     padding: 24,
     overflow: 'hidden',
     borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -524,7 +545,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   modalTitle: {
-    color: '#fff',
     fontSize: 22,
     fontWeight: 'bold',
   },
@@ -535,7 +555,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputLabel: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     marginBottom: 8,
     marginLeft: 4,
@@ -543,16 +562,13 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   input: {
     flex: 1,
-    color: '#fff',
     fontSize: 16,
     marginLeft: 12,
   },
@@ -578,20 +594,31 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   infoBox: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderRadius: 14,
     padding: 14,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
   },
   infoText: {
-    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 13,
     lineHeight: 20,
   },
   infoTextBold: {
     fontWeight: '600',
-    color: '#60a5fa',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
